@@ -73,8 +73,7 @@ import { kebabCase } from 'change-case'
 import copy from 'copy-to-clipboard'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
-import { sample, sampleSize } from 'es-toolkit'
-import { sort } from 'fast-sort'
+import * as _ from 'es-toolkit'
 import { saveAs } from 'file-saver'
 import { AnimatePresence, LazyMotion, domAnimation, m, useSpring } from 'framer-motion'
 import Fuse from 'fuse.js'
@@ -90,7 +89,6 @@ import { ThemeProvider, useTheme } from 'next-themes'
 import pluralize from 'pluralize'
 import prettyBytes from 'pretty-bytes'
 import { memo, useEffect, useId, useRef, useState } from 'react'
-import isEqual from 'react-fast-compare'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { VirtuosoGrid } from 'react-virtuoso'
 import semver from 'semver'
@@ -114,7 +112,7 @@ const use = {
     })
 
     const isBookmarked = icon =>
-      state.some(a => isEqual(a, stringToIcon(`${icon.set.prefix}:${icon.name}`)))
+      state.some(a => _.isEqual(a, stringToIcon(`${icon.set.prefix}:${icon.name}`)))
 
     return {
       bookmarks: state,
@@ -123,7 +121,7 @@ const use = {
         const b = stringToIcon(`${icon.set.prefix}:${icon.name}`)
 
         if (isBookmarked(icon)) {
-          setState(state => state.filter(a => !isEqual(a, b)))
+          setState(state => state.filter(a => !_.isEqual(a, b)))
 
           toast('Bookmark removed')
         } else {
@@ -136,7 +134,7 @@ const use = {
   },
   count: data => {
     if (Array.isArray(data)) return data.length
-    if (isEqual(typeof data, 'object')) return Object.keys(data).length
+    if (_.isEqual(typeof data, 'object')) return Object.keys(data).length
 
     return Number(data)
   },
@@ -240,7 +238,7 @@ const iconSets = {
               <ScrollShadow className='h-96'>
                 <My.Listbox>
                   {{
-                    '': sort(
+                    '': _.orderBy(
                       Object.keys(this.module).map(key => {
                         const iconSet = collections[key]
 
@@ -249,8 +247,10 @@ const iconSets = {
                           isDisabled: true,
                           title: iconSet.name
                         }
-                      })
-                    ).asc('title')
+                      }),
+                      ['title'],
+                      ['asc']
+                    )
                   }}
                 </My.Listbox>
               </ScrollShadow>
@@ -314,7 +314,7 @@ const iconSets = {
       if (state) return
 
       const allIconSets = mapObject(Object.fromEntries(await idb.entries()), (key, iconSet) => {
-        if (isEqual(key, 'VERSION')) return mapObjectSkip
+        if (_.isEqual(key, 'VERSION')) return mapObjectSkip
 
         iconSet.icons = Object.entries(iconSet.icons).map(([name, data]) => ({
           data: data,
@@ -338,7 +338,7 @@ const iconSets = {
     return key in collections ? [key, value] : mapObjectSkip
   }),
   shouldUpdate: async function async() {
-    return !isEqual(await idb.get('VERSION'), this.version)
+    return !_.isEqual(await idb.get('VERSION'), this.version)
   },
   storageUsage: () => {
     const [state, setState] = useState(0)
@@ -355,7 +355,7 @@ const Icons = {
     const { isBookmarked, toggleBookmark } = use.bookmarks()
     const [state, { toggle }] = useBoolean(true)
 
-    if (state) icons = sort(icons).asc('name')
+    if (state) icons = _.orderBy(icons, ['name'], ['asc'])
 
     return (
       <Card
@@ -410,7 +410,7 @@ const Icons = {
                         }
                       ],
                       Bookmark: ['Add', 'Remove'].map(title => ({
-                        isDisabled: isEqual(isEqual(title, 'Add'), isBookmarked(icon)),
+                        isDisabled: _.isEqual(_.isEqual(title, 'Add'), isBookmarked(icon)),
                         onPress: () => toggleBookmark(icon),
                         title: title
                       })),
@@ -451,7 +451,7 @@ const Icons = {
             )
           }}
           listClassName='flex-center flex-wrap h-auto'
-          scrollSeekConfiguration={{ enter: x => Math.abs(x), exit: a => isEqual(a, 0) }}
+          scrollSeekConfiguration={{ enter: x => Math.abs(x), exit: a => _.isEqual(a, 0) }}
           {...props}
         />
         <CardFooter>
@@ -468,14 +468,14 @@ const Icons = {
     )
   },
   Endless: () => {
-    const sizes = Array.from({ length: 10 }, (v, k) => (k + 1) * 100)
+    const sizes = _.range(100, 1_100, 100)
 
     const { globalState } = use.globalState()
     const [state, setState] = useSetState({ icons: [], size: sizes[0] })
 
     const endReached = () =>
       setState(state => ({
-        icons: [...state.icons, ...sampleSize(globalState.allIcons, state.size)]
+        icons: [...state.icons, ..._.sampleSize(globalState.allIcons, state.size)]
       }))
 
     useEffect(endReached, [])
@@ -492,7 +492,7 @@ const Icons = {
                   {{
                     [use.pluralize(sizes, 'size')]: sizes.map(size => ({
                       description: 'icons per page',
-                      isActive: isEqual(size, state.size),
+                      isActive: _.isEqual(size, state.size),
                       onPress: () => setState({ size }),
                       title: size
                     }))
@@ -510,7 +510,7 @@ const Icons = {
   Filter: ({ categories, icons, name, prefixes, suffixes }) => {
     const initialState = { category: undefined, theme: undefined }
 
-    const [state, setState, validState = key => isEqual(typeof state[key], 'string')] =
+    const [state, setState, validState = key => _.isEqual(typeof state[key], 'string')] =
       useSetState(initialState)
 
     const themes = prefixes || suffixes
@@ -525,13 +525,15 @@ const Icons = {
       const b =
         !themes ||
         !validState('theme') ||
-        (isEqual(state.theme, '') ? !Object.keys(themes).some(isMatchingTheme) : isMatchingTheme())
+        (_.isEqual(state.theme, '')
+          ? !Object.keys(themes).some(isMatchingTheme)
+          : isMatchingTheme())
 
       return a && b
     })
 
     useDeepCompareEffect(() => {
-      if (isEqual(state, initialState)) return
+      if (_.isEqual(state, initialState)) return
 
       setState(initialState)
     }, [categories, prefixes, suffixes])
@@ -548,7 +550,7 @@ const Icons = {
                     {{
                       ...(themes && {
                         [use.pluralize(themes, 'theme')]: Object.entries(themes).map(
-                          ([theme, title, isActive = isEqual(state.theme, theme)]) => ({
+                          ([theme, title, isActive = _.isEqual(state.theme, theme)]) => ({
                             description: isActive && 'Deselect',
                             isActive: isActive,
                             onPress: () => setState({ theme: !isActive && theme }),
@@ -559,7 +561,7 @@ const Icons = {
                       ...(categories && {
                         [use.pluralize(categories, 'category')]: Object.keys(categories).map(
                           category => {
-                            const isActive = isEqual(state.category, category)
+                            const isActive = _.isEqual(state.category, category)
 
                             return {
                               description: isActive && 'Deselect',
@@ -659,7 +661,7 @@ const My = {
 
             const rect = target.getBoundingClientRect()
 
-            if (isEqual(align, 'center')) return setX(clientX - rect.left - rect.width / 2)
+            if (_.isEqual(align, 'center')) return setX(clientX - rect.left - rect.width / 2)
 
             const contentWidth = ref.current.getBoundingClientRect().width
             const offsetX = clientX - rect[{ end: 'right', start: 'left' }[align]]
@@ -713,7 +715,7 @@ const My = {
       {Object.entries(sections).map(([title, items], index, data) => (
         <ListboxSection
           key={useId()}
-          showDivider={!isEqual(index, use.count(data) - 1)}
+          showDivider={!_.isEqual(index, use.count(data) - 1)}
           title={title}>
           {items.map(({ color = 'primary', descriptions = [], isActive, title, ...props }) => (
             <ListboxItem
@@ -735,7 +737,7 @@ const My = {
   RandomLoader: () => {
     const Loader = 'random-loader'
 
-    useEffect(() => sample(Object.values(ldrs)).register(Loader), [])
+    useEffect(() => _.sample(Object.values(ldrs)).register(Loader), [])
 
     return (
       <Loader
@@ -770,43 +772,49 @@ export default () => {
                     <My.Listbox>
                       {{
                         [iconSets.version]: [
-                          ['Endless scrolling', 'Hehe'],
-                          ['Bookmarks', use.pluralize(bookmarks, 'icon')],
+                          ['Endless scrolling', ['Hehe']],
+                          ['Bookmarks', [use.pluralize(bookmarks, 'icon')]],
                           [
                             use.pluralize(globalState.allIconSets, 'icon set'),
-                            use.pluralize(globalState.allIcons, 'icon')
+                            [
+                              use.pluralize(globalState.allIcons, 'icon'),
+                              use.unix(
+                                _.maxBy(
+                                  Object.values(globalState.allIconSets),
+                                  ({ lastModified }) => lastModified
+                                ).lastModified
+                              )
+                            ]
                           ]
-                        ].map(([title, description]) => ({
-                          description: description,
-                          isActive: isEqual(state, title),
+                        ].map(([title, descriptions]) => ({
+                          descriptions: descriptions,
+                          isActive: _.isEqual(state, title),
                           onPress: () => setState(title),
                           title: title
                         })),
                         ...sortKeys(
                           mapObject(
-                            Object.groupBy(
+                            _.groupBy(
                               Object.values(globalState.allIconSets),
                               ({ category }) => category
                             ),
                             (category, iconSets) => [
                               `${category} (${use.count(iconSets)})`,
-                              sort(iconSets)
-                                .asc('name')
-                                .map(iconSet => ({
-                                  descriptions: [
-                                    iconSet.author,
-                                    iconSet.license,
-                                    use.pluralize(iconSet.icons, 'icon'),
-                                    use.unix(iconSet.lastModified)
-                                  ],
-                                  isActive: isEqual(state, iconSet.prefix),
-                                  onPress: () => setState(iconSet.prefix),
-                                  title: (
-                                    <div className={cn(iconSet.palette && 'italic underline')}>
-                                      {iconSet.name}
-                                    </div>
-                                  )
-                                }))
+                              _.orderBy(iconSets, ['name'], ['asc']).map(iconSet => ({
+                                descriptions: [
+                                  iconSet.author,
+                                  iconSet.license,
+                                  use.pluralize(iconSet.icons, 'icon'),
+                                  use.unix(iconSet.lastModified)
+                                ],
+                                isActive: _.isEqual(state, iconSet.prefix),
+                                onPress: () => setState(iconSet.prefix),
+                                title: (
+                                  <div className={cn(iconSet.palette && 'italic underline')}>
+                                    {iconSet.name}
+                                  </div>
+                                )
+                              }))
                             ]
                           )
                         ),
@@ -840,15 +848,15 @@ export default () => {
               <Panel>
                 <PanelGroup direction='vertical'>
                   <Panel>
-                    {isEqual(state, 'Endless scrolling') && <Icons.Endless />}
-                    {isEqual(state, use.pluralize(globalState.allIconSets, 'icon set')) && (
+                    {_.isEqual(state, 'Endless scrolling') && <Icons.Endless />}
+                    {_.isEqual(state, use.pluralize(globalState.allIconSets, 'icon set')) && (
                       <Icons.Card>{globalState.allIcons}</Icons.Card>
                     )}
-                    {isEqual(state, 'Bookmarks') && (
+                    {_.isEqual(state, 'Bookmarks') && (
                       <Icons.Card>
                         {bookmarks.map(bookmark =>
                           globalState.allIconSets[bookmark.prefix].icons.find(icon =>
-                            isEqual(icon.name, bookmark.name)
+                            _.isEqual(icon.name, bookmark.name)
                           )
                         )}
                       </Icons.Card>
