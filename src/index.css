@@ -1,0 +1,70 @@
+@import url('non.geist');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-divider underline-offset-2 !shadow-none ![font-family:Geist_Variable];
+    @apply scrollbar-thin scrollbar-track-transparent scrollbar-thumb-divider;
+  }
+
+  :root {
+    @apply bg-default-100;
+
+    &.dark {
+      @apply bg-background;
+    }
+  }
+
+  [data-panel-group] {
+    [data-panel] {
+      @apply !overflow-auto;
+    }
+
+    [data-resize-handle] {
+      @apply basis-px bg-divider outline-0;
+
+      &[aria-valuenow='0'],
+      &[aria-valuenow='100'] {
+        @apply basis-0;
+      }
+    }
+  }
+
+  [data-sonner-toast] {
+    @apply card justify-between gap-4;
+
+    [data-content] {
+      @apply size-full;
+
+      [data-title] {
+        @apply line-clamp-1;
+      }
+
+      [data-description] {
+        @apply text-foreground-500;
+      }
+    }
+  }
+
+  .iconify,
+  button {
+    @apply !min-w-fit;
+  }
+}
+
+@layer components {
+  .flex-center {
+    @apply flex size-full items-center justify-center;
+  }
+
+  .card {
+    @apply rounded-xl border border-divider bg-background text-foreground;
+  }
+
+  .card__footer {
+    @apply flex-center justify-between px-3 text-sm;
+  }
+}
