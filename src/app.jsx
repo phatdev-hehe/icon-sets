@@ -177,13 +177,13 @@ const use = {
       duration: undefined
     })
   },
-  saveIconsAs: function (icons, filename, path = 'detail') {
+  saveIconsAs: function (icons, filename, pathType = 'detail') {
     const zip = new JSZip()
 
     for (let icon of icons) {
       icon = this.parseIcon(icon)
 
-      zip.file(icon.paths.svg[path], icon.to.html)
+      zip.file(icon.paths.svg[pathType], icon.to.html)
     }
 
     return this.saveAs(zip.generateAsync({ type: 'blob' }), filename)
@@ -470,8 +470,8 @@ const Icons = {
               dropdown={
                 <My.Listbox>
                   {{
-                    [use.pluralize(sizes, 'size')]: sizes.map(size => ({
-                      description: 'icons per page',
+                    'Icons per page': sizes.map(size => ({
+                      description: 'icons',
                       isActive: _.isEqual(size, state.size),
                       onPress: () => setState({ size }),
                       title: size
@@ -555,6 +555,7 @@ const Icons = {
                       [use.pluralize(icons, 'icon')]: [
                         {
                           description: `${name}.zip`,
+                          isDisabled: !use.count(icons),
                           onPress: () => use.saveIconsAs(icons, `${name}.zip`, 'default'),
                           title: 'Download'
                         }
@@ -613,10 +614,10 @@ const Icons = {
                     {{
                       Default: [
                         {
-                          description: 'All results',
+                          description: 'Search results',
                           onPress: () =>
-                            use.saveIconsAs(state, `${use.pluralize(state, 'icon')} found.zip`),
-                          title: `${use.pluralize(state, 'icon')} found`
+                            use.saveIconsAs(state, `${use.pluralize(state, 'icon')}.zip`),
+                          title: use.pluralize(state, 'icon')
                         }
                       ],
                       [use.pluralize(
@@ -630,7 +631,7 @@ const Icons = {
                         return {
                           description: use.pluralize(icons, 'icon'),
                           isDisabled: !use.count(icons),
-                          onPress: () => use.saveIconsAs(icons, iconSet.name, 'default'),
+                          onPress: () => use.saveIconsAs(icons, `${iconSet.name}.zip`, 'default'),
                           title: iconSet.name
                         }
                       })
