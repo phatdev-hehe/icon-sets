@@ -1,4 +1,4 @@
-// Nhung viec ko lam dc :v
+// Ko lam dc :v
 
 // [Icons.Card] Them chuc nang `Restart animation` cho moi icon
 // neu nhu logic co dung `hook` thi lam them 2 tasks sau
@@ -7,7 +7,7 @@
 // https://github.com/search?q=repo%3Aiconify%2Ficonify%20restartAnimation&type=code
 // https://www.npmjs.com/package/style-to-js
 
-// [Icons.Endless] bi `nhap nhay footer` khi re-render
+// [Icons.Endless] bi nhap nhay footer khi `endReached` dc goi??
 
 // [use.bookmarks().deletedBookmarks] them chuc nang khoi phuc nhung icons da xoa ?????????
 // https://ahooks.js.org/hooks/use-previous/
@@ -97,21 +97,18 @@ const use = {
       listenStorageChange: true
     })
 
-    const isBookmarked = icon =>
-      state.some(a => _.isEqual(a, stringToIcon(`${icon.set.prefix}:${icon.name}`)))
+    const isBookmarked = icon => state.some(a => _.isEqual(a, stringToIcon(icon.id)))
 
     return {
       bookmarks: state,
       isBookmarked: isBookmarked,
       toggleBookmark: icon => {
-        const b = stringToIcon(`${icon.set.prefix}:${icon.name}`)
-
         if (isBookmarked(icon)) {
-          setState(state => state.filter(a => !_.isEqual(a, b)))
+          setState(state => state.filter(a => !_.isEqual(a, stringToIcon(icon.id))))
 
           toast('Bookmark removed')
         } else {
-          setState(state => [...state, b])
+          setState(state => [...state, stringToIcon(icon.id)])
 
           toast('Bookmark added')
         }
@@ -133,10 +130,9 @@ const use = {
     return { globalState: state, setGlobalState: setState }
   },
   parseIcon: icon => {
-    const { attributes, body } = iconToSVG(icon.data)
-    const k = `[${icon.set.name}] ${icon.name}`
+    if (iconsCache.has(icon.id)) return iconsCache.get(icon.id)
 
-    if (iconsCache.has(k)) return iconsCache.get(k)
+    const { attributes, body } = iconToSVG(icon.data)
 
     const v = {
       paths: mapObject({ css: {}, json: {}, svg: {}, txt: {} }, fileType => [
@@ -154,7 +150,7 @@ const use = {
       ...icon
     }
 
-    iconsCache.set(k, { isCached: true, ...v })
+    iconsCache.set(icon.id, { isCached: true, ...v })
 
     return v
   },
@@ -300,6 +296,7 @@ const iconSets = {
 
         iconSet.icons = Object.entries(iconSet.icons).map(([name, data]) => ({
           data: data,
+          id: `${iconSet.prefix}:${name}`,
           name: name,
           set: { name: iconSet.name, prefix: iconSet.prefix }
         }))
