@@ -487,20 +487,26 @@ const Icons = {
       </Icons.Card>
     )
   },
-  Filter: ({ categories, icons, name, prefixes, suffixes }) => {
+  Filter: iconSet => {
+    iconSet = _.clone(iconSet)
     const initialState = { category: undefined, theme: undefined }
 
     const [state, setState, validState = key => _.isEqual(typeof state[key], 'string')] =
       useSetState(initialState)
 
-    const themes = prefixes || suffixes
+    const themes = iconSet.prefixes || iconSet.suffixes
     const selectedCount = use.count(Object.keys(state).filter(validState))
 
-    icons = icons.filter(({ name }) => {
+    iconSet.icons = iconSet.icons.filter(({ name }) => {
       const isMatchingTheme = (theme = state.theme) =>
-        name[prefixes ? 'startsWith' : 'endsWith'](prefixes ? `${theme}-` : `-${theme}`)
+        name[iconSet.prefixes ? 'startsWith' : 'endsWith'](
+          iconSet.prefixes ? `${theme}-` : `-${theme}`
+        )
 
-      const a = !categories || !validState('category') || categories[state.category]?.includes(name)
+      const a =
+        !iconSet.categories ||
+        !validState('category') ||
+        iconSet.categories[state.category]?.includes(name)
 
       const b =
         !themes ||
@@ -516,14 +522,14 @@ const Icons = {
       if (_.isEqual(state, initialState)) return
 
       setState(initialState)
-    }, [categories, prefixes, suffixes])
+    }, [iconSet.categories, iconSet.prefixes, iconSet.suffixes])
 
     return (
       <Icons.Card
         footer={
           <div className='card__footer'>
-            {use.pluralize(icons, 'icon')}
-            {themes || categories ? (
+            {use.pluralize(iconSet.icons, 'icon')}
+            {themes || iconSet.categories ? (
               <My.IconButton
                 dropdown={
                   <My.Listbox>
@@ -538,25 +544,26 @@ const Icons = {
                           })
                         )
                       }),
-                      ...(categories && {
-                        [use.pluralize(categories, 'category')]: Object.keys(categories).map(
-                          category => {
-                            const isActive = _.isEqual(state.category, category)
+                      ...(iconSet.categories && {
+                        [use.pluralize(iconSet.categories, 'category')]: Object.keys(
+                          iconSet.categories
+                        ).map(category => {
+                          const isActive = _.isEqual(state.category, category)
 
-                            return {
-                              description: isActive && 'Deselect',
-                              isActive: isActive,
-                              onPress: () => setState({ category: !isActive && category }),
-                              title: category
-                            }
+                          return {
+                            description: isActive && 'Deselect',
+                            isActive: isActive,
+                            onPress: () => setState({ category: !isActive && category }),
+                            title: category
                           }
-                        )
+                        })
                       }),
-                      [use.pluralize(icons, 'icon')]: [
+                      [use.pluralize(iconSet.icons, 'icon')]: [
                         {
-                          description: `${name}.zip`,
-                          isDisabled: !use.count(icons),
-                          onPress: () => use.saveIconsAs(icons, `${name}.zip`, 'default'),
+                          description: `${iconSet.name}.zip`,
+                          isDisabled: !use.count(iconSet.icons),
+                          onPress: () =>
+                            use.saveIconsAs(iconSet.icons, `${iconSet.name}.zip`, 'default'),
                           title: 'Download'
                         }
                       ]
@@ -568,13 +575,13 @@ const Icons = {
             ) : (
               <My.IconButton
                 icon='line-md:arrow-small-down'
-                onPress={() => use.saveIconsAs(icons, `${name}.zip`, 'default')}>
-                {`${name}.zip`}
+                onPress={() => use.saveIconsAs(iconSet.icons, `${iconSet.name}.zip`, 'default')}>
+                {`${iconSet.name}.zip`}
               </My.IconButton>
             )}
           </div>
         }>
-        {icons}
+        {iconSet.icons}
       </Icons.Card>
     )
   },
