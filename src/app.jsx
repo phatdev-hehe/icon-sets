@@ -7,27 +7,13 @@
 // https://github.com/search?q=repo%3Aiconify%2Ficonify%20restartAnimation&type=code
 // https://www.npmjs.com/package/style-to-js
 
-// [Icons.Search] them chuc nang filter (vua filter, vua download)
-// kq_tk_ht: KET QUA TIM KIEM HIEN TAI
-// sau khi co `kq_tk_ht` thi ta loc theo `iconSetPrefix (academicons, bi,...)[Academicons, Bootstrap Icons,...]`
-// trong moi muc cua bo loc co cac props sau ??:
-// isDisabled: kt moi icon trong `kq_tk_ht` ko co `iconSetPrefix` [Array.prototype.some]
-// description: dem icon trong `kq_tk_ht` duoc loc theo `iconSetPrefix` [Array.prototype.filter]
-
 // [Icons.Endless] bi `nhap nhay footer` khi re-render
-// do dung chung scope => tach component
 
 // [use.bookmarks().deletedBookmarks] them chuc nang khoi phuc nhung icons da xoa ?????????
 // https://ahooks.js.org/hooks/use-previous/
 // https://es-toolkit.slash.page/reference/array/union.html
 // https://es-toolkit.slash.page/reference/array/difference.html
 // <Icon icon='line-md:backup-restore' />
-
-// [My.HoverCard]
-// sau khi icon duoc click, sau do ta click vao cac menu ke tiep
-// thi `popover` bi tat ??
-
-// [roughjs.com] them chuc nang chuyen icon sang net ve tay??
 
 import { css } from '@emotion/react'
 import { Icon } from '@iconify/react'
@@ -238,19 +224,15 @@ const iconSets = {
               <ScrollShadow className='h-96'>
                 <My.Listbox>
                   {{
-                    '': _.orderBy(
-                      Object.keys(this.module).map(key => {
-                        const iconSet = collections[key]
+                    '': Object.keys(this.module).map(key => {
+                      const iconSet = collections[key]
 
-                        return {
-                          description: use.pluralize(iconSet.total, 'icon'),
-                          isDisabled: true,
-                          title: iconSet.name
-                        }
-                      }),
-                      ['title'],
-                      ['asc']
-                    )
+                      return {
+                        description: use.pluralize(iconSet.total, 'icon'),
+                        isDisabled: true,
+                        title: iconSet.name
+                      }
+                    })
                   }}
                 </My.Listbox>
               </ScrollShadow>
@@ -468,10 +450,11 @@ const Icons = {
     )
   },
   Endless: () => {
-    const sizes = _.range(100, 1_100, 100)
+    const step = 100
+    const sizes = _.range(step, 10_000 + step, step)
 
     const { globalState } = use.globalState()
-    const [state, setState] = useSetState({ icons: [], size: sizes[0] })
+    const [state, setState] = useSetState({ icons: [], size: step })
 
     const endReached = () =>
       setState(state => ({
@@ -612,30 +595,55 @@ const Icons = {
     return (
       <Icons.Card
         footer={
-          <Input
-            autoFocus
-            classNames={{
-              inputWrapper: 'border-none',
-              label: use.count(state) && '!text-foreground-500'
-            }}
-            endContent={
-              !!use.count(state) && (
-                <My.IconButton
-                  icon='line-md:arrow-small-down'
-                  onPress={() =>
-                    use.saveIconsAs(state, `${use.pluralize(state, 'icon')} found.zip`)
-                  }>
-                  {`${use.pluralize(state, 'icon')} found.zip`}
-                </My.IconButton>
-              )
-            }
-            isInvalid={!use.count(state)}
-            label={use.pluralize(state, 'icon')}
-            onValueChange={setDebounceState}
-            placeholder={placeholder}
-            startContent={<Icon className='size-5' icon='line-md:search' />}
-            variant='bordered'
-          />
+          <div className='card__footer'>
+            <Input
+              autoFocus
+              classNames={{
+                inputWrapper: 'border-none',
+                label: use.count(state) && '!text-foreground-500'
+              }}
+              isInvalid={!use.count(state)}
+              label={use.pluralize(state, 'icon')}
+              onValueChange={setDebounceState}
+              placeholder={placeholder}
+              startContent={<Icon className='size-5' icon='line-md:search' />}
+              variant='bordered'
+            />
+            {!!use.count(state) && (
+              <My.IconButton
+                dropdown={
+                  <My.Listbox>
+                    {{
+                      Default: [
+                        {
+                          description: 'All results',
+                          onPress: () =>
+                            use.saveIconsAs(state, `${use.pluralize(state, 'icon')} found.zip`),
+                          title: `${use.pluralize(state, 'icon')} found`
+                        }
+                      ],
+                      [use.pluralize(
+                        _.groupBy(state, icon => icon.set.prefix),
+                        'icon set'
+                      )]: Object.values(globalState.allIconSets).map(iconSet => {
+                        const icons = state.filter(icon =>
+                          _.isEqual(icon.set.prefix, iconSet.prefix)
+                        )
+
+                        return {
+                          description: use.pluralize(icons, 'icon'),
+                          isDisabled: !use.count(icons),
+                          onPress: () => use.saveIconsAs(icons, iconSet.name, 'default'),
+                          title: iconSet.name
+                        }
+                      })
+                    }}
+                  </My.Listbox>
+                }
+                icon='line-md:arrow-small-down'
+              />
+            )}
+          </div>
         }>
         {state}
       </Icons.Card>
