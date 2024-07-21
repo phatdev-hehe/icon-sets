@@ -39,6 +39,7 @@ import {
   ListboxSection,
   NextUIProvider,
   ScrollShadow,
+  Spinner,
   cn
 } from '@nextui-org/react'
 import * as HoverCard from '@radix-ui/react-hover-card'
@@ -67,7 +68,6 @@ import * as idb from 'idb-keyval'
 import { useAtom } from 'jotai'
 import { atomWithImmer } from 'jotai-immer'
 import JSZip from 'jszip'
-import * as ldrs from 'ldrs'
 import { LRUCache } from 'lru-cache'
 import mapObject, { mapObjectSkip } from 'map-obj'
 import { nanoid } from 'nanoid'
@@ -105,11 +105,9 @@ const use = {
       toggleBookmark: icon => {
         if (isBookmarked(icon)) {
           setState(state => state.filter(a => !_.isEqual(a, stringToIcon(icon.id))))
-
           toast('Bookmark removed')
         } else {
           setState(state => [...state, stringToIcon(icon.id)])
-
           toast('Bookmark added')
         }
       }
@@ -117,7 +115,7 @@ const use = {
   },
   count: data => {
     if (Array.isArray(data)) return data.length
-    if (_.isEqual(typeof data, 'object')) return Object.keys(data).length
+    if (typeof data === 'object') return Object.keys(data).length
 
     return Number(data)
   },
@@ -198,7 +196,6 @@ const use = {
 const iconSets = {
   clear: async () => {
     await idb.clear()
-
     location.reload(true)
   },
   init: function () {
@@ -267,9 +264,7 @@ const iconSets = {
           )
 
           await idb.set('VERSION', this.version)
-
           currentToast.update({ description: 'Please wait', duration: undefined })
-
           setState(await this.shouldUpdate())
         } catch {
           currentToast.update({
@@ -283,7 +278,6 @@ const iconSets = {
         }
       } else {
         toast(message, { description: 'No update required' })
-
         setState()
       }
     }, [])
@@ -292,7 +286,7 @@ const iconSets = {
       if (state) return
 
       const allIconSets = mapObject(Object.fromEntries(await idb.entries()), (key, iconSet) => {
-        if (_.isEqual(key, 'VERSION')) return mapObjectSkip
+        if (key === 'VERSION') return mapObjectSkip
 
         iconSet.icons = Object.entries(iconSet.icons).map(([name, data]) => ({
           data: data,
@@ -317,7 +311,7 @@ const iconSets = {
     return key in collections ? [key, value] : mapObjectSkip
   }),
   shouldUpdate: async function async() {
-    return !_.isEqual(await idb.get('VERSION'), this.version)
+    return (await idb.get('VERSION')) !== this.version
   },
   storageUsage: () => {
     const [state, setState] = useState(0)
@@ -389,7 +383,7 @@ const Icons = {
                         }
                       ],
                       Bookmark: ['Add', 'Remove'].map(title => ({
-                        isDisabled: _.isEqual(_.isEqual(title, 'Add'), isBookmarked(icon)),
+                        isDisabled: (title === 'Add') === isBookmarked(icon),
                         onPress: () => toggleBookmark(icon),
                         title: title
                       })),
@@ -430,7 +424,7 @@ const Icons = {
             )
           }}
           listClassName='flex-center flex-wrap h-auto'
-          scrollSeekConfiguration={{ enter: x => Math.abs(x), exit: a => _.isEqual(a, 0) }}
+          scrollSeekConfiguration={{ enter: x => Math.abs(x), exit: x => x === 0 }}
           {...props}
         />
         <CardFooter>
@@ -449,7 +443,6 @@ const Icons = {
   Endless: () => {
     const step = 100
     const sizes = _.range(step, 10_000 + step, step)
-
     const { globalState } = use.globalState()
     const [state, setState] = useSetState({ icons: [], size: step })
 
@@ -472,7 +465,7 @@ const Icons = {
                   {{
                     'Icons per page': sizes.map(size => ({
                       description: 'icons',
-                      isActive: _.isEqual(size, state.size),
+                      isActive: size === state.size,
                       onPress: () => setState({ size }),
                       title: size
                     }))
@@ -491,37 +484,33 @@ const Icons = {
     iconSet = _.clone(iconSet)
     const initialState = { category: undefined, theme: undefined }
 
-    const [state, setState, validState = key => _.isEqual(typeof state[key], 'string')] =
+    const [state, setState, validState = key => typeof state[key] === 'string'] =
       useSetState(initialState)
 
     const themes = iconSet.prefixes || iconSet.suffixes
     const selectedCount = use.count(Object.keys(state).filter(validState))
 
-    iconSet.icons = iconSet.icons.filter(({ name }) => {
+    iconSet.icons = iconSet.icons.filter(icon => {
       const isMatchingTheme = (theme = state.theme) =>
-        name[iconSet.prefixes ? 'startsWith' : 'endsWith'](
+        icon.name[iconSet.prefixes ? 'startsWith' : 'endsWith'](
           iconSet.prefixes ? `${theme}-` : `-${theme}`
         )
 
       const a =
         !iconSet.categories ||
         !validState('category') ||
-        iconSet.categories[state.category]?.includes(name)
+        iconSet.categories[state.category]?.includes(icon.name)
 
       const b =
         !themes ||
         !validState('theme') ||
-        (_.isEqual(state.theme, '')
-          ? !Object.keys(themes).some(isMatchingTheme)
-          : isMatchingTheme())
+        (state.theme === '' ? !Object.keys(themes).some(isMatchingTheme) : isMatchingTheme())
 
       return a && b
     })
 
     useDeepCompareEffect(() => {
-      if (_.isEqual(state, initialState)) return
-
-      setState(initialState)
+      if (state !== initialState) setState(initialState)
     }, [iconSet.categories, iconSet.prefixes, iconSet.suffixes])
 
     return (
@@ -536,7 +525,7 @@ const Icons = {
                     {{
                       ...(themes && {
                         [use.pluralize(themes, 'theme')]: Object.entries(themes).map(
-                          ([theme, title, isActive = _.isEqual(state.theme, theme)]) => ({
+                          ([theme, title, isActive = state.theme === theme]) => ({
                             description: isActive && 'Deselect',
                             isActive: isActive,
                             onPress: () => setState({ theme: !isActive && theme }),
@@ -548,7 +537,7 @@ const Icons = {
                         [use.pluralize(iconSet.categories, 'category')]: Object.keys(
                           iconSet.categories
                         ).map(category => {
-                          const isActive = _.isEqual(state.category, category)
+                          const isActive = state.category === category
 
                           return {
                             description: isActive && 'Deselect',
@@ -631,9 +620,7 @@ const Icons = {
                         _.groupBy(state, icon => icon.set.prefix),
                         'icon set'
                       )]: Object.values(globalState.allIconSets).map(iconSet => {
-                        const icons = state.filter(icon =>
-                          _.isEqual(icon.set.prefix, iconSet.prefix)
-                        )
+                        const icons = state.filter(icon => icon.set.prefix === iconSet.prefix)
 
                         return {
                           description: use.pluralize(icons, 'icon'),
@@ -660,7 +647,6 @@ const My = {
   HoverCard: ({ align = 'center', asDropdown, asTooltip, children, content }) => {
     const [state, setState] = useState()
     const ref = useRef()
-
     const x = useSpring(0)
     const setX = v => x.set(v / 4)
 
@@ -674,7 +660,7 @@ const My = {
 
             const rect = target.getBoundingClientRect()
 
-            if (_.isEqual(align, 'center')) return setX(clientX - rect.left - rect.width / 2)
+            if (align === 'center') return setX(clientX - rect.left - rect.width / 2)
 
             const contentWidth = ref.current.getBoundingClientRect().width
             const offsetX = clientX - rect[{ end: 'right', start: 'left' }[align]]
@@ -726,10 +712,7 @@ const My = {
   Listbox: ({ children: sections }) => (
     <Listbox aria-label={useId()} variant='light'>
       {Object.entries(sections).map(([title, items], index, data) => (
-        <ListboxSection
-          key={useId()}
-          showDivider={!_.isEqual(index, use.count(data) - 1)}
-          title={title}>
+        <ListboxSection key={useId()} showDivider={index !== use.count(data) - 1} title={title}>
           {items.map(({ color = 'primary', descriptions = [], isActive, title, ...props }) => (
             <ListboxItem
               classNames={{ title: isActive && `text-${color}` }}
@@ -747,20 +730,6 @@ const My = {
       ))}
     </Listbox>
   ),
-  RandomLoader: () => {
-    const Loader = 'random-loader'
-
-    useEffect(() => _.sample(Object.values(ldrs)).register(Loader), [])
-
-    return (
-      <Loader
-        style={{
-          '--uib-color': 'hsl(var(--nextui-primary)',
-          '--uib-size': '2rem'
-        }}
-      />
-    )
-  },
   Theme: ({ children }) => children(useTheme())
 }
 
@@ -801,7 +770,7 @@ export default () => {
                           ]
                         ].map(([title, descriptions]) => ({
                           descriptions: descriptions,
-                          isActive: _.isEqual(state, title),
+                          isActive: state === title,
                           onPress: () => setState(title),
                           title: title
                         })),
@@ -820,7 +789,7 @@ export default () => {
                                   use.pluralize(iconSet.icons, 'icon'),
                                   use.unix(iconSet.lastModified)
                                 ],
-                                isActive: _.isEqual(state, iconSet.prefix),
+                                isActive: state === iconSet.prefix,
                                 onPress: () => setState(iconSet.prefix),
                                 title: (
                                   <div className={cn(iconSet.palette && 'italic underline')}>
@@ -861,15 +830,15 @@ export default () => {
               <Panel>
                 <PanelGroup direction='vertical'>
                   <Panel>
-                    {_.isEqual(state, 'Endless scrolling') && <Icons.Endless />}
-                    {_.isEqual(state, use.pluralize(globalState.allIconSets, 'icon set')) && (
+                    {state === 'Endless scrolling' && <Icons.Endless />}
+                    {state === use.pluralize(globalState.allIconSets, 'icon set') && (
                       <Icons.Card>{globalState.allIcons}</Icons.Card>
                     )}
-                    {_.isEqual(state, 'Bookmarks') && (
+                    {state === 'Bookmarks' && (
                       <Icons.Card>
                         {bookmarks.map(bookmark =>
-                          globalState.allIconSets[bookmark.prefix].icons.find(icon =>
-                            _.isEqual(icon.name, bookmark.name)
+                          globalState.allIconSets[bookmark.prefix].icons.find(
+                            icon => icon.name === bookmark.name
                           )
                         )}
                       </Icons.Card>
@@ -886,7 +855,7 @@ export default () => {
               </Panel>
             </PanelGroup>
           ) : (
-            <My.RandomLoader />
+            <Spinner label='Loading…' />
           )}
         </NextUIProvider>
         <Canvas className='!fixed inset-0 -z-10 hidden dark:block'>
