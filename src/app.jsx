@@ -100,7 +100,7 @@ const use = {
     const isBookmarked = icon => state.some(a => _.isEqual(a, stringToIcon(icon.id)))
 
     return {
-      bookmarks: state,
+      bookmarkedIcons: state,
       isBookmarked: isBookmarked,
       toggleBookmark: icon => {
         if (isBookmarked(icon)) {
@@ -137,7 +137,7 @@ const use = {
         fileType,
         {
           default: `${icon.name}.${fileType}`,
-          detail: `[${icon.set.name}] ${icon.name}.${fileType}`
+          detail: `[${icon.setName}] ${icon.name}.${fileType}`
         }
       ]),
       to: {
@@ -292,7 +292,8 @@ const iconSets = {
           data: data,
           id: `${iconSet.prefix}:${name}`,
           name: name,
-          set: { name: iconSet.name, prefix: iconSet.prefix }
+          prefix: iconSet.prefix,
+          setName: iconSet.name
         }))
 
         return [key, iconSet]
@@ -370,7 +371,7 @@ const Icons = {
                     {{
                       [`#${index + 1}`]: [
                         {
-                          description: icon.set.name,
+                          description: icon.setName,
                           onPress: () => {
                             const url = URL.createObjectURL(
                               new Blob([icon.to.html], { type: 'image/svg+xml' })
@@ -617,10 +618,10 @@ const Icons = {
                         }
                       ],
                       [use.pluralize(
-                        _.groupBy(state, icon => icon.set.prefix),
+                        _.groupBy(state, icon => icon.prefix),
                         'icon set'
                       )]: Object.values(globalState.allIconSets).map(iconSet => {
-                        const icons = state.filter(icon => icon.set.prefix === iconSet.prefix)
+                        const icons = state.filter(icon => icon.prefix === iconSet.prefix)
 
                         return {
                           description: use.pluralize(icons, 'icon'),
@@ -735,7 +736,7 @@ const My = {
 
 export default () => {
   const { globalState } = use.globalState()
-  const { bookmarks } = use.bookmarks()
+  const { bookmarkedIcons } = use.bookmarks()
   const [state, setState] = useState('Endless scrolling')
 
   iconSets.init()
@@ -755,7 +756,7 @@ export default () => {
                       {{
                         [iconSets.version]: [
                           ['Endless scrolling', ['Hehe']],
-                          ['Bookmarks', [use.pluralize(bookmarks, 'icon')]],
+                          ['Bookmarks', [use.pluralize(bookmarkedIcons, 'icon')]],
                           [
                             use.pluralize(globalState.allIconSets, 'icon set'),
                             [
@@ -836,9 +837,9 @@ export default () => {
                     )}
                     {state === 'Bookmarks' && (
                       <Icons.Card>
-                        {bookmarks.map(bookmark =>
-                          globalState.allIconSets[bookmark.prefix].icons.find(
-                            icon => icon.name === bookmark.name
+                        {bookmarkedIcons.map(bookmarkedIcon =>
+                          globalState.allIconSets[bookmarkedIcon.prefix].icons.find(
+                            icon => icon.name === bookmarkedIcon.name
                           )
                         )}
                       </Icons.Card>
