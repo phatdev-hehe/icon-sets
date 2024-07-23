@@ -1,5 +1,3 @@
-// Ko lam dc :v
-
 // [Icons.Card] Them chuc nang `Restart animation` cho moi icon
 // neu nhu logic co dung `hook` thi lam them 2 tasks sau
 // VirtuosoGrid.itemContent={(index, data) => data}
@@ -7,7 +5,9 @@
 // https://github.com/search?q=repo%3Aiconify%2Ficonify%20restartAnimation&type=code
 // https://www.npmjs.com/package/style-to-js
 
+// [Icons.Filter]?? > xem icon set Noto Emoji (v1) > loc icons > sau do ta xem icon set khac > loi :v
 // [Icons.Endless] bi nhap nhay footer khi `endReached` dc goi??
+// [My.HoverCard] bi dong khi `trigger` dc click??
 
 // [use.bookmarks().deletedBookmarks] them chuc nang khoi phuc nhung icons da xoa ?????????
 // https://ahooks.js.org/hooks/use-previous/
