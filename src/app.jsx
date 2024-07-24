@@ -5,15 +5,8 @@
 // https://github.com/search?q=repo%3Aiconify%2Ficonify%20restartAnimation&type=code
 // https://www.npmjs.com/package/style-to-js
 
-// [Icons.Filter]?? > xem icon set Noto Emoji (v1) > loc icons > sau do ta xem icon set khac > loi :v
+// [Icons.Filter]?? > loc `Noto Emoji (v1)` icons > xem icon set khac > phep thuat winx xuat hien :v
 // [Icons.Endless] bi nhap nhay footer khi `endReached` dc goi??
-// [My.HoverCard] bi dong khi `trigger` dc click??
-
-// [use.bookmarks().deletedBookmarks] them chuc nang khoi phuc nhung icons da xoa ?????????
-// https://ahooks.js.org/hooks/use-previous/
-// https://es-toolkit.slash.page/reference/array/union.html
-// https://es-toolkit.slash.page/reference/array/difference.html
-// <Icon icon='line-md:backup-restore' />
 
 import { css } from '@emotion/react'
 import { Icon } from '@iconify/react'
@@ -87,7 +80,7 @@ import collections from '/node_modules/@iconify/json/collections.json'
 
 dayjs.extend(relativeTime)
 
-const globalState = atomWithImmer({ allIconSets: {}, allIcons: [] })
+const globalState = atomWithImmer({ allIcons: [], allIconSets: {} })
 const iconsCache = new LRUCache({ max: 500 })
 
 const use = {
@@ -100,7 +93,7 @@ const use = {
     const isBookmarked = icon => state.some(a => _.isEqual(a, stringToIcon(icon.id)))
 
     return {
-      bookmarkedIcons: state,
+      bookmarks: state,
       isBookmarked: isBookmarked,
       toggleBookmark: icon => {
         if (isBookmarked(icon)) {
@@ -577,11 +570,16 @@ const Icons = {
   },
   Search: memo(({ placeholder = 'Search' }) => {
     const { globalState } = use.globalState()
-    const [state, setState] = useState([])
     const fuse = useCreation(() => new Fuse(globalState.allIcons, { keys: ['name'], threshold: 0 }))
+    const [state, setState] = useSetState({ fuseResult: [], icons: [] })
+    const isUnfiltered = (a = state.fuseResult) => _.isEqual(a, state.icons)
 
     const { run: setDebounceState } = useDebounceFn(
-      input => setState(fuse.search(kebabCase(input)).map(({ item }) => item)),
+      input => {
+        const fuseResult = fuse.search(kebabCase(input)).map(({ item }) => item)
+
+        setState({ fuseResult: fuseResult, icons: fuseResult })
+      },
       { wait: 300 }
     )
 
@@ -595,50 +593,68 @@ const Icons = {
               autoFocus
               classNames={{
                 inputWrapper: 'border-none',
-                label: use.count(state) && '!text-foreground-500'
+                label: use.count(state.icons) && '!text-foreground-500'
               }}
-              isInvalid={!use.count(state)}
-              label={use.pluralize(state, 'icon')}
+              isInvalid={!use.count(state.icons)}
+              label={use.pluralize(state.icons, 'icon')}
               onValueChange={setDebounceState}
               placeholder={placeholder}
               startContent={<Icon className='size-5' icon='line-md:search' />}
               variant='bordered'
             />
-            {!!use.count(state) && (
+            {!!use.count(state.icons) && (
               <My.IconButton
                 dropdown={
                   <My.Listbox>
                     {{
-                      Default: [
+                      [use.pluralize(state.fuseResult, 'icon')]: [
                         {
-                          description: 'Search results',
+                          isDisabled: isUnfiltered(),
+                          onPress: () => setState(state => ({ icons: state.fuseResult })),
+                          title: 'View'
+                        },
+                        {
                           onPress: () =>
-                            use.saveIconsAs(state, `${use.pluralize(state, 'icon')}.zip`),
-                          title: use.pluralize(state, 'icon')
+                            use.saveIconsAs(
+                              state.fuseResult,
+                              `${use.pluralize(state.fuseResult, 'icon')}.zip`
+                            ),
+                          title: 'Download'
                         }
                       ],
-                      [use.pluralize(
-                        _.groupBy(state, icon => icon.prefix),
-                        'icon set'
-                      )]: Object.values(globalState.allIconSets).map(iconSet => {
-                        const icons = state.filter(icon => icon.prefix === iconSet.prefix)
+                      ...mapObject(globalState.allIconSets, (key, iconSet) => {
+                        iconSet = _.clone(iconSet)
 
-                        return {
-                          description: use.pluralize(icons, 'icon'),
-                          isDisabled: !use.count(icons),
-                          onPress: () => use.saveIconsAs(icons, `${iconSet.name}.zip`, 'default'),
-                          title: iconSet.name
-                        }
+                        iconSet.icons = state.fuseResult.filter(
+                          icon => icon.prefix === iconSet.prefix
+                        )
+
+                        return [
+                          `${iconSet.name} (${use.count(iconSet.icons)})`,
+                          [
+                            {
+                              isDisabled: isUnfiltered(iconSet.icons) || !use.count(iconSet.icons),
+                              onPress: () => setState({ icons: iconSet.icons }),
+                              title: 'View'
+                            },
+                            {
+                              isDisabled: !use.count(iconSet.icons),
+                              onPress: () =>
+                                use.saveIconsAs(iconSet.icons, `${iconSet.name}.zip`, 'default'),
+                              title: 'Download'
+                            }
+                          ]
+                        ]
                       })
                     }}
                   </My.Listbox>
                 }
-                icon='line-md:arrow-small-down'
+                icon={isUnfiltered() ? 'line-md:filter' : 'line-md:filter-filled'}
               />
             )}
           </div>
         }>
-        {state}
+        {state.icons}
       </Icons.Card>
     )
   })
@@ -736,7 +752,7 @@ const My = {
 
 export default () => {
   const { globalState } = use.globalState()
-  const { bookmarkedIcons } = use.bookmarks()
+  const { bookmarks } = use.bookmarks()
   const [state, setState] = useState('Endless scrolling')
 
   iconSets.init()
@@ -756,7 +772,7 @@ export default () => {
                       {{
                         [iconSets.version]: [
                           ['Endless scrolling', ['Hehe']],
-                          ['Bookmarks', [use.pluralize(bookmarkedIcons, 'icon')]],
+                          ['Bookmarks', [use.pluralize(bookmarks, 'icon')]],
                           [
                             use.pluralize(globalState.allIconSets, 'icon set'),
                             [
@@ -837,7 +853,7 @@ export default () => {
                     )}
                     {state === 'Bookmarks' && (
                       <Icons.Card>
-                        {bookmarkedIcons.map(bookmarkedIcon =>
+                        {bookmarks.map(bookmarkedIcon =>
                           globalState.allIconSets[bookmarkedIcon.prefix].icons.find(
                             icon => icon.name === bookmarkedIcon.name
                           )
