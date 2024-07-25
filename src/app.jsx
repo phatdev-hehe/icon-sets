@@ -6,7 +6,6 @@
 // https://www.npmjs.com/package/style-to-js
 
 // [Icons.Filter]?? > loc `Noto Emoji (v1)` icons > xem icon set khac > phep thuat winx xuat hien :v
-// [Icons.Endless] bi nhap nhay footer khi `endReached` dc goi??
 
 import { css } from '@emotion/react'
 import { Icon } from '@iconify/react'
@@ -40,12 +39,12 @@ import { Stars } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
 import {
   useAsyncEffect,
-  useBoolean,
   useCreation,
   useDebounceFn,
   useDeepCompareEffect,
   useLocalStorageState,
   useRafInterval,
+  useRafState,
   useSetState,
   useUpdate
 } from 'ahooks'
@@ -80,7 +79,7 @@ import collections from '/node_modules/@iconify/json/collections.json'
 
 dayjs.extend(relativeTime)
 
-const globalState = atomWithImmer({ allIcons: [], allIconSets: {} })
+const atom = atomWithImmer({ allIcons: [], allIconSets: {} })
 const iconsCache = new LRUCache({ max: 500 })
 
 const use = {
@@ -106,6 +105,7 @@ const use = {
       }
     }
   },
+  copy: text => toast(copy(text) ? 'Copied!' : 'Copy failed'),
   count: data => {
     if (Array.isArray(data)) return data.length
     if (typeof data === 'object') return Object.keys(data).length
@@ -115,15 +115,11 @@ const use = {
   currentToast: (message, data, id = toast(message, data)) => ({
     currentToast: { update: data => toast(message, { ...data, id }) }
   }),
-  globalState: () => {
-    const [state, setState] = useAtom(globalState)
-
-    return { globalState: state, setGlobalState: setState }
-  },
+  globalState: ([globalState, setGlobalState] = useAtom(atom)) => ({ globalState, setGlobalState }),
   parseIcon: icon => {
     if (iconsCache.has(icon.id)) return iconsCache.get(icon.id)
 
-    const { attributes, body } = iconToSVG(icon.data)
+    const svg = iconToSVG(icon.data)
 
     const v = {
       paths: mapObject({ css: {}, json: {}, svg: {}, txt: {} }, fileType => [
@@ -135,8 +131,8 @@ const use = {
       ]),
       to: {
         css: getIconCSS(icon.data),
-        dataUrl: getIconContentCSS(icon.data, attributes).slice(31, -6),
-        html: iconToHTML(replaceIDs(body, nanoid()), attributes)
+        dataUrl: getIconContentCSS(icon.data, svg.attributes).slice(31, -6),
+        html: iconToHTML(replaceIDs(svg.body, nanoid()), svg.attributes)
       },
       ...icon
     }
@@ -145,22 +141,24 @@ const use = {
 
     return v
   },
-  pluralize: function (count, word) {
-    return pluralize(word, this.count(count), true)
-  },
+  pluralize: (count, word) => pluralize(word, use.count(count), true),
   saveAs: async function (data, filename) {
     const { currentToast } = this.currentToast(filename, {
       description: 'Preparing to download',
       duration: Number.POSITIVE_INFINITY
     })
 
-    const file = await Promise.all([data, filename])
+    const saveAsParams = await Promise.all([data, filename])
 
-    saveAs(...file)
+    saveAs(...saveAsParams)
 
     currentToast.update({
       action: (
-        <Button color='primary' onPress={() => saveAs(...file)} size='sm' variant='bordered'>
+        <Button
+          color='primary'
+          onPress={() => saveAs(...saveAsParams)}
+          size='sm'
+          variant='bordered'>
           Download
         </Button>
       ),
@@ -193,7 +191,7 @@ const iconSets = {
   },
   init: function () {
     const { setGlobalState } = use.globalState()
-    const [state, setState] = useState(true)
+    const [state, setState] = useRafState(true)
 
     useAsyncEffect(async (message = 'App') => {
       if (!(window.indexedDB && window.Blob))
@@ -304,11 +302,9 @@ const iconSets = {
 
     return key in collections ? [key, value] : mapObjectSkip
   }),
-  shouldUpdate: async function async() {
-    return (await idb.get('VERSION')) !== this.version
-  },
+  shouldUpdate: async () => (await idb.get('VERSION')) !== iconSets.version,
   storageUsage: () => {
-    const [state, setState] = useState(0)
+    const [state, setState] = useRafState(0)
 
     useAsyncEffect(async () => setState((await navigator.storage.estimate()).usage), [])
 
@@ -320,7 +316,7 @@ const iconSets = {
 const Icons = {
   Card: ({ children: icons, footer, ...props }) => {
     const { isBookmarked, toggleBookmark } = use.bookmarks()
-    const [state, { toggle }] = useBoolean(true)
+    const [state, setState] = useState(true)
 
     if (state) icons = _.orderBy(icons, ['name'], ['asc'])
 
@@ -390,12 +386,9 @@ const Icons = {
                         }[fileType]
 
                         return [
-                          { txt: 'Data URL' }[fileType] ?? fileType.toUpperCase(),
+                          fileType.toUpperCase(),
                           [
-                            {
-                              onPress: () => copy(text) && toast('Copied!'),
-                              title: 'Copy'
-                            },
+                            { onPress: () => use.copy(text), title: 'Copy' },
                             {
                               onPress: () => use.saveAs(new Blob([text]), path.detail),
                               title: 'Download'
@@ -425,7 +418,9 @@ const Icons = {
           {footer ?? (
             <div className='card__footer'>
               {use.pluralize(icons, 'icon')}
-              <My.IconButton icon={state ? 'line-md:watch' : 'line-md:watch-off'} onPress={toggle}>
+              <My.IconButton
+                icon={state ? 'line-md:watch' : 'line-md:watch-off'}
+                onPress={() => setState(!state)}>
                 {`${state ? 'Sorted' : 'Sort'} ${use.pluralize(icons, 'icon')}`}
               </My.IconButton>
             </div>
@@ -576,9 +571,9 @@ const Icons = {
 
     const { run: setDebounceState } = useDebounceFn(
       input => {
-        const fuseResult = fuse.search(kebabCase(input)).map(({ item }) => item)
+        const icons = fuse.search(kebabCase(input)).map(({ item }) => item)
 
-        setState({ fuseResult: fuseResult, icons: fuseResult })
+        setState({ fuseResult: icons, icons: icons })
       },
       { wait: 300 }
     )
