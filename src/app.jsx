@@ -7,6 +7,7 @@
 
 // [Icons.Filter]?? > loc `Noto Emoji (v1)` icons > xem icon set khac > phep thuat winx xuat hien :v
 
+import useUrlState from '@ahooksjs/use-url-state'
 import { css } from '@emotion/react'
 import { Icon } from '@iconify/react'
 import {
@@ -40,7 +41,7 @@ import { Canvas } from '@react-three/fiber'
 import {
   useAsyncEffect,
   useCreation,
-  useDebounceFn,
+  useDebounceEffect,
   useDeepCompareEffect,
   useLocalStorageState,
   useRafInterval,
@@ -68,6 +69,7 @@ import pluralize from 'pluralize'
 import prettyBytes from 'pretty-bytes'
 import { memo, useEffect, useId, useRef, useState } from 'react'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
+import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { VirtuosoGrid } from 'react-virtuoso'
 import semver from 'semver'
 import { Toaster, toast } from 'sonner'
@@ -569,16 +571,17 @@ const Icons = {
     const [state, setState] = useSetState({ fuseResult: [], icons: [] })
     const isUnfiltered = (a = state.fuseResult) => _.isEqual(a, state.icons)
 
-    const { run: setDebounceState } = useDebounceFn(
-      input => {
-        const icons = fuse.search(kebabCase(input)).map(({ item }) => item)
-
-        setState({ fuseResult: icons, icons: icons })
-      },
-      { wait: 300 }
+    const [{ search: searchPattern }, setSearchPattern] = useUrlState(
+      { search: placeholder },
+      { navigateMode: 'replace' }
     )
 
-    useEffect(() => setDebounceState(placeholder), [])
+    useDebounceEffect(
+      (icons = fuse.search(kebabCase(searchPattern)).map(({ item }) => item)) =>
+        setState({ fuseResult: icons, icons: icons }),
+      [searchPattern],
+      { wait: 300 }
+    )
 
     return (
       <Icons.Card
@@ -592,9 +595,10 @@ const Icons = {
               }}
               isInvalid={!use.count(state.icons)}
               label={use.pluralize(state.icons, 'icon')}
-              onValueChange={setDebounceState}
+              onValueChange={search => setSearchPattern({ search })}
               placeholder={placeholder}
               startContent={<Icon className='size-5' icon='line-md:search' />}
+              value={searchPattern}
               variant='bordered'
             />
             {!!use.count(state.icons) && (
@@ -742,6 +746,19 @@ const My = {
       ))}
     </Listbox>
   ),
+  Providers: ({ children }) => (
+    <LazyMotion features={domAnimation} strict>
+      <ThemeProvider attribute='class' disableTransitionOnChange>
+        <NextUIProvider className='flex-center p-6'>
+          <BrowserRouter>
+            <Routes>
+              <Route element={children} path='/' />
+            </Routes>
+          </BrowserRouter>
+        </NextUIProvider>
+      </ThemeProvider>
+    </LazyMotion>
+  ),
   Theme: ({ children }) => children(useTheme())
 }
 
@@ -753,130 +770,125 @@ export default () => {
   iconSets.init()
 
   return (
-    <LazyMotion features={domAnimation} strict>
-      <ThemeProvider attribute='class' disableTransitionOnChange>
-        <NextUIProvider className='flex-center p-6'>
-          {globalState.hasData ? (
-            <PanelGroup
-              className='card !~w-[50rem]/[66rem] lg:~lg:!~h-[50rem]/[38rem]'
-              direction='horizontal'>
-              <Panel className='py-2' defaultSize={24}>
-                <My.Theme>
-                  {({ resolvedTheme, setTheme }) => (
-                    <My.Listbox>
-                      {{
-                        [iconSets.version]: [
-                          ['Endless scrolling', ['Hehe']],
-                          ['Bookmarks', [use.pluralize(bookmarks, 'icon')]],
-                          [
-                            use.pluralize(globalState.allIconSets, 'icon set'),
-                            [
-                              use.pluralize(globalState.allIcons, 'icon'),
-                              use.unix(
-                                _.maxBy(
-                                  Object.values(globalState.allIconSets),
-                                  ({ lastModified }) => lastModified
-                                ).lastModified
-                              )
-                            ]
-                          ]
-                        ].map(([title, descriptions]) => ({
-                          descriptions: descriptions,
-                          isActive: state === title,
-                          onPress: () => setState(title),
-                          title: title
-                        })),
-                        ...sortKeys(
-                          mapObject(
-                            _.groupBy(
+    <My.Providers>
+      {globalState.hasData ? (
+        <PanelGroup
+          className='card !~w-[50rem]/[66rem] lg:~lg:!~h-[50rem]/[38rem]'
+          direction='horizontal'>
+          <Panel className='py-2' defaultSize={24}>
+            <My.Theme>
+              {({ resolvedTheme, setTheme }) => (
+                <My.Listbox>
+                  {{
+                    [iconSets.version]: [
+                      ['Endless scrolling', ['Hehe']],
+                      ['Bookmarks', [use.pluralize(bookmarks, 'icon')]],
+                      [
+                        use.pluralize(globalState.allIconSets, 'icon set'),
+                        [
+                          use.pluralize(globalState.allIcons, 'icon'),
+                          use.unix(
+                            _.maxBy(
                               Object.values(globalState.allIconSets),
-                              ({ category }) => category
-                            ),
-                            (category, iconSets) => [
-                              `${category} (${use.count(iconSets)})`,
-                              _.orderBy(iconSets, ['name'], ['asc']).map(iconSet => ({
-                                descriptions: [
-                                  iconSet.author,
-                                  iconSet.license,
-                                  use.pluralize(iconSet.icons, 'icon'),
-                                  use.unix(iconSet.lastModified)
-                                ],
-                                isActive: state === iconSet.prefix,
-                                onPress: () => setState(iconSet.prefix),
-                                title: (
-                                  <div className={cn(iconSet.palette && 'italic underline')}>
-                                    {iconSet.name}
-                                  </div>
-                                )
-                              }))
-                            ]
+                              ({ lastModified }) => lastModified
+                            ).lastModified
                           )
-                        ),
-                        Settings: [
-                          {
-                            description: 'Toggle theme',
-                            onPress: () =>
-                              setTheme({ dark: 'light', light: 'dark' }[resolvedTheme]),
-                            title: { dark: 'Dark', light: 'Light' }[resolvedTheme]
-                          },
-                          {
-                            description: 'View source code',
-                            href: 'https://github.com/phatdev-hehe/icon-sets',
-                            target: 'blank',
-                            title: 'GitHub'
-                          },
-                          {
-                            color: 'warning',
-                            description: iconSets.storageUsage(),
-                            isActive: true,
-                            onPress: iconSets.clear,
-                            title: 'Clear cache'
-                          }
                         ]
-                      }}
-                    </My.Listbox>
-                  )}
-                </My.Theme>
+                      ]
+                    ].map(([title, descriptions]) => ({
+                      descriptions: descriptions,
+                      isActive: state === title,
+                      onPress: () => setState(title),
+                      title: title
+                    })),
+                    ...sortKeys(
+                      mapObject(
+                        _.groupBy(
+                          Object.values(globalState.allIconSets),
+                          ({ category }) => category
+                        ),
+                        (category, iconSets) => [
+                          `${category} (${use.count(iconSets)})`,
+                          _.orderBy(iconSets, ['name'], ['asc']).map(iconSet => ({
+                            descriptions: [
+                              iconSet.author,
+                              iconSet.license,
+                              use.pluralize(iconSet.icons, 'icon'),
+                              use.unix(iconSet.lastModified)
+                            ],
+                            isActive: state === iconSet.prefix,
+                            onPress: () => setState(iconSet.prefix),
+                            title: (
+                              <div className={cn(iconSet.palette && 'italic underline')}>
+                                {iconSet.name}
+                              </div>
+                            )
+                          }))
+                        ]
+                      )
+                    ),
+                    Settings: [
+                      {
+                        description: 'Toggle theme',
+                        onPress: () => setTheme({ dark: 'light', light: 'dark' }[resolvedTheme]),
+                        title: { dark: 'Dark', light: 'Light' }[resolvedTheme]
+                      },
+                      {
+                        description: 'View source code',
+                        href: 'https://github.com/phatdev-hehe/icon-sets',
+                        target: 'blank',
+                        title: 'GitHub'
+                      },
+                      {
+                        color: 'warning',
+                        description: iconSets.storageUsage(),
+                        isActive: true,
+                        onPress: iconSets.clear,
+                        title: 'Clear cache'
+                      }
+                    ]
+                  }}
+                </My.Listbox>
+              )}
+            </My.Theme>
+          </Panel>
+          <PanelResizeHandle />
+          <Panel>
+            <PanelGroup direction='vertical'>
+              <Panel>
+                {state === 'Endless scrolling' && <Icons.Endless />}
+                {state === use.pluralize(globalState.allIconSets, 'icon set') && (
+                  <Icons.Card>{globalState.allIcons}</Icons.Card>
+                )}
+                {state === 'Bookmarks' && (
+                  <Icons.Card>
+                    {bookmarks.map(bookmarkedIcon =>
+                      globalState.allIconSets[bookmarkedIcon.prefix].icons.find(
+                        icon => icon.name === bookmarkedIcon.name
+                      )
+                    )}
+                  </Icons.Card>
+                )}
+                {Object.keys(globalState.allIconSets).includes(state) && (
+                  <Icons.Filter {...globalState.allIconSets[state]} />
+                )}
               </Panel>
               <PanelResizeHandle />
               <Panel>
-                <PanelGroup direction='vertical'>
-                  <Panel>
-                    {state === 'Endless scrolling' && <Icons.Endless />}
-                    {state === use.pluralize(globalState.allIconSets, 'icon set') && (
-                      <Icons.Card>{globalState.allIcons}</Icons.Card>
-                    )}
-                    {state === 'Bookmarks' && (
-                      <Icons.Card>
-                        {bookmarks.map(bookmarkedIcon =>
-                          globalState.allIconSets[bookmarkedIcon.prefix].icons.find(
-                            icon => icon.name === bookmarkedIcon.name
-                          )
-                        )}
-                      </Icons.Card>
-                    )}
-                    {Object.keys(globalState.allIconSets).includes(state) && (
-                      <Icons.Filter {...globalState.allIconSets[state]} />
-                    )}
-                  </Panel>
-                  <PanelResizeHandle />
-                  <Panel>
-                    <Icons.Search />
-                  </Panel>
-                </PanelGroup>
+                <Icons.Search />
               </Panel>
             </PanelGroup>
-          ) : (
-            <Spinner label='Loading…' />
-          )}
-        </NextUIProvider>
-        <Canvas className='!fixed inset-0 -z-10 hidden dark:block'>
-          <Stars count={1_000} depth={700} fade />
-        </Canvas>
-        <My.Theme>
-          {({ resolvedTheme }) => <Toaster pauseWhenPageIsHidden theme={resolvedTheme} />}
-        </My.Theme>
-      </ThemeProvider>
-    </LazyMotion>
+          </Panel>
+        </PanelGroup>
+      ) : (
+        <Spinner label='Loading…' />
+      )}
+      <Canvas className='!fixed inset-0 -z-10 hidden dark:block'>
+        <Stars count={1_000} depth={700} fade />
+      </Canvas>
+      <My.Theme>
+        {({ resolvedTheme }) => <Toaster pauseWhenPageIsHidden theme={resolvedTheme} />}
+      </My.Theme>
+    </My.Providers>
   )
 }
