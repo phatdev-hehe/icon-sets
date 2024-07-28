@@ -187,8 +187,8 @@ const use = {
 }
 
 const iconSets = {
-  clear: async () => {
-    await idb.clear()
+  clear: async (shouldClear = true) => {
+    shouldClear && (await idb.clear())
     location.reload(true)
   },
   init: function () {
@@ -199,6 +199,21 @@ const iconSets = {
       if (!(window.indexedDB && window.Blob))
         return toast(message, {
           description: 'Browser not supported',
+          duration: Number.POSITIVE_INFINITY
+        })
+
+      if ((await idb.get('VERSION')) === 'DOWNLOADING')
+        return toast(message, {
+          action: (
+            <Button
+              color='warning'
+              onPress={async () => iconSets.clear(await iconSets.shouldUpdate())}
+              size='sm'
+              variant='bordered'>
+              Redownload
+            </Button>
+          ),
+          description: 'Invalid data',
           duration: Number.POSITIVE_INFINITY
         })
 
@@ -227,7 +242,7 @@ const iconSets = {
           duration: Number.POSITIVE_INFINITY
         })
 
-        await idb.clear()
+        await Promise.all([idb.clear, idb.set('VERSION', 'DOWNLOADING')])
 
         try {
           await Promise.all(
@@ -256,7 +271,7 @@ const iconSets = {
             })
           )
 
-          await idb.set('VERSION', this.version)
+          await idb.update('VERSION', () => iconSets.version)
           currentToast.update({ description: 'Please wait', duration: undefined })
           setState(await this.shouldUpdate())
         } catch {
@@ -304,7 +319,9 @@ const iconSets = {
 
     return key in collections ? [key, value] : mapObjectSkip
   }),
-  shouldUpdate: async () => (await idb.get('VERSION')) !== iconSets.version,
+  shouldUpdate: async () =>
+    (await idb.get('VERSION')) !== iconSets.version ||
+    !_.isEqual(_.xor(Object.keys(collections), await idb.keys()), ['VERSION']),
   storageUsage: () => {
     const [state, setState] = useRafState(0)
 
@@ -431,8 +448,7 @@ const Icons = {
       </Card>
     )
   },
-  Endless: () => {
-    const step = 100
+  Endless: ({ step = 100 }) => {
     const sizes = _.range(step, 10_000 + step, step)
     const { globalState } = use.globalState()
     const [state, setState] = useSetState({ icons: [], size: step })
@@ -473,13 +489,11 @@ const Icons = {
   },
   Filter: iconSet => {
     iconSet = _.clone(iconSet)
-    const initialState = { category: undefined, theme: undefined }
 
-    const [state, setState, validState = key => typeof state[key] === 'string'] =
-      useSetState(initialState)
-
+    const initialState = { category: false, theme: false }
+    const [state, setState] = useSetState(initialState)
+    const validState = key => typeof state[key] === 'string'
     const themes = iconSet.prefixes || iconSet.suffixes
-    const selectedCount = use.count(Object.keys(state).filter(validState))
 
     iconSet.icons = iconSet.icons.filter(icon => {
       const isMatchingTheme = (theme = state.theme) =>
@@ -550,7 +564,7 @@ const Icons = {
                     }}
                   </My.Listbox>
                 }
-                icon={selectedCount ? 'line-md:filter-filled' : 'line-md:filter'}
+                icon={_.isEqual(state, initialState) ? 'line-md:filter' : 'line-md:filter-filled'}
               />
             ) : (
               <My.IconButton
@@ -577,8 +591,11 @@ const Icons = {
     )
 
     useDebounceEffect(
-      (icons = fuse.search(kebabCase(searchPattern)).map(({ item }) => item)) =>
-        setState({ fuseResult: icons, icons: icons }),
+      () => {
+        const icons = fuse.search(kebabCase(searchPattern)).map(({ item }) => item)
+
+        setState({ fuseResult: icons, icons: icons })
+      },
       [searchPattern],
       { wait: 300 }
     )
@@ -819,7 +836,7 @@ export default () => {
                             isActive: state === iconSet.prefix,
                             onPress: () => setState(iconSet.prefix),
                             title: (
-                              <div className={cn(iconSet.palette && 'italic underline')}>
+                              <div className={cn({ 'italic underline': iconSet.palette })}>
                                 {iconSet.name}
                               </div>
                             )
