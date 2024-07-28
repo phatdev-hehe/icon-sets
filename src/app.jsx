@@ -603,72 +603,73 @@ const Icons = {
     return (
       <Icons.Card
         footer={
-          <div className='card__footer'>
-            <Input
-              autoFocus
-              classNames={{
-                inputWrapper: 'border-none',
-                label: use.count(state.icons) && '!text-foreground-500'
-              }}
-              isInvalid={!use.count(state.icons)}
-              label={use.pluralize(state.icons, 'icon')}
-              onValueChange={search => setSearchPattern({ search })}
-              placeholder={placeholder}
-              startContent={<Icon className='size-5' icon='line-md:search' />}
-              value={searchPattern}
-              variant='bordered'
-            />
-            {!!use.count(state.icons) && (
-              <My.IconButton
-                dropdown={
-                  <My.Listbox>
-                    {{
-                      [use.pluralize(state.fuseResult, 'icon')]: [
-                        {
-                          isDisabled: isUnfiltered(),
-                          onPress: () => setState(state => ({ icons: state.fuseResult })),
-                          title: 'View'
-                        },
-                        {
-                          onPress: () =>
-                            use.saveIconsAs(
-                              state.fuseResult,
-                              `${use.pluralize(state.fuseResult, 'icon')}.zip`
-                            ),
-                          title: 'Download'
-                        }
-                      ],
-                      ...mapObject(globalState.allIconSets, (key, iconSet) => {
-                        iconSet = _.clone(iconSet)
+          <Input
+            autoFocus
+            classNames={{
+              inputWrapper: 'border-none',
+              label: use.count(state.icons) && '!text-foreground-500'
+            }}
+            endContent={
+              !!use.count(state.icons) && (
+                <My.IconButton
+                  dropdown={
+                    <My.Listbox>
+                      {{
+                        [use.pluralize(state.fuseResult, 'icon')]: [
+                          {
+                            isDisabled: isUnfiltered(),
+                            onPress: () => setState(state => ({ icons: state.fuseResult })),
+                            title: 'View'
+                          },
+                          {
+                            onPress: () =>
+                              use.saveIconsAs(
+                                state.fuseResult,
+                                `${use.pluralize(state.fuseResult, 'icon')}.zip`
+                              ),
+                            title: 'Download'
+                          }
+                        ],
+                        ...mapObject(globalState.allIconSets, (key, iconSet) => {
+                          iconSet = _.clone(iconSet)
 
-                        iconSet.icons = state.fuseResult.filter(
-                          icon => icon.prefix === iconSet.prefix
-                        )
+                          iconSet.icons = state.fuseResult.filter(
+                            icon => icon.prefix === iconSet.prefix
+                          )
 
-                        return [
-                          `${iconSet.name} (${use.count(iconSet.icons)})`,
-                          [
-                            {
-                              isDisabled: isUnfiltered(iconSet.icons) || !use.count(iconSet.icons),
-                              onPress: () => setState({ icons: iconSet.icons }),
-                              title: 'View'
-                            },
-                            {
-                              isDisabled: !use.count(iconSet.icons),
-                              onPress: () =>
-                                use.saveIconsAs(iconSet.icons, `${iconSet.name}.zip`, 'default'),
-                              title: 'Download'
-                            }
+                          return [
+                            `${iconSet.name} (${use.count(iconSet.icons)})`,
+                            [
+                              {
+                                isDisabled:
+                                  isUnfiltered(iconSet.icons) || !use.count(iconSet.icons),
+                                onPress: () => setState({ icons: iconSet.icons }),
+                                title: 'View'
+                              },
+                              {
+                                isDisabled: !use.count(iconSet.icons),
+                                onPress: () =>
+                                  use.saveIconsAs(iconSet.icons, `${iconSet.name}.zip`, 'default'),
+                                title: 'Download'
+                              }
+                            ]
                           ]
-                        ]
-                      })
-                    }}
-                  </My.Listbox>
-                }
-                icon={isUnfiltered() ? 'line-md:filter' : 'line-md:filter-filled'}
-              />
-            )}
-          </div>
+                        })
+                      }}
+                    </My.Listbox>
+                  }
+                  icon={isUnfiltered() ? 'line-md:filter' : 'line-md:filter-filled'}
+                />
+              )
+            }
+            isInvalid={!use.count(state.icons)}
+            label={use.pluralize(state.icons, 'icon')}
+            onValueChange={search => setSearchPattern({ search })}
+            placeholder={placeholder}
+            startContent={<Icon className='size-5' icon='line-md:search' />}
+            value={searchPattern}
+            variant='bordered'
+          />
         }>
         {state.icons}
       </Icons.Card>
