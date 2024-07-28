@@ -743,12 +743,12 @@ const My = {
       </Link>
     </My.HoverCard>
   ),
+  // neu ko dung [key={index}] thi cai ac se troi day :v
   Listbox: ({ children: sections }) => (
     <Listbox aria-label={useId()} variant='light'>
       {Object.entries(sections).map(([title, items], index, data) => (
-        <ListboxSection key={useId()} showDivider={index !== use.count(data) - 1} title={title}>
+        <ListboxSection key={index} showDivider={index !== use.count(data) - 1} title={title}>
           {items.map(
-            // neu ko dung `index` thi cai ac se troi day :v
             ({ color = 'primary', descriptions = [], isActive, title, ...props }, index) => (
               <ListboxItem
                 classNames={{ title: isActive && `text-${color}` }}
