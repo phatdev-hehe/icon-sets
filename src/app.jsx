@@ -5,8 +5,6 @@
 // https://github.com/search?q=repo%3Aiconify%2Ficonify%20restartAnimation&type=code
 // https://www.npmjs.com/package/style-to-js
 
-// [Icons.Filter]?? > loc `Noto Emoji (v1)` icons > xem icon set khac > phep thuat winx xuat hien :v
-
 import useUrlState from '@ahooksjs/use-url-state'
 import { css } from '@emotion/react'
 import { Icon } from '@iconify/react'
@@ -488,12 +486,12 @@ const Icons = {
     )
   },
   Filter: iconSet => {
-    iconSet = _.clone(iconSet)
-
     const initialState = { category: false, theme: false }
     const [state, setState] = useSetState(initialState)
     const validState = key => typeof state[key] === 'string'
-    const themes = iconSet.prefixes || iconSet.suffixes
+
+    iconSet = _.clone(iconSet)
+    iconSet.themes = iconSet.prefixes || iconSet.suffixes
 
     iconSet.icons = iconSet.icons.filter(icon => {
       const isMatchingTheme = (theme = state.theme) =>
@@ -507,15 +505,17 @@ const Icons = {
         iconSet.categories[state.category]?.includes(icon.name)
 
       const b =
-        !themes ||
+        !iconSet.themes ||
         !validState('theme') ||
-        (state.theme === '' ? !Object.keys(themes).some(isMatchingTheme) : isMatchingTheme())
+        (state.theme === ''
+          ? !Object.keys(iconSet.themes).some(isMatchingTheme)
+          : isMatchingTheme())
 
       return a && b
     })
 
     useDeepCompareEffect(() => {
-      if (state !== initialState) setState(initialState)
+      if (!_.isEqual(state, initialState)) setState(initialState)
     }, [iconSet.categories, iconSet.prefixes, iconSet.suffixes])
 
     return (
@@ -523,20 +523,20 @@ const Icons = {
         footer={
           <div className='card__footer'>
             {use.pluralize(iconSet.icons, 'icon')}
-            {themes || iconSet.categories ? (
+            {iconSet.themes || iconSet.categories ? (
               <My.IconButton
                 dropdown={
                   <My.Listbox>
                     {{
-                      ...(themes && {
-                        [use.pluralize(themes, 'theme')]: Object.entries(themes).map(
-                          ([theme, title, isActive = state.theme === theme]) => ({
-                            description: isActive && 'Deselect',
-                            isActive: isActive,
-                            onPress: () => setState({ theme: !isActive && theme }),
-                            title: title
-                          })
-                        )
+                      ...(iconSet.themes && {
+                        [use.pluralize(iconSet.themes, 'theme')]: Object.entries(
+                          iconSet.themes
+                        ).map(([theme, title, isActive = state.theme === theme]) => ({
+                          description: isActive && 'Deselect',
+                          isActive: isActive,
+                          onPress: () => setState({ theme: !isActive && theme }),
+                          title: title
+                        }))
                       }),
                       ...(iconSet.categories && {
                         [use.pluralize(iconSet.categories, 'category')]: Object.keys(
@@ -747,19 +747,22 @@ const My = {
     <Listbox aria-label={useId()} variant='light'>
       {Object.entries(sections).map(([title, items], index, data) => (
         <ListboxSection key={useId()} showDivider={index !== use.count(data) - 1} title={title}>
-          {items.map(({ color = 'primary', descriptions = [], isActive, title, ...props }) => (
-            <ListboxItem
-              classNames={{ title: isActive && `text-${color}` }}
-              color={isActive ? color : ''}
-              description={descriptions.map(description => (
-                <div key={useId()}>{description}</div>
-              ))}
-              key={useId()}
-              textValue={useId()}
-              {...props}>
-              {title}
-            </ListboxItem>
-          ))}
+          {items.map(
+            // neu ko dung `index` thi cai ac se troi day :v
+            ({ color = 'primary', descriptions = [], isActive, title, ...props }, index) => (
+              <ListboxItem
+                classNames={{ title: isActive && `text-${color}` }}
+                color={isActive ? color : ''}
+                description={descriptions.map(description => (
+                  <div key={useId()}>{description}</div>
+                ))}
+                key={index}
+                textValue={String(index)}
+                {...props}>
+                {title}
+              </ListboxItem>
+            )
+          )}
         </ListboxSection>
       ))}
     </Listbox>
