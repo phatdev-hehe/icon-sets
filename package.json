@@ -7,9 +7,9 @@
   "dependencies": {
     "@ahooksjs/use-url-state": "^3.5.1",
     "@emotion/react": "^11.13.0",
-    "@iconify/json": "^2.2.231",
+    "@iconify/json": "^2.2.232",
     "@iconify/react": "^5.0.2",
-    "@iconify/utils": "^2.1.25",
+    "@iconify/utils": "^2.1.29",
     "@nextui-org/react": "^2.4.6",
     "@radix-ui/react-hover-card": "^1.1.1",
     "@react-three/drei": "^9.109.2",

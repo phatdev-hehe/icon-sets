@@ -1,10 +1,3 @@
-// [Icons.Card] Them chuc nang `Restart animation` cho moi icon
-// neu nhu logic co dung `hook` thi lam them 2 tasks sau
-// VirtuosoGrid.itemContent={(index, data) => data}
-// VirtuosoGrid.components.Item = ({ children: icon, 'data-index': index }) => {}
-// https://github.com/search?q=repo%3Aiconify%2Ficonify%20restartAnimation&type=code
-// https://www.npmjs.com/package/style-to-js
-
 import useUrlState from '@ahooksjs/use-url-state'
 import { css } from '@emotion/react'
 import { Icon } from '@iconify/react'
@@ -137,7 +130,7 @@ const use = {
       ...icon
     }
 
-    iconsCache.set(icon.id, { isCached: true, ...v })
+    iconsCache.set(icon.id, v)
 
     return v
   },
@@ -208,7 +201,7 @@ const iconSets = {
               onPress={async () => iconSets.clear(await iconSets.shouldUpdate())}
               size='sm'
               variant='bordered'>
-              Redownload
+              Relaunch
             </Button>
           ),
           description: 'Invalid data',
@@ -331,9 +324,15 @@ const iconSets = {
 }
 
 const Icons = {
-  Card: ({ children: icons, footer, ...props }) => {
+  Card: ({ children: icons, footer, storage, ...props }) => {
+    const { globalState } = use.globalState()
     const { isBookmarked, toggleBookmark } = use.bookmarks()
     const [state, setState] = useState(true)
+
+    if (storage)
+      icons = storage.map(i =>
+        globalState.allIconSets[i.prefix].icons.find(icon => icon.name === i.name)
+      )
 
     if (state) icons = _.orderBy(icons, ['name'], ['asc'])
 
@@ -881,15 +880,7 @@ export default () => {
                 {state === use.pluralize(globalState.allIconSets, 'icon set') && (
                   <Icons.Card>{globalState.allIcons}</Icons.Card>
                 )}
-                {state === 'Bookmarks' && (
-                  <Icons.Card>
-                    {bookmarks.map(bookmarkedIcon =>
-                      globalState.allIconSets[bookmarkedIcon.prefix].icons.find(
-                        icon => icon.name === bookmarkedIcon.name
-                      )
-                    )}
-                  </Icons.Card>
-                )}
+                {state === 'Bookmarks' && <Icons.Card storage={bookmarks} />}
                 {Object.keys(globalState.allIconSets).includes(state) && (
                   <Icons.Filter {...globalState.allIconSets[state]} />
                 )}
