@@ -99,11 +99,11 @@ const use = {
     }
   },
   copy: text => toast(copy(text) ? 'Copied!' : 'Copy failed'),
-  count: data => {
-    if (Array.isArray(data)) return data.length
-    if (typeof data === 'object') return Object.keys(data).length
+  count: value => {
+    if (Array.isArray(value)) return value.length
+    if (typeof value === 'object') return Object.keys(value).length
 
-    return Number(data)
+    return +value
   },
   currentToast: (message, data, id = toast(message, data)) => ({
     currentToast: { update: data => toast(message, { ...data, id }) }
@@ -198,7 +198,7 @@ const iconSets = {
           action: (
             <Button
               color='warning'
-              onPress={async () => iconSets.clear(await iconSets.shouldUpdate())}
+              onPress={async () => this.clear(await this.shouldUpdate())}
               size='sm'
               variant='bordered'>
               Relaunch
@@ -262,7 +262,7 @@ const iconSets = {
             })
           )
 
-          await idb.update('VERSION', () => iconSets.version)
+          await idb.update('VERSION', () => this.version)
           currentToast.update({ description: 'Please wait', duration: undefined })
           setState(await this.shouldUpdate())
         } catch {
@@ -324,7 +324,7 @@ const iconSets = {
 }
 
 const Icons = {
-  Card: ({ children: icons, footer, storage, ...props }) => {
+  Card: ({ footer, icons, storage, ...props }) => {
     const { globalState } = use.globalState()
     const { isBookmarked, toggleBookmark } = use.bookmarks()
     const [state, setState] = useState(true)
@@ -353,6 +353,14 @@ const Icons = {
               ) : (
                 <div className='flex-center text-sm text-foreground-500'>No icons</div>
               ),
+            // Item: props => {
+            //   const icon = icons[props['data-index']]
+            //
+            //   useState()
+            //   useEffect()
+            //
+            //   return <div {...props} />
+            // },
             ScrollSeekPlaceholder: ({ height, index, width }) => {
               const icon = icons[index]
 
@@ -436,9 +444,9 @@ const Icons = {
               {use.pluralize(icons, 'icon')}
               <My.IconButton
                 icon={state ? 'line-md:watch' : 'line-md:watch-off'}
-                onPress={() => setState(!state)}>
-                {`${state ? 'Sorted' : 'Sort'} ${use.pluralize(icons, 'icon')}`}
-              </My.IconButton>
+                onPress={() => setState(!state)}
+                tooltip={`${state ? 'Sorted' : 'Sort'} ${use.pluralize(icons, 'icon')}`}
+              />
             </div>
           )}
         </CardFooter>
@@ -479,9 +487,9 @@ const Icons = {
               icon='line-md:arrow-align-right'
             />
           </div>
-        }>
-        {state.icons}
-      </Icons.Card>
+        }
+        icons={state.icons}
+      />
     )
   },
   Filter: iconSet => {
@@ -490,7 +498,7 @@ const Icons = {
     const validState = key => typeof state[key] === 'string'
 
     iconSet = _.clone(iconSet)
-    iconSet.themes = iconSet.prefixes || iconSet.suffixes
+    iconSet.themes = iconSet.prefixes ?? iconSet.suffixes
 
     iconSet.icons = iconSet.icons.filter(icon => {
       const isMatchingTheme = (theme = state.theme) =>
@@ -498,19 +506,16 @@ const Icons = {
           iconSet.prefixes ? `${theme}-` : `-${theme}`
         )
 
-      const a =
-        !iconSet.categories ||
-        !validState('category') ||
-        iconSet.categories[state.category]?.includes(icon.name)
+      const isCategoryMatch =
+        !validState('category') || iconSet.categories?.[state.category]?.includes(icon.name)
 
-      const b =
-        !iconSet.themes ||
+      const isThemeMatch =
         !validState('theme') ||
         (state.theme === ''
           ? !Object.keys(iconSet.themes).some(isMatchingTheme)
           : isMatchingTheme())
 
-      return a && b
+      return isCategoryMatch && isThemeMatch
     })
 
     useDeepCompareEffect(() => {
@@ -568,14 +573,14 @@ const Icons = {
             ) : (
               <My.IconButton
                 icon='line-md:arrow-small-down'
-                onPress={() => use.saveIconsAs(iconSet.icons, `${iconSet.name}.zip`, 'default')}>
-                {`${iconSet.name}.zip`}
-              </My.IconButton>
+                onPress={() => use.saveIconsAs(iconSet.icons, `${iconSet.name}.zip`, 'default')}
+                tooltip={`${iconSet.name}.zip`}
+              />
             )}
           </div>
-        }>
-        {iconSet.icons}
-      </Icons.Card>
+        }
+        icons={iconSet.icons}
+      />
     )
   },
   Search: memo(({ placeholder = 'Search' }) => {
@@ -669,9 +674,9 @@ const Icons = {
             value={searchPattern}
             variant='bordered'
           />
-        }>
-        {state.icons}
-      </Icons.Card>
+        }
+        icons={state.icons}
+      />
     )
   })
 }
@@ -735,14 +740,13 @@ const My = {
       </HoverCard.Root>
     )
   },
-  IconButton: ({ children: content, dropdown, onPress, ...rest }) => (
-    <My.HoverCard asDropdown={dropdown} asTooltip={content} content={content ?? dropdown}>
+  IconButton: ({ dropdown, onPress, tooltip, ...rest }) => (
+    <My.HoverCard asDropdown={dropdown} asTooltip={tooltip} content={tooltip ?? dropdown}>
       <Link onPress={onPress}>
         <Icon className='size-8 cursor-pointer' {...rest} />
       </Link>
     </My.HoverCard>
   ),
-  // neu ko dung [key={index}] thi cai ac se troi day :v
   Listbox: ({ children: sections }) => (
     <Listbox aria-label={useId()} variant='light'>
       {Object.entries(sections).map(([title, items], index, data) => (
@@ -878,7 +882,7 @@ export default () => {
               <Panel>
                 {state === 'Endless scrolling' && <Icons.Endless />}
                 {state === use.pluralize(globalState.allIconSets, 'icon set') && (
-                  <Icons.Card>{globalState.allIcons}</Icons.Card>
+                  <Icons.Card icons={globalState.allIcons} />
                 )}
                 {state === 'Bookmarks' && <Icons.Card storage={bookmarks} />}
                 {Object.keys(globalState.allIconSets).includes(state) && (
