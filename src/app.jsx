@@ -58,7 +58,7 @@ import { nanoid } from 'nanoid'
 import { ThemeProvider, useTheme } from 'next-themes'
 import pluralize from 'pluralize'
 import prettyBytes from 'pretty-bytes'
-import { memo, useEffect, useId, useRef, useState } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { VirtuosoGrid } from 'react-virtuoso'
@@ -109,8 +109,8 @@ const use = {
     currentToast: { update: data => toast(message, { ...data, id }) }
   }),
   globalState: ([globalState, setGlobalState] = useAtom(atom)) => ({ globalState, setGlobalState }),
-  parseIcon: icon => {
-    if (iconsCache.has(icon.id)) return iconsCache.get(icon.id)
+  parseIcon: (icon, k = icon.id) => {
+    if (iconsCache.has(k)) return iconsCache.get(k)
 
     const svg = iconToSVG(icon.data)
 
@@ -130,28 +130,25 @@ const use = {
       ...icon
     }
 
-    iconsCache.set(icon.id, v)
+    iconsCache.set(k, v)
 
     return v
   },
-  pluralize: (count, word) => pluralize(word, use.count(count), true),
+  pluralize: (value, word) => pluralize(word, use.count(value), true),
   saveAs: async function (data, filename) {
     const { currentToast } = this.currentToast(filename, {
       description: 'Preparing to download',
       duration: Number.POSITIVE_INFINITY
     })
 
-    const saveAsParams = await Promise.all([data, filename])
+    const promise = await Promise.all([data, filename])
+    const download = () => saveAs(...promise)
 
-    saveAs(...saveAsParams)
+    download()
 
     currentToast.update({
       action: (
-        <Button
-          color='primary'
-          onPress={() => saveAs(...saveAsParams)}
-          size='sm'
-          variant='bordered'>
+        <Button color='primary' onPress={download} size='sm' variant='bordered'>
           Download
         </Button>
       ),
@@ -748,24 +745,22 @@ const My = {
     </My.HoverCard>
   ),
   Listbox: ({ children: sections }) => (
-    <Listbox aria-label={useId()} variant='light'>
+    <Listbox aria-label={nanoid()} variant='light'>
       {Object.entries(sections).map(([title, items], index, data) => (
-        <ListboxSection key={index} showDivider={index !== use.count(data) - 1} title={title}>
-          {items.map(
-            ({ color = 'primary', descriptions = [], isActive, title, ...props }, index) => (
-              <ListboxItem
-                classNames={{ title: isActive && `text-${color}` }}
-                color={isActive ? color : ''}
-                description={descriptions.map(description => (
-                  <div key={useId()}>{description}</div>
-                ))}
-                key={index}
-                textValue={String(index)}
-                {...props}>
-                {title}
-              </ListboxItem>
-            )
-          )}
+        <ListboxSection key={nanoid()} showDivider={index !== use.count(data) - 1} title={title}>
+          {items.map(({ color = 'primary', descriptions = [], isActive, title, ...props }) => (
+            <ListboxItem
+              classNames={{ title: isActive && `text-${color}` }}
+              color={isActive ? color : ''}
+              description={descriptions.map(description => (
+                <div key={nanoid()}>{description}</div>
+              ))}
+              key={nanoid()}
+              textValue={nanoid()}
+              {...props}>
+              {title}
+            </ListboxItem>
+          ))}
         </ListboxSection>
       ))}
     </Listbox>
