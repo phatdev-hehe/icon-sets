@@ -60,7 +60,7 @@ import pluralize from 'pluralize'
 import prettyBytes from 'pretty-bytes'
 import { memo, useEffect, useRef, useState } from 'react'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { RouterProvider, createBrowserRouter } from 'react-router-dom'
 import { VirtuosoGrid } from 'react-virtuoso'
 import semver from 'semver'
 import { Toaster, toast } from 'sonner'
@@ -105,79 +105,90 @@ const use = {
 
     return +value
   },
-  currentToast: (message, data, id = toast(message, data)) => ({
-    currentToast: { update: data => toast(message, { ...data, id }) }
-  }),
   globalState: ([globalState, setGlobalState] = useAtom(atom)) => ({ globalState, setGlobalState }),
-  parseIcon: (icon, k = icon.id) => {
-    if (iconsCache.has(k)) return iconsCache.get(k)
+  parse: {
+    icon: (icon, k = icon.id) => {
+      if (iconsCache.has(k)) return iconsCache.get(k)
 
-    const svg = iconToSVG(icon.data)
+      const svg = iconToSVG(icon.data)
 
-    const v = {
-      paths: mapObject({ css: {}, json: {}, svg: {}, txt: {} }, fileType => [
-        fileType,
-        {
-          default: `${icon.name}.${fileType}`,
-          detail: `[${icon.setName}] ${icon.name}.${fileType}`
-        }
-      ]),
-      to: {
-        css: getIconCSS(icon.data),
-        dataUrl: getIconContentCSS(icon.data, svg.attributes).slice(31, -6),
-        html: iconToHTML(replaceIDs(svg.body, nanoid()), svg.attributes)
-      },
-      ...icon
+      const v = {
+        paths: mapObject({ css: {}, json: {}, svg: {}, txt: {} }, fileType => [
+          fileType,
+          {
+            default: `${icon.name}.${fileType}`,
+            detail: `[${icon.setName}] ${icon.name}.${fileType}`
+          }
+        ]),
+        to: {
+          css: getIconCSS(icon.data),
+          dataUrl: getIconContentCSS(icon.data, svg.attributes).slice(31, -6),
+          html: iconToHTML(replaceIDs(svg.body, nanoid()), svg.attributes)
+        },
+        ...icon
+      }
+
+      iconsCache.set(k, v)
+
+      return v
+    },
+    unix: t => {
+      useRafInterval(useUpdate(), 60_000)
+
+      return dayjs.unix(t).fromNow()
     }
-
-    iconsCache.set(k, v)
-
-    return v
   },
   pluralize: (value, word) => pluralize(word, use.count(value), true),
-  saveAs: async function (data, filename) {
-    const { currentToast } = this.currentToast(filename, {
-      description: 'Preparing to download',
-      duration: Number.POSITIVE_INFINITY
-    })
+  save: {
+    as: async (data, filename) => {
+      const { currentToast } = use.toast(filename, {
+        description: 'Preparing to download',
+        duration: Number.POSITIVE_INFINITY
+      })
 
-    const promise = await Promise.all([data, filename])
-    const download = () => saveAs(...promise)
+      const promise = await Promise.all([data, filename])
+      const download = () => saveAs(...promise)
 
-    download()
+      download()
 
-    currentToast.update({
-      action: (
-        <Button color='primary' onPress={download} size='sm' variant='bordered'>
-          Download
-        </Button>
-      ),
-      description: 'Sent download link',
-      duration: undefined
-    })
-  },
-  saveIconsAs: function (icons, filename, pathType = 'detail') {
-    const zip = new JSZip()
+      currentToast.update({
+        action: (
+          <Button color='primary' onPress={download} size='sm' variant='bordered'>
+            Download
+          </Button>
+        ),
+        description: 'Sent download link',
+        duration: undefined
+      })
+    },
+    iconsAs: function (icons, filename, pathType = 'default') {
+      const zip = new JSZip()
 
-    for (let icon of icons) {
-      icon = this.parseIcon(icon)
+      for (let icon of icons) {
+        icon = use.parse.icon(icon)
 
-      zip.file(icon.paths.svg[pathType], icon.to.html)
+        zip.file(icon.paths.svg[pathType], icon.to.html)
+      }
+
+      return this.as(zip.generateAsync({ type: 'blob' }), filename)
     }
-
-    return this.saveAs(zip.generateAsync({ type: 'blob' }), filename)
   },
-  unix: t => {
-    useRafInterval(useUpdate(), 60_000)
-
-    return dayjs.unix(t).fromNow()
-  }
+  toast: (message, data, id = toast(message, data)) => ({
+    currentToast: { update: data => toast(message, { ...data, id }) }
+  })
 }
 
 const iconSets = {
   clear: async (shouldClear = true) => {
     shouldClear && (await idb.clear())
     location.reload(true)
+  },
+  estimateStorageUsage: () => {
+    const [state, setState] = useRafState(0)
+
+    useAsyncEffect(async () => setState((await navigator.storage.estimate()).usage), [])
+
+    return prettyBytes(state)
   },
   init: function () {
     const { setGlobalState } = use.globalState()
@@ -206,7 +217,7 @@ const iconSets = {
         })
 
       if (await this.shouldUpdate()) {
-        const { currentToast } = use.currentToast(message, {
+        const { currentToast } = use.toast(message, {
           description: (
             <>
               Downloading latest content
@@ -310,13 +321,6 @@ const iconSets = {
   shouldUpdate: async () =>
     (await idb.get('VERSION')) !== iconSets.version ||
     !_.isEqual(_.xor(Object.keys(collections), await idb.keys()), ['VERSION']),
-  storageUsage: () => {
-    const [state, setState] = useRafState(0)
-
-    useAsyncEffect(async () => setState((await navigator.storage.estimate()).usage), [])
-
-    return prettyBytes(state)
-  },
   version: semver.valid(semver.coerce(dependencies['@iconify/json']))
 }
 
@@ -371,7 +375,7 @@ const Icons = {
           data={icons}
           itemClassName='p-6'
           itemContent={(index, icon) => {
-            icon = use.parseIcon(icon)
+            icon = use.parse.icon(icon)
 
             return (
               <My.HoverCard
@@ -411,7 +415,7 @@ const Icons = {
                           [
                             { onPress: () => use.copy(text), title: 'Copy' },
                             {
-                              onPress: () => use.saveAs(new Blob([text]), path.detail),
+                              onPress: () => use.save.as(new Blob([text]), path.detail),
                               title: 'Download'
                             }
                           ]
@@ -450,8 +454,7 @@ const Icons = {
       </Card>
     )
   },
-  Endless: ({ step = 100 }) => {
-    const sizes = _.range(step, 10_000 + step, step)
+  Endless: ({ step = 100, sizes = _.range(step, 10_000 + step, step) }) => {
     const { globalState } = use.globalState()
     const [state, setState] = useSetState({ icons: [], size: step })
 
@@ -472,7 +475,7 @@ const Icons = {
               dropdown={
                 <My.Listbox>
                   {{
-                    'Icons per page': sizes.map(size => ({
+                    [use.pluralize(sizes, 'size')]: sizes.map(size => ({
                       description: 'icons',
                       isActive: size === state.size,
                       onPress: () => setState({ size }),
@@ -491,8 +494,9 @@ const Icons = {
   },
   Filter: iconSet => {
     const initialState = { category: false, theme: false }
-    const [state, setState] = useSetState(initialState)
-    const validState = key => typeof state[key] === 'string'
+
+    const [state, setState, validState = key => typeof state[key] === 'string'] =
+      useSetState(initialState)
 
     iconSet = _.clone(iconSet)
     iconSet.themes = iconSet.prefixes ?? iconSet.suffixes
@@ -533,7 +537,6 @@ const Icons = {
                         [use.pluralize(iconSet.themes, 'theme')]: Object.entries(
                           iconSet.themes
                         ).map(([theme, title, isActive = state.theme === theme]) => ({
-                          description: isActive && 'Deselect',
                           isActive: isActive,
                           onPress: () => setState({ theme: !isActive && theme }),
                           title: title
@@ -546,7 +549,6 @@ const Icons = {
                           const isActive = state.category === category
 
                           return {
-                            description: isActive && 'Deselect',
                             isActive: isActive,
                             onPress: () => setState({ category: !isActive && category }),
                             title: category
@@ -557,8 +559,7 @@ const Icons = {
                         {
                           description: `${iconSet.name}.zip`,
                           isDisabled: !use.count(iconSet.icons),
-                          onPress: () =>
-                            use.saveIconsAs(iconSet.icons, `${iconSet.name}.zip`, 'default'),
+                          onPress: () => use.save.iconsAs(iconSet.icons, `${iconSet.name}.zip`),
                           title: 'Download'
                         }
                       ]
@@ -570,7 +571,7 @@ const Icons = {
             ) : (
               <My.IconButton
                 icon='line-md:arrow-small-down'
-                onPress={() => use.saveIconsAs(iconSet.icons, `${iconSet.name}.zip`, 'default')}
+                onPress={() => use.save.iconsAs(iconSet.icons, `${iconSet.name}.zip`)}
                 tooltip={`${iconSet.name}.zip`}
               />
             )}
@@ -624,9 +625,10 @@ const Icons = {
                           },
                           {
                             onPress: () =>
-                              use.saveIconsAs(
+                              use.save.iconsAs(
                                 state.fuseResult,
-                                `${use.pluralize(state.fuseResult, 'icon')}.zip`
+                                `${use.pluralize(state.fuseResult, 'icon')}.zip`,
+                                'detail'
                               ),
                             title: 'Download'
                           }
@@ -650,7 +652,7 @@ const Icons = {
                               {
                                 isDisabled: !use.count(iconSet.icons),
                                 onPress: () =>
-                                  use.saveIconsAs(iconSet.icons, `${iconSet.name}.zip`, 'default'),
+                                  use.save.iconsAs(iconSet.icons, `${iconSet.name}.zip`),
                                 title: 'Download'
                               }
                             ]
@@ -769,11 +771,7 @@ const My = {
     <LazyMotion features={domAnimation} strict>
       <ThemeProvider attribute='class' disableTransitionOnChange>
         <NextUIProvider className='flex-center p-6'>
-          <BrowserRouter>
-            <Routes>
-              <Route element={children} path='/' />
-            </Routes>
-          </BrowserRouter>
+          <RouterProvider router={createBrowserRouter([{ element: children, path: '/' }])} />
         </NextUIProvider>
       </ThemeProvider>
     </LazyMotion>
@@ -806,7 +804,7 @@ export default () => {
                         use.pluralize(globalState.allIconSets, 'icon set'),
                         [
                           use.pluralize(globalState.allIcons, 'icon'),
-                          use.unix(
+                          use.parse.unix(
                             _.maxBy(
                               Object.values(globalState.allIconSets),
                               ({ lastModified }) => lastModified
@@ -833,7 +831,7 @@ export default () => {
                               iconSet.author,
                               iconSet.license,
                               use.pluralize(iconSet.icons, 'icon'),
-                              use.unix(iconSet.lastModified)
+                              use.parse.unix(iconSet.lastModified)
                             ],
                             isActive: state === iconSet.prefix,
                             onPress: () => setState(iconSet.prefix),
@@ -860,7 +858,7 @@ export default () => {
                       },
                       {
                         color: 'warning',
-                        description: iconSets.storageUsage(),
+                        description: iconSets.estimateStorageUsage(),
                         isActive: true,
                         onPress: iconSets.clear,
                         title: 'Clear cache'
