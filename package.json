@@ -7,7 +7,7 @@
   "dependencies": {
     "@ahooksjs/use-url-state": "^3.5.1",
     "@emotion/react": "^11.13.0",
-    "@iconify/json": "^2.2.232",
+    "@iconify/json": "^2.2.233",
     "@iconify/react": "^5.0.2",
     "@iconify/utils": "^2.1.29",
     "@nextui-org/react": "^2.4.6",
@@ -20,7 +20,7 @@
     "dayjs": "^1.11.12",
     "es-toolkit": "^1.13.1",
     "file-saver": "^2.0.5",
-    "framer-motion": "^11.3.19",
+    "framer-motion": "^11.3.21",
     "fuse.js": "^7.0.0",
     "idb-keyval": "^6.2.1",
     "jotai": "^2.9.1",
@@ -36,8 +36,8 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-resizable-panels": "^2.0.20",
-    "react-router-dom": "^6.25.1",
-    "react-virtuoso": "^4.8.0",
+    "react-router-dom": "^6.26.0",
+    "react-virtuoso": "^4.9.0",
     "semver": "^7.6.3",
     "sonner": "^1.5.0",
     "sort-keys": "^5.0.0"

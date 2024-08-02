@@ -139,6 +139,7 @@ const use = {
     }
   },
   pluralize: (value, word) => pluralize(word, use.count(value), true),
+  recentlyViewed: () => [...iconsCache.values()],
   save: {
     as: async (data, filename) => {
       const { currentToast } = use.toast(filename, {
@@ -325,7 +326,7 @@ const iconSets = {
 }
 
 const Icons = {
-  Card: ({ footer, icons, storage, ...props }) => {
+  Card: ({ footer, footerRight, icons, storage, ...props }) => {
     const { globalState } = use.globalState()
     const { isBookmarked, toggleBookmark } = use.bookmarks()
     const [state, setState] = useState(true)
@@ -441,13 +442,15 @@ const Icons = {
         />
         <CardFooter>
           {footer ?? (
-            <div className='card__footer'>
+            <div className='flex-center justify-between px-3 text-sm'>
               {use.pluralize(icons, 'icon')}
-              <My.IconButton
-                icon={state ? 'line-md:watch' : 'line-md:watch-off'}
-                onPress={() => setState(!state)}
-                tooltip={`${state ? 'Sorted' : 'Sort'} ${use.pluralize(icons, 'icon')}`}
-              />
+              {footerRight ?? (
+                <My.IconButton
+                  icon={state ? 'line-md:watch' : 'line-md:watch-off'}
+                  onPress={() => setState(!state)}
+                  tooltip={`${state ? 'Sorted' : 'Sort'} ${use.pluralize(icons, 'icon')}`}
+                />
+              )}
             </div>
           )}
         </CardFooter>
@@ -468,25 +471,22 @@ const Icons = {
     return (
       <Icons.Card
         endReached={endReached}
-        footer={
-          <div className='card__footer'>
-            {use.pluralize(state.icons, 'icon')}
-            <My.IconButton
-              dropdown={
-                <My.Listbox>
-                  {{
-                    [use.pluralize(sizes, 'size')]: sizes.map(size => ({
-                      description: 'icons',
-                      isActive: size === state.size,
-                      onPress: () => setState({ size }),
-                      title: size
-                    }))
-                  }}
-                </My.Listbox>
-              }
-              icon='line-md:arrow-align-right'
-            />
-          </div>
+        footerRight={
+          <My.IconButton
+            dropdown={
+              <My.Listbox>
+                {{
+                  [use.pluralize(sizes, 'size')]: sizes.map(size => ({
+                    description: 'icons',
+                    isActive: size === state.size,
+                    onPress: () => setState({ size }),
+                    title: size
+                  }))
+                }}
+              </My.Listbox>
+            }
+            icon='line-md:arrow-align-right'
+          />
         }
         icons={state.icons}
       />
@@ -525,59 +525,68 @@ const Icons = {
 
     return (
       <Icons.Card
-        footer={
-          <div className='card__footer'>
-            {use.pluralize(iconSet.icons, 'icon')}
-            {iconSet.themes || iconSet.categories ? (
-              <My.IconButton
-                dropdown={
-                  <My.Listbox>
-                    {{
-                      ...(iconSet.themes && {
-                        [use.pluralize(iconSet.themes, 'theme')]: Object.entries(
-                          iconSet.themes
-                        ).map(([theme, title, isActive = state.theme === theme]) => ({
+        footerRight={
+          iconSet.themes || iconSet.categories ? (
+            <My.IconButton
+              dropdown={
+                <My.Listbox>
+                  {{
+                    ...(iconSet.themes && {
+                      [use.pluralize(iconSet.themes, 'theme')]: Object.entries(iconSet.themes).map(
+                        ([theme, title, isActive = state.theme === theme]) => ({
                           isActive: isActive,
                           onPress: () => setState({ theme: !isActive && theme }),
                           title: title
-                        }))
-                      }),
-                      ...(iconSet.categories && {
-                        [use.pluralize(iconSet.categories, 'category')]: Object.keys(
-                          iconSet.categories
-                        ).map(category => {
-                          const isActive = state.category === category
-
-                          return {
-                            isActive: isActive,
-                            onPress: () => setState({ category: !isActive && category }),
-                            title: category
-                          }
                         })
-                      }),
-                      [use.pluralize(iconSet.icons, 'icon')]: [
-                        {
-                          description: `${iconSet.name}.zip`,
-                          isDisabled: !use.count(iconSet.icons),
-                          onPress: () => use.save.iconsAs(iconSet.icons, `${iconSet.name}.zip`),
-                          title: 'Download'
+                      )
+                    }),
+                    ...(iconSet.categories && {
+                      [use.pluralize(iconSet.categories, 'category')]: Object.keys(
+                        iconSet.categories
+                      ).map(category => {
+                        const isActive = state.category === category
+
+                        return {
+                          isActive: isActive,
+                          onPress: () => setState({ category: !isActive && category }),
+                          title: category
                         }
-                      ]
-                    }}
-                  </My.Listbox>
-                }
-                icon={_.isEqual(state, initialState) ? 'line-md:filter' : 'line-md:filter-filled'}
-              />
-            ) : (
-              <My.IconButton
-                icon='line-md:arrow-small-down'
-                onPress={() => use.save.iconsAs(iconSet.icons, `${iconSet.name}.zip`)}
-                tooltip={`${iconSet.name}.zip`}
-              />
-            )}
-          </div>
+                      })
+                    }),
+                    [use.pluralize(iconSet.icons, 'icon')]: [
+                      {
+                        description: `${iconSet.name}.zip`,
+                        isDisabled: !use.count(iconSet.icons),
+                        onPress: () => use.save.iconsAs(iconSet.icons, `${iconSet.name}.zip`),
+                        title: 'Download'
+                      }
+                    ]
+                  }}
+                </My.Listbox>
+              }
+              icon={_.isEqual(state, initialState) ? 'line-md:filter' : 'line-md:filter-filled'}
+            />
+          ) : (
+            <My.IconButton
+              icon='line-md:arrow-small-down'
+              onPress={() => use.save.iconsAs(iconSet.icons, `${iconSet.name}.zip`)}
+              tooltip={`${iconSet.name}.zip`}
+            />
+          )
         }
         icons={iconSet.icons}
+      />
+    )
+  },
+  RecentlyViewed: () => {
+    useEffect(useUpdate(), [])
+
+    return (
+      <Icons.Card
+        footerRight={
+          <My.IconButton icon='line-md:round-360' onPress={useUpdate()} tooltip='Refresh' />
+        }
+        icons={use.recentlyViewed()}
       />
     )
   },
@@ -693,20 +702,17 @@ const My = {
           asChild
           className='!scale-100'
           onMouseMove={({ clientX, target }) => {
-            if (!ref.current) return
+            if (ref.current) {
+              const rect = target.getBoundingClientRect()
 
-            const rect = target.getBoundingClientRect()
+              if (align === 'center') return setX(clientX - rect.left - rect.width / 2)
 
-            if (align === 'center') return setX(clientX - rect.left - rect.width / 2)
+              const { width: contentWidth } = ref.current.getBoundingClientRect()
+              const offsetX = clientX - rect[{ end: 'right', start: 'left' }[align]]
+              const v = { end: offsetX + contentWidth, start: offsetX - contentWidth }[align]
 
-            const contentWidth = ref.current.getBoundingClientRect().width
-            const offsetX = clientX - rect[{ end: 'right', start: 'left' }[align]]
-
-            const hoverOffset = { end: offsetX + contentWidth, start: offsetX - contentWidth }[
-              align
-            ]
-
-            setX({ end: hoverOffset < 0, start: hoverOffset > 0 }[align] ? hoverOffset : offsetX)
+              setX({ end: v < 0, start: v > 0 }[align] ? v : offsetX)
+            }
           }}>
           {children}
         </HoverCard.Trigger>
@@ -798,22 +804,15 @@ export default () => {
                 <My.Listbox>
                   {{
                     [iconSets.version]: [
-                      ['Endless scrolling', ['Hehe']],
-                      ['Bookmarks', [use.pluralize(bookmarks, 'icon')]],
+                      ['Endless scrolling', 'Hehe'],
+                      ['Bookmarks', use.pluralize(bookmarks, 'icon')],
+                      ['Recently viewed', use.pluralize(use.recentlyViewed(), 'icon')],
                       [
                         use.pluralize(globalState.allIconSets, 'icon set'),
-                        [
-                          use.pluralize(globalState.allIcons, 'icon'),
-                          use.parse.unix(
-                            _.maxBy(
-                              Object.values(globalState.allIconSets),
-                              ({ lastModified }) => lastModified
-                            ).lastModified
-                          )
-                        ]
+                        use.pluralize(globalState.allIcons, 'icon')
                       ]
-                    ].map(([title, descriptions]) => ({
-                      descriptions: descriptions,
+                    ].map(([title, description]) => ({
+                      description: description,
                       isActive: state === title,
                       onPress: () => setState(title),
                       title: title
@@ -878,6 +877,7 @@ export default () => {
                   <Icons.Card icons={globalState.allIcons} />
                 )}
                 {state === 'Bookmarks' && <Icons.Card storage={bookmarks} />}
+                {state === 'Recently viewed' && <Icons.RecentlyViewed />}
                 {Object.keys(globalState.allIconSets).includes(state) && (
                   <Icons.Filter {...globalState.allIconSets[state]} />
                 )}
