@@ -139,7 +139,7 @@ const use = {
     }
   },
   pluralize: (value, word) => pluralize(word, use.count(value), true),
-  recentlyViewed: () => [...iconsCache.values()],
+  recentlyViewedIcons: () => [...iconsCache.values()],
   save: {
     as: async (data, filename) => {
       const { currentToast } = use.toast(filename, {
@@ -223,7 +223,7 @@ const iconSets = {
             <>
               Downloading latest content
               <ScrollShadow className='h-96'>
-                <My.Listbox>
+                <Comp.Listbox>
                   {{
                     '': Object.keys(this.module).map(key => {
                       const iconSet = collections[key]
@@ -235,7 +235,7 @@ const iconSets = {
                       }
                     })
                   }}
-                </My.Listbox>
+                </Comp.Listbox>
               </ScrollShadow>
             </>
           ),
@@ -325,139 +325,8 @@ const iconSets = {
   version: semver.valid(semver.coerce(dependencies['@iconify/json']))
 }
 
-const Icons = {
-  Card: ({ footer, footerRight, icons, storage, ...props }) => {
-    const { globalState } = use.globalState()
-    const { isBookmarked, toggleBookmark } = use.bookmarks()
-    const [state, setState] = useState(true)
-
-    if (storage)
-      icons = storage.map(i =>
-        globalState.allIconSets[i.prefix].icons.find(icon => icon.name === i.name)
-      )
-
-    if (state) icons = _.orderBy(icons, ['name'], ['asc'])
-
-    return (
-      <Card
-        classNames={{
-          base: 'h-full rounded-none bg-background',
-          footer: 'absolute inset-x-0 bottom-0 h-[--footer-height] rounded-none'
-        }}
-        isFooterBlurred
-        style={{ '--footer-height': '4rem' }}>
-        <VirtuosoGrid
-          className='overflow-hidden'
-          components={{
-            Footer: () =>
-              use.count(icons) ? (
-                <div className='h-[--footer-height]' />
-              ) : (
-                <div className='flex-center text-sm text-foreground-500'>No icons</div>
-              ),
-            // Item: props => {
-            //   const icon = icons[props['data-index']]
-            //
-            //   useState()
-            //   useEffect()
-            //
-            //   return <div {...props} />
-            // },
-            ScrollSeekPlaceholder: ({ height, index, width }) => {
-              const icon = icons[index]
-
-              return (
-                <div className='flex-center' style={{ height, width }}>
-                  <Avatar classNames={{ base: 'bg-background' }} name={icon.name} size='lg' />
-                </div>
-              )
-            }
-          }}
-          data={icons}
-          itemClassName='p-6'
-          itemContent={(index, icon) => {
-            icon = use.parse.icon(icon)
-
-            return (
-              <My.HoverCard
-                asDropdown
-                content={
-                  <My.Listbox>
-                    {{
-                      [`#${index + 1}`]: [
-                        {
-                          description: icon.setName,
-                          onPress: () => {
-                            const url = URL.createObjectURL(
-                              new Blob([icon.to.html], { type: 'image/svg+xml' })
-                            )
-
-                            open(url)
-                            URL.revokeObjectURL(url)
-                          },
-                          title: icon.name
-                        }
-                      ],
-                      Bookmark: ['Add', 'Remove'].map(title => ({
-                        isDisabled: (title === 'Add') === isBookmarked(icon),
-                        onPress: () => toggleBookmark(icon),
-                        title: title
-                      })),
-                      ...mapObject(icon.paths, (fileType, path) => {
-                        const text = {
-                          css: icon.to.css,
-                          json: JSON.stringify(icon.data, undefined, 2),
-                          svg: icon.to.html,
-                          txt: icon.to.dataUrl
-                        }[fileType]
-
-                        return [
-                          fileType.toUpperCase(),
-                          [
-                            { onPress: () => use.copy(text), title: 'Copy' },
-                            {
-                              onPress: () => use.save.as(new Blob([text]), path.detail),
-                              title: 'Download'
-                            }
-                          ]
-                        ]
-                      })
-                    }}
-                  </My.Listbox>
-                }>
-                <Button
-                  isIconOnly
-                  onPress={() => toggleBookmark(icon)}
-                  radius='full'
-                  size='lg'
-                  variant='light'>
-                  <div className='!size-8 text-foreground' css={css(icon.to.css.slice(10, -3))} />
-                </Button>
-              </My.HoverCard>
-            )
-          }}
-          listClassName='flex-center flex-wrap h-auto'
-          scrollSeekConfiguration={{ enter: x => Math.abs(x), exit: x => x === 0 }}
-          {...props}
-        />
-        <CardFooter>
-          {footer ?? (
-            <div className='flex-center justify-between px-3 text-sm'>
-              {use.pluralize(icons, 'icon')}
-              {footerRight ?? (
-                <My.IconButton
-                  icon={state ? 'line-md:watch' : 'line-md:watch-off'}
-                  onPress={() => setState(!state)}
-                  tooltip={`${state ? 'Sorted' : 'Sort'} ${use.pluralize(icons, 'icon')}`}
-                />
-              )}
-            </div>
-          )}
-        </CardFooter>
-      </Card>
-    )
-  },
-  Endless: ({ step = 100, sizes = _.range(step, 10_000 + step, step) }) => {
+const Comp = {
+  EndlessIcons: ({ step = 100, sizes = _.range(step, 10_000 + step, step) }) => {
     const { globalState } = use.globalState()
     const [state, setState] = useSetState({ icons: [], size: step })
 
@@ -469,12 +338,12 @@ const Icons = {
     useEffect(endReached, [])
 
     return (
-      <Icons.Card
+      <Comp.IconGrid
         endReached={endReached}
         footerRight={
-          <My.IconButton
+          <Comp.IconButton
             dropdown={
-              <My.Listbox>
+              <Comp.Listbox>
                 {{
                   [use.pluralize(sizes, 'size')]: sizes.map(size => ({
                     description: 'icons',
@@ -483,7 +352,7 @@ const Icons = {
                     title: size
                   }))
                 }}
-              </My.Listbox>
+              </Comp.Listbox>
             }
             icon='line-md:arrow-align-right'
           />
@@ -492,7 +361,7 @@ const Icons = {
       />
     )
   },
-  Filter: iconSet => {
+  FilterIcons: iconSet => {
     const initialState = { category: false, theme: false }
 
     const [state, setState, validState = key => typeof state[key] === 'string'] =
@@ -524,12 +393,12 @@ const Icons = {
     }, [iconSet.categories, iconSet.prefixes, iconSet.suffixes])
 
     return (
-      <Icons.Card
+      <Comp.IconGrid
         footerRight={
           iconSet.themes || iconSet.categories ? (
-            <My.IconButton
+            <Comp.IconButton
               dropdown={
-                <My.Listbox>
+                <Comp.Listbox>
                   {{
                     ...(iconSet.themes && {
                       [use.pluralize(iconSet.themes, 'theme')]: Object.entries(iconSet.themes).map(
@@ -562,12 +431,12 @@ const Icons = {
                       }
                     ]
                   }}
-                </My.Listbox>
+                </Comp.Listbox>
               }
               icon={_.isEqual(state, initialState) ? 'line-md:filter' : 'line-md:filter-filled'}
             />
           ) : (
-            <My.IconButton
+            <Comp.IconButton
               icon='line-md:arrow-small-down'
               onPress={() => use.save.iconsAs(iconSet.icons, `${iconSet.name}.zip`)}
               tooltip={`${iconSet.name}.zip`}
@@ -578,118 +447,6 @@ const Icons = {
       />
     )
   },
-  RecentlyViewed: () => {
-    useEffect(useUpdate(), [])
-
-    return (
-      <Icons.Card
-        footerRight={
-          <My.IconButton icon='line-md:round-360' onPress={useUpdate()} tooltip='Refresh' />
-        }
-        icons={use.recentlyViewed()}
-      />
-    )
-  },
-  Search: memo(({ placeholder = 'Search' }) => {
-    const { globalState } = use.globalState()
-    const fuse = useCreation(() => new Fuse(globalState.allIcons, { keys: ['name'], threshold: 0 }))
-    const [state, setState] = useSetState({ fuseResult: [], icons: [] })
-    const isUnfiltered = (a = state.fuseResult) => _.isEqual(a, state.icons)
-
-    const [{ search: searchPattern }, setSearchPattern] = useUrlState(
-      { search: placeholder },
-      { navigateMode: 'replace' }
-    )
-
-    useDebounceEffect(
-      () => {
-        const icons = fuse.search(kebabCase(searchPattern)).map(({ item }) => item)
-
-        setState({ fuseResult: icons, icons: icons })
-      },
-      [searchPattern],
-      { wait: 300 }
-    )
-
-    return (
-      <Icons.Card
-        footer={
-          <Input
-            autoFocus
-            classNames={{
-              inputWrapper: 'border-none',
-              label: use.count(state.icons) && '!text-foreground-500'
-            }}
-            endContent={
-              !!use.count(state.icons) && (
-                <My.IconButton
-                  dropdown={
-                    <My.Listbox>
-                      {{
-                        [use.pluralize(state.fuseResult, 'icon')]: [
-                          {
-                            isDisabled: isUnfiltered(),
-                            onPress: () => setState(state => ({ icons: state.fuseResult })),
-                            title: 'View'
-                          },
-                          {
-                            onPress: () =>
-                              use.save.iconsAs(
-                                state.fuseResult,
-                                `${use.pluralize(state.fuseResult, 'icon')}.zip`,
-                                'detail'
-                              ),
-                            title: 'Download'
-                          }
-                        ],
-                        ...mapObject(globalState.allIconSets, (key, iconSet) => {
-                          iconSet = _.clone(iconSet)
-
-                          iconSet.icons = state.fuseResult.filter(
-                            icon => icon.prefix === iconSet.prefix
-                          )
-
-                          return [
-                            `${iconSet.name} (${use.count(iconSet.icons)})`,
-                            [
-                              {
-                                isDisabled:
-                                  isUnfiltered(iconSet.icons) || !use.count(iconSet.icons),
-                                onPress: () => setState({ icons: iconSet.icons }),
-                                title: 'View'
-                              },
-                              {
-                                isDisabled: !use.count(iconSet.icons),
-                                onPress: () =>
-                                  use.save.iconsAs(iconSet.icons, `${iconSet.name}.zip`),
-                                title: 'Download'
-                              }
-                            ]
-                          ]
-                        })
-                      }}
-                    </My.Listbox>
-                  }
-                  icon={isUnfiltered() ? 'line-md:filter' : 'line-md:filter-filled'}
-                />
-              )
-            }
-            isInvalid={!use.count(state.icons)}
-            label={use.pluralize(state.icons, 'icon')}
-            onValueChange={search => setSearchPattern({ search })}
-            placeholder={placeholder}
-            startContent={<Icon className='size-5' icon='line-md:search' />}
-            value={searchPattern}
-            variant='bordered'
-          />
-        }
-        icons={state.icons}
-      />
-    )
-  })
-}
-
-const My = {
   HoverCard: ({ align = 'center', asDropdown, asTooltip, children, content }) => {
     const [state, setState] = useState()
     const ref = useRef()
@@ -746,12 +503,143 @@ const My = {
     )
   },
   IconButton: ({ dropdown, onPress, tooltip, ...rest }) => (
-    <My.HoverCard asDropdown={dropdown} asTooltip={tooltip} content={tooltip ?? dropdown}>
+    <Comp.HoverCard asDropdown={dropdown} asTooltip={tooltip} content={tooltip ?? dropdown}>
       <Link onPress={onPress}>
         <Icon className='size-8 cursor-pointer' {...rest} />
       </Link>
-    </My.HoverCard>
+    </Comp.HoverCard>
   ),
+  IconGrid: ({ footer, footerRight, icons, storage, ...props }) => {
+    const { globalState } = use.globalState()
+    const { isBookmarked, toggleBookmark } = use.bookmarks()
+    const [state, setState] = useState(true)
+
+    if (storage)
+      icons = storage.map(i =>
+        globalState.allIconSets[i.prefix].icons.find(icon => icon.name === i.name)
+      )
+
+    if (state) icons = _.orderBy(icons, ['name'], ['asc'])
+
+    return (
+      <Card
+        classNames={{
+          base: 'h-full rounded-none bg-background',
+          footer: 'absolute inset-x-0 bottom-0 h-[--footer-height] rounded-none'
+        }}
+        isFooterBlurred
+        style={{ '--footer-height': '4rem' }}>
+        <VirtuosoGrid
+          className='overflow-hidden'
+          components={{
+            Footer: () =>
+              use.count(icons) ? (
+                <div className='h-[--footer-height]' />
+              ) : (
+                <div className='flex-center text-sm text-foreground-500'>No icons</div>
+              ),
+            // Item: props => {
+            //   const icon = icons[props['data-index']]
+            //
+            //   useState()
+            //   useEffect()
+            //
+            //   return <div {...props} />
+            // },
+            ScrollSeekPlaceholder: ({ height, index, width }) => {
+              const icon = icons[index]
+
+              return (
+                <div className='flex-center' style={{ height, width }}>
+                  <Avatar classNames={{ base: 'bg-background' }} name={icon.name} size='lg' />
+                </div>
+              )
+            }
+          }}
+          data={icons}
+          itemClassName='p-6'
+          itemContent={(index, icon) => {
+            icon = use.parse.icon(icon)
+
+            return (
+              <Comp.HoverCard
+                asDropdown
+                content={
+                  <Comp.Listbox>
+                    {{
+                      [`#${index + 1}`]: [
+                        {
+                          description: icon.setName,
+                          onPress: () => {
+                            const url = URL.createObjectURL(
+                              new Blob([icon.to.html], { type: 'image/svg+xml' })
+                            )
+
+                            open(url)
+                            URL.revokeObjectURL(url)
+                          },
+                          title: icon.name
+                        }
+                      ],
+                      Bookmark: ['Add', 'Remove'].map(title => ({
+                        isDisabled: (title === 'Add') === isBookmarked(icon),
+                        onPress: () => toggleBookmark(icon),
+                        title: title
+                      })),
+                      ...mapObject(icon.paths, (fileType, path) => {
+                        const text = {
+                          css: icon.to.css,
+                          json: JSON.stringify(icon.data, undefined, 2),
+                          svg: icon.to.html,
+                          txt: icon.to.dataUrl
+                        }[fileType]
+
+                        return [
+                          fileType.toUpperCase(),
+                          [
+                            { onPress: () => use.copy(text), title: 'Copy' },
+                            {
+                              onPress: () => use.save.as(new Blob([text]), path.detail),
+                              title: 'Download'
+                            }
+                          ]
+                        ]
+                      })
+                    }}
+                  </Comp.Listbox>
+                }>
+                <Button
+                  isIconOnly
+                  onPress={() => toggleBookmark(icon)}
+                  radius='full'
+                  size='lg'
+                  variant='light'>
+                  <div className='!size-8 text-foreground' css={css(icon.to.css.slice(10, -3))} />
+                </Button>
+              </Comp.HoverCard>
+            )
+          }}
+          listClassName='flex-center flex-wrap h-auto'
+          scrollSeekConfiguration={{ enter: x => Math.abs(x), exit: x => x === 0 }}
+          {...props}
+        />
+        <CardFooter>
+          {footer ?? (
+            <div className='flex-center justify-between px-3 text-sm'>
+              {use.pluralize(icons, 'icon')}
+              {footerRight ?? (
+                <Comp.IconButton
+                  icon={state ? 'line-md:watch' : 'line-md:watch-off'}
+                  onPress={() => setState(!state)}
+                  tooltip={`${state ? 'Sorted' : 'Sort'} ${use.pluralize(icons, 'icon')}`}
+                />
+              )}
+            </div>
+          )}
+        </CardFooter>
+      </Card>
+    )
+  },
   Listbox: ({ children: sections }) => (
     <Listbox aria-label={nanoid()} variant='light'>
       {Object.entries(sections).map(([title, items], index, data) => (
@@ -782,31 +670,140 @@ const My = {
       </ThemeProvider>
     </LazyMotion>
   ),
+  RecentlyViewedIcons: () => {
+    useEffect(useUpdate(), [])
+
+    return (
+      <Comp.IconGrid
+        footerRight={
+          <Comp.IconButton icon='line-md:round-360' onPress={useUpdate()} tooltip='Refresh' />
+        }
+        icons={use.recentlyViewedIcons()}
+      />
+    )
+  },
+  SearchIcons: memo(({ placeholder = 'Search' }) => {
+    const { globalState } = use.globalState()
+    const fuse = useCreation(() => new Fuse(globalState.allIcons, { keys: ['name'], threshold: 0 }))
+    const [state, setState] = useSetState({ fuseResult: [], icons: [] })
+    const isUnfiltered = (a = state.fuseResult) => _.isEqual(a, state.icons)
+
+    const [{ search: searchPattern }, setSearchPattern] = useUrlState(
+      { search: placeholder },
+      { navigateMode: 'replace' }
+    )
+
+    useDebounceEffect(
+      () => {
+        const icons = fuse.search(kebabCase(searchPattern)).map(({ item }) => item)
+
+        setState({ fuseResult: icons, icons: icons })
+      },
+      [searchPattern],
+      { wait: 300 }
+    )
+
+    return (
+      <Comp.IconGrid
+        footer={
+          <Input
+            autoFocus
+            classNames={{
+              inputWrapper: 'border-none',
+              label: use.count(state.icons) && '!text-foreground-500'
+            }}
+            endContent={
+              !!use.count(state.icons) && (
+                <Comp.IconButton
+                  dropdown={
+                    <Comp.Listbox>
+                      {{
+                        [use.pluralize(state.fuseResult, 'icon')]: [
+                          {
+                            isDisabled: isUnfiltered(),
+                            onPress: () => setState(state => ({ icons: state.fuseResult })),
+                            title: 'View'
+                          },
+                          {
+                            onPress: () =>
+                              use.save.iconsAs(
+                                state.fuseResult,
+                                `${use.pluralize(state.fuseResult, 'icon')}.zip`,
+                                'detail'
+                              ),
+                            title: 'Download'
+                          }
+                        ],
+                        ...mapObject(globalState.allIconSets, (key, iconSet) => {
+                          iconSet = _.clone(iconSet)
+
+                          iconSet.icons = state.fuseResult.filter(
+                            icon => icon.prefix === iconSet.prefix
+                          )
+
+                          return [
+                            `${iconSet.name} (${use.count(iconSet.icons)})`,
+                            [
+                              {
+                                isDisabled:
+                                  isUnfiltered(iconSet.icons) || !use.count(iconSet.icons),
+                                onPress: () => setState({ icons: iconSet.icons }),
+                                title: 'View'
+                              },
+                              {
+                                isDisabled: !use.count(iconSet.icons),
+                                onPress: () =>
+                                  use.save.iconsAs(iconSet.icons, `${iconSet.name}.zip`),
+                                title: 'Download'
+                              }
+                            ]
+                          ]
+                        })
+                      }}
+                    </Comp.Listbox>
+                  }
+                  icon={isUnfiltered() ? 'line-md:filter' : 'line-md:filter-filled'}
+                />
+              )
+            }
+            isInvalid={!use.count(state.icons)}
+            label={use.pluralize(state.icons, 'icon')}
+            onValueChange={search => setSearchPattern({ search })}
+            placeholder={placeholder}
+            startContent={<Icon className='size-5' icon='line-md:search' />}
+            value={searchPattern}
+            variant='bordered'
+          />
+        }
+        icons={state.icons}
+      />
+    )
+  }),
   Theme: ({ children }) => children(useTheme())
 }
 
 export default () => {
+  iconSets.init()
+
   const { globalState } = use.globalState()
   const { bookmarks } = use.bookmarks()
   const [state, setState] = useState('Endless scrolling')
 
-  iconSets.init()
-
   return (
-    <My.Providers>
+    <Comp.Providers>
       {globalState.hasData ? (
         <PanelGroup
           className='card !~w-[50rem]/[66rem] lg:~lg:!~h-[50rem]/[38rem]'
           direction='horizontal'>
           <Panel className='py-2' defaultSize={24}>
-            <My.Theme>
+            <Comp.Theme>
               {({ resolvedTheme, setTheme }) => (
-                <My.Listbox>
+                <Comp.Listbox>
                   {{
                     [iconSets.version]: [
                       ['Endless scrolling', 'Hehe'],
                       ['Bookmarks', use.pluralize(bookmarks, 'icon')],
-                      ['Recently viewed', use.pluralize(use.recentlyViewed(), 'icon')],
+                      ['Recently viewed', use.pluralize(use.recentlyViewedIcons(), 'icon')],
                       [
                         use.pluralize(globalState.allIconSets, 'icon set'),
                         use.pluralize(globalState.allIcons, 'icon')
@@ -864,27 +861,27 @@ export default () => {
                       }
                     ]
                   }}
-                </My.Listbox>
+                </Comp.Listbox>
               )}
-            </My.Theme>
+            </Comp.Theme>
           </Panel>
           <PanelResizeHandle />
           <Panel>
             <PanelGroup direction='vertical'>
               <Panel>
-                {state === 'Endless scrolling' && <Icons.Endless />}
+                {state === 'Endless scrolling' && <Comp.EndlessIcons />}
                 {state === use.pluralize(globalState.allIconSets, 'icon set') && (
-                  <Icons.Card icons={globalState.allIcons} />
+                  <Comp.IconGrid icons={globalState.allIcons} />
                 )}
-                {state === 'Bookmarks' && <Icons.Card storage={bookmarks} />}
-                {state === 'Recently viewed' && <Icons.RecentlyViewed />}
+                {state === 'Bookmarks' && <Comp.IconGrid storage={bookmarks} />}
+                {state === 'Recently viewed' && <Comp.RecentlyViewedIcons />}
                 {Object.keys(globalState.allIconSets).includes(state) && (
-                  <Icons.Filter {...globalState.allIconSets[state]} />
+                  <Comp.FilterIcons {...globalState.allIconSets[state]} />
                 )}
               </Panel>
               <PanelResizeHandle />
               <Panel>
-                <Icons.Search />
+                <Comp.SearchIcons />
               </Panel>
             </PanelGroup>
           </Panel>
@@ -895,9 +892,9 @@ export default () => {
       <Canvas className='!fixed inset-0 -z-10 hidden dark:block'>
         <Stars count={1_000} depth={700} fade />
       </Canvas>
-      <My.Theme>
+      <Comp.Theme>
         {({ resolvedTheme }) => <Toaster pauseWhenPageIsHidden theme={resolvedTheme} />}
-      </My.Theme>
-    </My.Providers>
+      </Comp.Theme>
+    </Comp.Providers>
   )
 }

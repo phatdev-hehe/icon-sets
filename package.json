@@ -44,7 +44,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react-swc": "^3.7.0",
-    "autoprefixer": "^10.4.19",
+    "autoprefixer": "^10.4.20",
     "eslint-plugin-perfectionist": "^3.0.0",
     "eslint-plugin-react": "^7.35.0",
     "fluid-tailwind": "^1.0.3",
