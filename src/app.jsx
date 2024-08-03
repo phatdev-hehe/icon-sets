@@ -76,19 +76,19 @@ const atom = atomWithImmer({ allIcons: [], allIconSets: {} })
 const iconsCache = new LRUCache({ max: 500 })
 
 const use = {
-  bookmarks: () => {
-    const [state, setState] = useLocalStorageState('bookmarks', {
+  bookmarkIcons: () => {
+    const [state, setState] = useLocalStorageState('bookmark-icons', {
       defaultValue: [],
       listenStorageChange: true
     })
 
-    const isBookmarked = icon => state.some(a => _.isEqual(a, stringToIcon(icon.id)))
+    const isIconBookmarked = icon => state.some(a => _.isEqual(a, stringToIcon(icon.id)))
 
     return {
-      bookmarks: state,
-      isBookmarked: isBookmarked,
-      toggleBookmark: icon => {
-        if (isBookmarked(icon)) {
+      bookmarkIcons: state,
+      isIconBookmarked: isIconBookmarked,
+      toggleIconBookmark: icon => {
+        if (isIconBookmarked(icon)) {
           setState(state => state.filter(a => !_.isEqual(a, stringToIcon(icon.id))))
           toast('Bookmark removed')
         } else {
@@ -106,6 +106,158 @@ const use = {
     return +value
   },
   globalState: ([globalState, setGlobalState] = useAtom(atom)) => ({ globalState, setGlobalState }),
+  iconSets: {
+    clear: async (shouldClear = true) => {
+      shouldClear && (await idb.clear())
+      location.reload(true)
+    },
+    estimateStorageUsage: () => {
+      const [state, setState] = useRafState(0)
+
+      useAsyncEffect(async () => setState((await navigator.storage.estimate()).usage), [])
+
+      return prettyBytes(state)
+    },
+    init: function () {
+      const { setGlobalState } = use.globalState()
+      const [state, setState] = useRafState(true)
+
+      useAsyncEffect(async (message = 'App') => {
+        if (!(window.indexedDB && window.Blob))
+          return toast(message, {
+            description: 'Browser not supported',
+            duration: Number.POSITIVE_INFINITY
+          })
+
+        if ((await idb.get('VERSION')) === 'DOWNLOADING')
+          return toast(message, {
+            action: (
+              <Button
+                color='warning'
+                onPress={async () => this.clear(await this.shouldUpdate())}
+                size='sm'
+                variant='bordered'>
+                Relaunch
+              </Button>
+            ),
+            description: 'Invalid data',
+            duration: Number.POSITIVE_INFINITY
+          })
+
+        if (await this.shouldUpdate()) {
+          const { currentToast } = use.toast(message, {
+            description: (
+              <>
+                Downloading latest content
+                <ScrollShadow className='h-96'>
+                  <Comp.Listbox>
+                    {{
+                      '': Object.keys(this.module).map(key => {
+                        const iconSet = collections[key]
+
+                        return {
+                          descriptions: [
+                            iconSet.author.name,
+                            iconSet.license.title,
+                            use.pluralize(iconSet.total, 'icon')
+                          ],
+                          isDisabled: true,
+                          title: iconSet.name
+                        }
+                      })
+                    }}
+                  </Comp.Listbox>
+                </ScrollShadow>
+              </>
+            ),
+            duration: Number.POSITIVE_INFINITY
+          })
+
+          await Promise.all([idb.clear, idb.set('VERSION', 'DOWNLOADING')])
+
+          try {
+            await Promise.all(
+              Object.values(this.module).map(async getIconSet => {
+                const iconSet = quicklyValidateIconSet(await getIconSet())
+
+                if (!iconSet) throw error
+
+                parseIconSet(iconSet, (name, data) => {
+                  iconSet.icons[name] = data
+                })
+
+                await idb.set(iconSet.prefix, {
+                  author: iconSet.info.author.name,
+                  categories: iconSet.categories,
+                  category: iconSet.info.category ?? 'Uncategorized',
+                  icons: iconSet.icons,
+                  lastModified: iconSet.lastModified,
+                  license: iconSet.info.license.title,
+                  name: iconSet.info.name,
+                  palette: iconSet.info.palette,
+                  prefix: iconSet.prefix,
+                  prefixes: iconSet.prefixes,
+                  suffixes: iconSet.suffixes
+                })
+              })
+            )
+
+            await idb.update('VERSION', () => this.version)
+            currentToast.update({ description: 'Please wait', duration: undefined })
+            setState(await this.shouldUpdate())
+          } catch {
+            currentToast.update({
+              action: (
+                <Button color='warning' onPress={this.clear} size='sm' variant='bordered'>
+                  Try again
+                </Button>
+              ),
+              description: 'An error occurred'
+            })
+          }
+        } else {
+          toast(message, { description: 'No update required' })
+          setState()
+        }
+      }, [])
+
+      useAsyncEffect(async () => {
+        if (state) return
+
+        const allIconSets = mapObject(Object.fromEntries(await idb.entries()), (key, iconSet) => {
+          if (key === 'VERSION') return mapObjectSkip
+
+          iconSet.icons = Object.entries(iconSet.icons).map(([name, data]) => ({
+            data: data,
+            id: `${iconSet.prefix}:${name}`,
+            name: name,
+            prefix: iconSet.prefix,
+            setName: iconSet.name
+          }))
+
+          return [key, iconSet]
+        })
+
+        setGlobalState(draft => {
+          draft.allIconSets = allIconSets
+          draft.allIcons = Object.values(allIconSets).flatMap(({ icons }) => icons)
+          draft.hasData = true
+        })
+      }, [state])
+    },
+    module: mapObject(import.meta.glob('/node_modules/@iconify/json/json/*'), (key, value) => {
+      key = key.slice(33, -5)
+
+      return key in collections ? [key, value] : mapObjectSkip
+    }),
+    shouldUpdate: async function () {
+      return (
+        (await idb.get('VERSION')) !== this.version ||
+        !_.isEqual(_.xor(Object.keys(collections), await idb.keys()), ['VERSION'])
+      )
+    },
+    version: semver.valid(semver.coerce(dependencies['@iconify/json']))
+  },
   parse: {
     icon: (icon, k = icon.id) => {
       if (iconsCache.has(k)) return iconsCache.get(k)
@@ -179,154 +331,8 @@ const use = {
   })
 }
 
-const iconSets = {
-  clear: async (shouldClear = true) => {
-    shouldClear && (await idb.clear())
-    location.reload(true)
-  },
-  estimateStorageUsage: () => {
-    const [state, setState] = useRafState(0)
-
-    useAsyncEffect(async () => setState((await navigator.storage.estimate()).usage), [])
-
-    return prettyBytes(state)
-  },
-  init: function () {
-    const { setGlobalState } = use.globalState()
-    const [state, setState] = useRafState(true)
-
-    useAsyncEffect(async (message = 'App') => {
-      if (!(window.indexedDB && window.Blob))
-        return toast(message, {
-          description: 'Browser not supported',
-          duration: Number.POSITIVE_INFINITY
-        })
-
-      if ((await idb.get('VERSION')) === 'DOWNLOADING')
-        return toast(message, {
-          action: (
-            <Button
-              color='warning'
-              onPress={async () => this.clear(await this.shouldUpdate())}
-              size='sm'
-              variant='bordered'>
-              Relaunch
-            </Button>
-          ),
-          description: 'Invalid data',
-          duration: Number.POSITIVE_INFINITY
-        })
-
-      if (await this.shouldUpdate()) {
-        const { currentToast } = use.toast(message, {
-          description: (
-            <>
-              Downloading latest content
-              <ScrollShadow className='h-96'>
-                <Comp.Listbox>
-                  {{
-                    '': Object.keys(this.module).map(key => {
-                      const iconSet = collections[key]
-
-                      return {
-                        description: use.pluralize(iconSet.total, 'icon'),
-                        isDisabled: true,
-                        title: iconSet.name
-                      }
-                    })
-                  }}
-                </Comp.Listbox>
-              </ScrollShadow>
-            </>
-          ),
-          duration: Number.POSITIVE_INFINITY
-        })
-
-        await Promise.all([idb.clear, idb.set('VERSION', 'DOWNLOADING')])
-
-        try {
-          await Promise.all(
-            Object.values(this.module).map(async getIconSet => {
-              const iconSet = quicklyValidateIconSet(await getIconSet())
-
-              if (!iconSet) throw error
-
-              parseIconSet(iconSet, (name, data) => {
-                iconSet.icons[name] = data
-              })
-
-              await idb.set(iconSet.prefix, {
-                author: iconSet.info.author.name,
-                categories: iconSet.categories,
-                category: iconSet.info.category ?? 'Uncategorized',
-                icons: iconSet.icons,
-                lastModified: iconSet.lastModified,
-                license: iconSet.info.license.title,
-                name: iconSet.info.name,
-                palette: iconSet.info.palette,
-                prefix: iconSet.prefix,
-                prefixes: iconSet.prefixes,
-                suffixes: iconSet.suffixes
-              })
-            })
-          )
-
-          await idb.update('VERSION', () => this.version)
-          currentToast.update({ description: 'Please wait', duration: undefined })
-          setState(await this.shouldUpdate())
-        } catch {
-          currentToast.update({
-            action: (
-              <Button color='warning' onPress={this.clear} size='sm' variant='bordered'>
-                Try again
-              </Button>
-            ),
-            description: 'An error occurred'
-          })
-        }
-      } else {
-        toast(message, { description: 'No update required' })
-        setState()
-      }
-    }, [])
-
-    useAsyncEffect(async () => {
-      if (state) return
-
-      const allIconSets = mapObject(Object.fromEntries(await idb.entries()), (key, iconSet) => {
-        if (key === 'VERSION') return mapObjectSkip
-
-        iconSet.icons = Object.entries(iconSet.icons).map(([name, data]) => ({
-          data: data,
-          id: `${iconSet.prefix}:${name}`,
-          name: name,
-          prefix: iconSet.prefix,
-          setName: iconSet.name
-        }))
-
-        return [key, iconSet]
-      })
-
-      setGlobalState(draft => {
-        draft.allIconSets = allIconSets
-        draft.allIcons = Object.values(allIconSets).flatMap(({ icons }) => icons)
-        draft.hasData = true
-      })
-    }, [state])
-  },
-  module: mapObject(import.meta.glob('/node_modules/@iconify/json/json/*'), (key, value) => {
-    key = key.slice(33, -5)
-
-    return key in collections ? [key, value] : mapObjectSkip
-  }),
-  shouldUpdate: async () =>
-    (await idb.get('VERSION')) !== iconSets.version ||
-    !_.isEqual(_.xor(Object.keys(collections), await idb.keys()), ['VERSION']),
-  version: semver.valid(semver.coerce(dependencies['@iconify/json']))
-}
-
 const Comp = {
-  EndlessIcons: ({ step = 100, sizes = _.range(step, 10_000 + step, step) }) => {
+  EndlessIcons: ({ step = 100, sizes = _.range(step, 1_000 + step, step) }) => {
     const { globalState } = use.globalState()
     const [state, setState] = useSetState({ icons: [], size: step })
 
@@ -422,12 +428,12 @@ const Comp = {
                         }
                       })
                     }),
-                    [use.pluralize(iconSet.icons, 'icon')]: [
+                    Download: [
                       {
-                        description: `${iconSet.name}.zip`,
+                        description: use.pluralize(iconSet.icons, 'icon'),
                         isDisabled: !use.count(iconSet.icons),
                         onPress: () => use.save.iconsAs(iconSet.icons, `${iconSet.name}.zip`),
-                        title: 'Download'
+                        title: `${iconSet.name}.zip`
                       }
                     ]
                   }}
@@ -509,13 +515,13 @@ const Comp = {
       </Link>
     </Comp.HoverCard>
   ),
-  IconGrid: ({ footer, footerRight, icons, storage, ...props }) => {
+  IconGrid: ({ footer, footerRight, icons, iconsFromStorage, ...props }) => {
     const { globalState } = use.globalState()
-    const { isBookmarked, toggleBookmark } = use.bookmarks()
-    const [state, setState] = useState(true)
+    const { isIconBookmarked, toggleIconBookmark } = use.bookmarkIcons()
+    const [state, setState] = useState()
 
-    if (storage)
-      icons = storage.map(i =>
+    if (iconsFromStorage)
+      icons = iconsFromStorage.map(i =>
         globalState.allIconSets[i.prefix].icons.find(icon => icon.name === i.name)
       )
 
@@ -582,8 +588,8 @@ const Comp = {
                         }
                       ],
                       Bookmark: ['Add', 'Remove'].map(title => ({
-                        isDisabled: (title === 'Add') === isBookmarked(icon),
-                        onPress: () => toggleBookmark(icon),
+                        isDisabled: (title === 'Add') === isIconBookmarked(icon),
+                        onPress: () => toggleIconBookmark(icon),
                         title: title
                       })),
                       ...mapObject(icon.paths, (fileType, path) => {
@@ -610,7 +616,7 @@ const Comp = {
                 }>
                 <Button
                   isIconOnly
-                  onPress={() => toggleBookmark(icon)}
+                  onPress={() => toggleIconBookmark(icon)}
                   radius='full'
                   size='lg'
                   variant='light'>
@@ -783,10 +789,10 @@ const Comp = {
 }
 
 export default () => {
-  iconSets.init()
+  use.iconSets.init()
 
   const { globalState } = use.globalState()
-  const { bookmarks } = use.bookmarks()
+  const { bookmarkIcons } = use.bookmarkIcons()
   const [state, setState] = useState('Endless scrolling')
 
   return (
@@ -800,9 +806,9 @@ export default () => {
               {({ resolvedTheme, setTheme }) => (
                 <Comp.Listbox>
                   {{
-                    [iconSets.version]: [
+                    [use.iconSets.version]: [
                       ['Endless scrolling', 'Hehe'],
-                      ['Bookmarks', use.pluralize(bookmarks, 'icon')],
+                      ['Bookmarks', use.pluralize(bookmarkIcons, 'icon')],
                       ['Recently viewed', use.pluralize(use.recentlyViewedIcons(), 'icon')],
                       [
                         use.pluralize(globalState.allIconSets, 'icon set'),
@@ -854,9 +860,9 @@ export default () => {
                       },
                       {
                         color: 'warning',
-                        description: iconSets.estimateStorageUsage(),
+                        description: use.iconSets.estimateStorageUsage(),
                         isActive: true,
-                        onPress: iconSets.clear,
+                        onPress: use.iconSets.clear,
                         title: 'Clear cache'
                       }
                     ]
@@ -873,7 +879,7 @@ export default () => {
                 {state === use.pluralize(globalState.allIconSets, 'icon set') && (
                   <Comp.IconGrid icons={globalState.allIcons} />
                 )}
-                {state === 'Bookmarks' && <Comp.IconGrid storage={bookmarks} />}
+                {state === 'Bookmarks' && <Comp.IconGrid iconsFromStorage={bookmarkIcons} />}
                 {state === 'Recently viewed' && <Comp.RecentlyViewedIcons />}
                 {Object.keys(globalState.allIconSets).includes(state) && (
                   <Comp.FilterIcons {...globalState.allIconSets[state]} />
