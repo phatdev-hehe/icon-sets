@@ -76,7 +76,7 @@ const atom = atomWithImmer({ allIcons: [], allIconSets: {} })
 const iconsCache = new LRUCache({ max: 500 })
 
 const use = {
-  bookmarkIcons: () => {
+  get bookmarkIcons() {
     const [state, setState] = useLocalStorageState('bookmark-icons', {
       defaultValue: [],
       listenStorageChange: true
@@ -105,21 +105,25 @@ const use = {
 
     return +value
   },
-  globalState: ([globalState, setGlobalState] = useAtom(atom)) => ({ globalState, setGlobalState }),
+  get globalState() {
+    const [globalState, setGlobalState] = useAtom(atom)
+
+    return { globalState, setGlobalState }
+  },
   iconSets: {
     clear: async (shouldClear = true) => {
       shouldClear && (await idb.clear())
       location.reload(true)
     },
-    estimateStorageUsage: () => {
+    get estimateStorageUsage() {
       const [state, setState] = useRafState(0)
 
       useAsyncEffect(async () => setState((await navigator.storage.estimate()).usage), [])
 
       return prettyBytes(state)
     },
-    init: function () {
-      const { setGlobalState } = use.globalState()
+    get init() {
+      const { setGlobalState } = use.globalState
       const [state, setState] = useRafState(true)
 
       useAsyncEffect(async (message = 'App') => {
@@ -156,11 +160,7 @@ const use = {
                         const iconSet = collections[key]
 
                         return {
-                          descriptions: [
-                            iconSet.author.name,
-                            iconSet.license.title,
-                            use.pluralize(iconSet.total, 'icon')
-                          ],
+                          description: iconSet.author.name,
                           isDisabled: true,
                           title: iconSet.name
                         }
@@ -203,7 +203,7 @@ const use = {
             )
 
             await idb.update('VERSION', () => this.version)
-            currentToast.update({ description: 'Please wait', duration: undefined })
+            currentToast.update({ description: 'Please wait', duration: null })
             setState(await this.shouldUpdate())
           } catch {
             currentToast.update({
@@ -244,6 +244,8 @@ const use = {
           draft.hasData = true
         })
       }, [state])
+
+      return null
     },
     module: mapObject(import.meta.glob('/node_modules/@iconify/json/json/*'), (key, value) => {
       key = key.slice(33, -5)
@@ -291,7 +293,9 @@ const use = {
     }
   },
   pluralize: (value, word) => pluralize(word, use.count(value), true),
-  recentlyViewedIcons: () => [...iconsCache.values()],
+  get recentlyViewedIcons() {
+    return [...iconsCache.values()]
+  },
   save: {
     as: async (data, filename) => {
       const { currentToast } = use.toast(filename, {
@@ -311,7 +315,7 @@ const use = {
           </Button>
         ),
         description: 'Sent download link',
-        duration: undefined
+        duration: null
       })
     },
     iconsAs: function (icons, filename, pathType = 'default') {
@@ -333,7 +337,7 @@ const use = {
 
 const Comp = {
   EndlessIcons: ({ step = 100, sizes = _.range(step, 1_000 + step, step) }) => {
-    const { globalState } = use.globalState()
+    const { globalState } = use.globalState
     const [state, setState] = useSetState({ icons: [], size: step })
 
     const endReached = () =>
@@ -516,8 +520,8 @@ const Comp = {
     </Comp.HoverCard>
   ),
   IconGrid: ({ footer, footerRight, icons, iconsFromStorage, ...props }) => {
-    const { globalState } = use.globalState()
-    const { isIconBookmarked, toggleIconBookmark } = use.bookmarkIcons()
+    const { globalState } = use.globalState
+    const { isIconBookmarked, toggleIconBookmark } = use.bookmarkIcons
     const [state, setState] = useState()
 
     if (iconsFromStorage)
@@ -595,7 +599,7 @@ const Comp = {
                       ...mapObject(icon.paths, (fileType, path) => {
                         const text = {
                           css: icon.to.css,
-                          json: JSON.stringify(icon.data, undefined, 2),
+                          json: JSON.stringify(icon.data, null, 2),
                           svg: icon.to.html,
                           txt: icon.to.dataUrl
                         }[fileType]
@@ -684,12 +688,12 @@ const Comp = {
         footerRight={
           <Comp.IconButton icon='line-md:round-360' onPress={useUpdate()} tooltip='Refresh' />
         }
-        icons={use.recentlyViewedIcons()}
+        icons={use.recentlyViewedIcons}
       />
     )
   },
   SearchIcons: memo(({ placeholder = 'Search' }) => {
-    const { globalState } = use.globalState()
+    const { globalState } = use.globalState
     const fuse = useCreation(() => new Fuse(globalState.allIcons, { keys: ['name'], threshold: 0 }))
     const [state, setState] = useSetState({ fuseResult: [], icons: [] })
     const isUnfiltered = (a = state.fuseResult) => _.isEqual(a, state.icons)
@@ -789,10 +793,10 @@ const Comp = {
 }
 
 export default () => {
-  use.iconSets.init()
+  use.iconSets.init
 
-  const { globalState } = use.globalState()
-  const { bookmarkIcons } = use.bookmarkIcons()
+  const { globalState } = use.globalState
+  const { bookmarkIcons } = use.bookmarkIcons
   const [state, setState] = useState('Endless scrolling')
 
   return (
@@ -809,7 +813,7 @@ export default () => {
                     [use.iconSets.version]: [
                       ['Endless scrolling', 'Hehe'],
                       ['Bookmarks', use.pluralize(bookmarkIcons, 'icon')],
-                      ['Recently viewed', use.pluralize(use.recentlyViewedIcons(), 'icon')],
+                      ['Recently viewed', use.pluralize(use.recentlyViewedIcons, 'icon')],
                       [
                         use.pluralize(globalState.allIconSets, 'icon set'),
                         use.pluralize(globalState.allIcons, 'icon')
@@ -860,7 +864,7 @@ export default () => {
                       },
                       {
                         color: 'warning',
-                        description: use.iconSets.estimateStorageUsage(),
+                        description: use.iconSets.estimateStorageUsage,
                         isActive: true,
                         onPress: use.iconSets.clear,
                         title: 'Clear cache'
