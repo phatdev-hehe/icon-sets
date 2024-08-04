@@ -641,7 +641,7 @@ const Comp = {
                 <Comp.IconButton
                   icon={state ? 'line-md:watch' : 'line-md:watch-off'}
                   onPress={() => setState(!state)}
-                  tooltip={`${state ? 'Sorted' : 'Sort'} ${use.pluralize(icons, 'icon')}`}
+                  tooltip={state ? 'Sorted' : 'Sort'}
                 />
               )}
             </div>
@@ -696,11 +696,37 @@ const Comp = {
     const { globalState } = use.globalState
     const fuse = useCreation(() => new Fuse(globalState.allIcons, { keys: ['name'], threshold: 0 }))
     const [state, setState] = useSetState({ fuseResult: [], icons: [] })
-    const isUnfiltered = (a = state.fuseResult) => _.isEqual(a, state.icons)
+    const isUnfiltered = (fuseResult = state.fuseResult) => _.isEqual(fuseResult, state.icons)
 
     const [{ search: searchPattern }, setSearchPattern] = useUrlState(
       { search: placeholder },
       { navigateMode: 'replace' }
+    )
+
+    let listboxSections = mapObject(globalState.allIconSets, (key, iconSet) => [
+      iconSet.name,
+      state.fuseResult.filter(icon => icon.prefix === iconSet.prefix)
+    ])
+
+    listboxSections = mapObject(
+      sortKeys(listboxSections, {
+        compare: (a, b) => use.count(listboxSections[b]) - use.count(listboxSections[a])
+      }),
+      (iconSetName, icons) => [
+        `${iconSetName} (${use.count(icons)})`,
+        [
+          {
+            isDisabled: isUnfiltered(icons) || !use.count(icons),
+            onPress: () => setState({ icons }),
+            title: 'View'
+          },
+          {
+            isDisabled: !use.count(icons),
+            onPress: () => use.save.iconsAs(icons, `${iconSetName}.zip`),
+            title: 'Download'
+          }
+        ]
+      ]
     )
 
     useDebounceEffect(
@@ -723,58 +749,33 @@ const Comp = {
               label: use.count(state.icons) && '!text-foreground-500'
             }}
             endContent={
-              !!use.count(state.icons) && (
-                <Comp.IconButton
-                  dropdown={
-                    <Comp.Listbox>
-                      {{
-                        [use.pluralize(state.fuseResult, 'icon')]: [
-                          {
-                            isDisabled: isUnfiltered(),
-                            onPress: () => setState(state => ({ icons: state.fuseResult })),
-                            title: 'View'
-                          },
-                          {
-                            onPress: () =>
-                              use.save.iconsAs(
-                                state.fuseResult,
-                                `${use.pluralize(state.fuseResult, 'icon')}.zip`,
-                                'detail'
-                              ),
-                            title: 'Download'
-                          }
-                        ],
-                        ...mapObject(globalState.allIconSets, (key, iconSet) => {
-                          iconSet = _.clone(iconSet)
-
-                          iconSet.icons = state.fuseResult.filter(
-                            icon => icon.prefix === iconSet.prefix
-                          )
-
-                          return [
-                            `${iconSet.name} (${use.count(iconSet.icons)})`,
-                            [
-                              {
-                                isDisabled:
-                                  isUnfiltered(iconSet.icons) || !use.count(iconSet.icons),
-                                onPress: () => setState({ icons: iconSet.icons }),
-                                title: 'View'
-                              },
-                              {
-                                isDisabled: !use.count(iconSet.icons),
-                                onPress: () =>
-                                  use.save.iconsAs(iconSet.icons, `${iconSet.name}.zip`),
-                                title: 'Download'
-                              }
-                            ]
-                          ]
-                        })
-                      }}
-                    </Comp.Listbox>
-                  }
-                  icon={isUnfiltered() ? 'line-md:filter' : 'line-md:filter-filled'}
-                />
-              )
+              <Comp.IconButton
+                dropdown={
+                  <Comp.Listbox>
+                    {{
+                      [`All results (${use.count(state.fuseResult)})`]: [
+                        {
+                          isDisabled: isUnfiltered(),
+                          onPress: () => setState(state => ({ icons: state.fuseResult })),
+                          title: 'View'
+                        },
+                        {
+                          isDisabled: !use.count(state.fuseResult),
+                          onPress: () =>
+                            use.save.iconsAs(
+                              state.fuseResult,
+                              `${use.pluralize(state.fuseResult, 'icon')} found.zip`,
+                              'detail'
+                            ),
+                          title: 'Download'
+                        }
+                      ],
+                      ...listboxSections
+                    }}
+                  </Comp.Listbox>
+                }
+                icon={isUnfiltered() ? 'line-md:filter' : 'line-md:filter-filled'}
+              />
             }
             isInvalid={!use.count(state.icons)}
             label={use.pluralize(state.icons, 'icon')}
