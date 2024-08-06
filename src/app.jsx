@@ -134,7 +134,7 @@ const use = {
             duration: Number.POSITIVE_INFINITY
           })
 
-        if ((await idb.get('version')) === 'downloading')
+        if ((await idb.get('version')) === 'not_found')
           return toast(message, {
             action: (
               <Button
@@ -174,7 +174,8 @@ const use = {
             duration: Number.POSITIVE_INFINITY
           })
 
-          await Promise.all([idb.clear, idb.set('version', 'downloading')])
+          await idb.clear()
+          await idb.set('version', 'not_found')
 
           try {
             await Promise.all(
