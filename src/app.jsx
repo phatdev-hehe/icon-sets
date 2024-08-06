@@ -82,14 +82,15 @@ const use = {
       listenStorageChange: true
     })
 
-    const isIconBookmarked = icon => state.some(a => _.isEqual(a, stringToIcon(icon.id)))
+    const isValidIconBookmark = (iconObject, icon) => _.isEqual(iconObject, stringToIcon(icon.id))
+    const isIconBookmarked = icon => state.some(iconObject => isValidIconBookmark(iconObject, icon))
 
     return {
       bookmarkIcons: state,
       isIconBookmarked: isIconBookmarked,
       toggleIconBookmark: icon => {
         if (isIconBookmarked(icon)) {
-          setState(state => state.filter(a => !_.isEqual(a, stringToIcon(icon.id))))
+          setState(state => state.filter(iconObject => !isValidIconBookmark(iconObject, icon)))
           toast('Bookmark removed')
         } else {
           setState(state => [...state, stringToIcon(icon.id)])
@@ -127,13 +128,13 @@ const use = {
       const [state, setState] = useRafState(true)
 
       useAsyncEffect(async (message = 'App') => {
-        if (!(window.indexedDB && window.Blob))
+        if (!window)
           return toast(message, {
             description: 'Browser not supported',
             duration: Number.POSITIVE_INFINITY
           })
 
-        if ((await idb.get('VERSION')) === 'DOWNLOADING')
+        if ((await idb.get('version')) === 'downloading')
           return toast(message, {
             action: (
               <Button
@@ -173,7 +174,7 @@ const use = {
             duration: Number.POSITIVE_INFINITY
           })
 
-          await Promise.all([idb.clear, idb.set('VERSION', 'DOWNLOADING')])
+          await Promise.all([idb.clear, idb.set('version', 'downloading')])
 
           try {
             await Promise.all(
@@ -202,7 +203,7 @@ const use = {
               })
             )
 
-            await idb.update('VERSION', () => this.version)
+            await idb.update('version', () => this.version)
             currentToast.update({ description: 'Please wait', duration: null })
             setState(await this.shouldUpdate())
           } catch {
@@ -225,7 +226,7 @@ const use = {
         if (state) return
 
         const allIconSets = mapObject(Object.fromEntries(await idb.entries()), (key, iconSet) => {
-          if (key === 'VERSION') return mapObjectSkip
+          if (key === 'version') return mapObjectSkip
 
           iconSet.icons = Object.entries(iconSet.icons).map(([name, data]) => ({
             data: data,
@@ -254,11 +255,14 @@ const use = {
     }),
     shouldUpdate: async function () {
       return (
-        (await idb.get('VERSION')) !== this.version ||
-        !_.isEqual(_.xor(Object.keys(collections), await idb.keys()), ['VERSION'])
+        (await idb.get('version')) !== this.version ||
+        !_.isEqual(_.xor(Object.keys(collections), await idb.keys()), ['version'])
       )
     },
     version: semver.valid(semver.coerce(dependencies['@iconify/json']))
+  },
+  get id() {
+    return nanoid()
   },
   parse: {
     icon: (icon, k = icon.id) => {
@@ -277,7 +281,7 @@ const use = {
         to: {
           css: getIconCSS(icon.data),
           dataUrl: getIconContentCSS(icon.data, svg.attributes).slice(31, -6),
-          html: iconToHTML(replaceIDs(svg.body, nanoid()), svg.attributes)
+          html: iconToHTML(replaceIDs(svg.body, use.id), svg.attributes)
         },
         ...icon
       }
@@ -287,7 +291,7 @@ const use = {
       return v
     },
     unix: t => {
-      useRafInterval(useUpdate(), 60_000)
+      useRafInterval(use.update, 60_000)
 
       return dayjs.unix(t).fromNow()
     }
@@ -332,7 +336,10 @@ const use = {
   },
   toast: (message, data, id = toast(message, data)) => ({
     currentToast: { update: data => toast(message, { ...data, id }) }
-  })
+  }),
+  get update() {
+    return useUpdate()
+  }
 }
 
 const Comp = {
@@ -340,16 +347,16 @@ const Comp = {
     const { globalState } = use.globalState
     const [state, setState] = useSetState({ icons: [], size: step })
 
-    const endReached = () =>
+    const loadMoreIcons = () =>
       setState(state => ({
         icons: [...state.icons, ..._.sampleSize(globalState.allIcons, state.size)]
       }))
 
-    useEffect(endReached, [])
+    useEffect(loadMoreIcons, [])
 
     return (
       <Comp.IconGrid
-        endReached={endReached}
+        endReached={loadMoreIcons}
         footerRight={
           <Comp.IconButton
             dropdown={
@@ -374,7 +381,7 @@ const Comp = {
   FilterIcons: iconSet => {
     const initialState = { category: false, theme: false }
 
-    const [state, setState, validState = key => typeof state[key] === 'string'] =
+    const [state, setState, isValidState = key => typeof state[key] === 'string'] =
       useSetState(initialState)
 
     iconSet = _.clone(iconSet)
@@ -386,21 +393,19 @@ const Comp = {
           iconSet.prefixes ? `${theme}-` : `-${theme}`
         )
 
-      const isCategoryMatch =
-        !validState('category') || iconSet.categories?.[state.category]?.includes(icon.name)
-
-      const isThemeMatch =
-        !validState('theme') ||
-        (state.theme === ''
-          ? !Object.keys(iconSet.themes).some(isMatchingTheme)
-          : isMatchingTheme())
-
-      return isCategoryMatch && isThemeMatch
+      return (
+        (!isValidState('category') || iconSet.categories?.[state.category]?.includes(icon.name)) &&
+        (!isValidState('theme') ||
+          (state.theme === ''
+            ? !Object.keys(iconSet.themes).some(isMatchingTheme)
+            : isMatchingTheme()))
+      )
     })
 
-    useDeepCompareEffect(() => {
-      if (!_.isEqual(state, initialState)) setState(initialState)
-    }, [iconSet.categories, iconSet.prefixes, iconSet.suffixes])
+    useDeepCompareEffect(
+      () => setState(initialState),
+      [iconSet.categories, iconSet.prefixes, iconSet.suffixes]
+    )
 
     return (
       <Comp.IconGrid
@@ -548,14 +553,6 @@ const Comp = {
               ) : (
                 <div className='flex-center text-sm text-foreground-500'>No icons</div>
               ),
-            // Item: props => {
-            //   const icon = icons[props['data-index']]
-            //
-            //   useState()
-            //   useEffect()
-            //
-            //   return <div {...props} />
-            // },
             ScrollSeekPlaceholder: ({ height, index, width }) => {
               const icon = icons[index]
 
@@ -630,7 +627,7 @@ const Comp = {
             )
           }}
           listClassName='flex-center flex-wrap h-auto'
-          scrollSeekConfiguration={{ enter: x => Math.abs(x), exit: x => x === 0 }}
+          scrollSeekConfiguration={{ enter: v => Math.abs(v), exit: v => v === 0 }}
           {...props}
         />
         <CardFooter>
@@ -651,18 +648,18 @@ const Comp = {
     )
   },
   Listbox: ({ children: sections }) => (
-    <Listbox aria-label={nanoid()} variant='light'>
+    <Listbox aria-label={use.id} variant='light'>
       {Object.entries(sections).map(([title, items], index, data) => (
-        <ListboxSection key={nanoid()} showDivider={index !== use.count(data) - 1} title={title}>
+        <ListboxSection key={use.id} showDivider={index !== use.count(data) - 1} title={title}>
           {items.map(({ color = 'primary', descriptions = [], isActive, title, ...props }) => (
             <ListboxItem
               classNames={{ title: isActive && `text-${color}` }}
               color={isActive ? color : ''}
               description={descriptions.map(description => (
-                <div key={nanoid()}>{description}</div>
+                <div key={use.id}>{description}</div>
               ))}
-              key={nanoid()}
-              textValue={nanoid()}
+              key={use.id}
+              textValue={use.id}
               {...props}>
               {title}
             </ListboxItem>
@@ -681,12 +678,12 @@ const Comp = {
     </LazyMotion>
   ),
   RecentlyViewedIcons: () => {
-    useEffect(useUpdate(), [])
+    useEffect(use.update, [])
 
     return (
       <Comp.IconGrid
         footerRight={
-          <Comp.IconButton icon='line-md:round-360' onPress={useUpdate()} tooltip='Refresh' />
+          <Comp.IconButton icon='line-md:round-360' onPress={use.update} tooltip='Refresh' />
         }
         icons={use.recentlyViewedIcons}
       />
@@ -695,8 +692,10 @@ const Comp = {
   SearchIcons: memo(({ placeholder = 'Search' }) => {
     const { globalState } = use.globalState
     const fuse = useCreation(() => new Fuse(globalState.allIcons, { keys: ['name'], threshold: 0 }))
-    const [state, setState] = useSetState({ fuseResult: [], icons: [] })
-    const isUnfiltered = (fuseResult = state.fuseResult) => _.isEqual(fuseResult, state.icons)
+    const [state, setState] = useSetState({ icons: [], searchResults: [] })
+
+    const isUnfiltered = (searchResults = state.searchResults) =>
+      _.isEqual(searchResults, state.icons)
 
     const [{ search: searchPattern }, setSearchPattern] = useUrlState(
       { search: placeholder },
@@ -705,7 +704,7 @@ const Comp = {
 
     let listboxSections = mapObject(globalState.allIconSets, (key, iconSet) => [
       iconSet.name,
-      state.fuseResult.filter(icon => icon.prefix === iconSet.prefix)
+      state.searchResults.filter(icon => icon.prefix === iconSet.prefix)
     ])
 
     listboxSections = mapObject(
@@ -733,7 +732,7 @@ const Comp = {
       () => {
         const icons = fuse.search(kebabCase(searchPattern)).map(({ item }) => item)
 
-        setState({ fuseResult: icons, icons: icons })
+        setState({ icons: icons, searchResults: icons })
       },
       [searchPattern],
       { wait: 300 }
@@ -753,18 +752,18 @@ const Comp = {
                 dropdown={
                   <Comp.Listbox>
                     {{
-                      [`All results (${use.count(state.fuseResult)})`]: [
+                      [`All results (${use.count(state.searchResults)})`]: [
                         {
                           isDisabled: isUnfiltered(),
-                          onPress: () => setState(state => ({ icons: state.fuseResult })),
+                          onPress: () => setState(state => ({ icons: state.searchResults })),
                           title: 'View'
                         },
                         {
-                          isDisabled: !use.count(state.fuseResult),
+                          isDisabled: !use.count(state.searchResults),
                           onPress: () =>
                             use.save.iconsAs(
-                              state.fuseResult,
-                              `${use.pluralize(state.fuseResult, 'icon')} found.zip`,
+                              state.searchResults,
+                              `${use.pluralize(state.searchResults, 'icon')} found.zip`,
                               'detail'
                             ),
                           title: 'Download'
