@@ -35,10 +35,12 @@ import {
   useDebounceEffect,
   useDeepCompareEffect,
   useLocalStorageState,
+  useMouse,
   useRafInterval,
   useRafState,
   useSetState,
-  useUpdate
+  useUpdate,
+  useUpdateEffect
 } from 'ahooks'
 import { kebabCase } from 'change-case'
 import copy from 'copy-to-clipboard'
@@ -335,6 +337,9 @@ const use = {
       return this.as(zip.generateAsync({ type: 'blob' }), filename)
     }
   },
+  get spring() {
+    return useSpring(0)
+  },
   toast: (message, data, id = toast(message, data)) => ({
     currentToast: { update: data => toast(message, { ...data, id }) }
   }),
@@ -463,10 +468,10 @@ const Comp = {
       />
     )
   },
-  HoverCard: ({ align = 'center', asDropdown, asTooltip, children, content }) => {
+  HoverCard: ({ align = 'center', children, dropdown, tooltip }) => {
     const [state, setState] = useState()
     const ref = useRef()
-    const x = useSpring(0)
+    const x = use.spring
     const setX = v => x.set(v / 4)
 
     return (
@@ -493,23 +498,23 @@ const Comp = {
           {state && (
             <HoverCard.Portal forceMount>
               <HoverCard.Content
-                align={asDropdown ? 'start' : align}
+                align={dropdown ? 'start' : align}
                 ref={ref}
-                side={asTooltip && 'top'}
+                side={tooltip && 'top'}
                 sideOffset={10}>
                 <m.div
                   animate={{ scale: [0.7, 1] }}
                   className={cn({
                     card: true,
-                    'max-h-[25rem] w-[16rem] overflow-hidden overflow-y-auto p-2': asDropdown,
-                    'px-2.5 py-1 text-sm': asTooltip
+                    'max-h-[25rem] w-[16rem] overflow-hidden overflow-y-auto p-2': dropdown,
+                    'px-2.5 py-1 text-sm': tooltip
                   })}
                   exit={{ opacity: 0, scale: 0.7 }}
                   style={{
                     transformOrigin: 'var(--radix-hover-card-content-transform-origin)',
                     x: x
                   }}>
-                  {content}
+                  {tooltip ?? dropdown}
                 </m.div>
               </HoverCard.Content>
             </HoverCard.Portal>
@@ -519,7 +524,7 @@ const Comp = {
     )
   },
   IconButton: ({ dropdown, onPress, tooltip, ...rest }) => (
-    <Comp.HoverCard asDropdown={dropdown} asTooltip={tooltip} content={tooltip ?? dropdown}>
+    <Comp.HoverCard {...{ dropdown, tooltip }}>
       <Link onPress={onPress}>
         <Icon className='size-8 cursor-pointer' {...rest} />
       </Link>
@@ -571,8 +576,7 @@ const Comp = {
 
             return (
               <Comp.HoverCard
-                asDropdown
-                content={
+                dropdown={
                   <Comp.Listbox>
                     {{
                       [`#${index + 1}`]: [
@@ -594,7 +598,7 @@ const Comp = {
                         onPress: () => toggleIconBookmark(icon),
                         title: title
                       })),
-                      ...mapObject(icon.paths, (fileType, path) => {
+                      ...mapObject(icon.paths, (fileType, iconPath) => {
                         const text = {
                           css: icon.to.css,
                           json: JSON.stringify(icon.data, null, 2),
@@ -607,7 +611,7 @@ const Comp = {
                           [
                             { onPress: () => use.copy(text), title: 'Copy' },
                             {
-                              onPress: () => use.save.as(new Blob([text]), path.detail),
+                              onPress: () => use.save.as(new Blob([text]), iconPath.detail),
                               title: 'Download'
                             }
                           ]
@@ -790,6 +794,24 @@ const Comp = {
       />
     )
   }),
+  Stars: () => {
+    const { clientX, clientY } = useMouse()
+    const x = use.spring
+    const y = use.spring
+
+    useUpdateEffect(() => {
+      x.set(clientX / 200)
+      y.set(clientY / 200)
+    }, [clientX, clientY])
+
+    return (
+      <m.div className='fixed inset-0 -z-10 hidden dark:block' style={{ x, y }}>
+        <Canvas>
+          <Stars count={1_000} depth={700} fade />
+        </Canvas>
+      </m.div>
+    )
+  },
   Theme: ({ children }) => children(useTheme())
 }
 
@@ -900,9 +922,7 @@ export default () => {
       ) : (
         <Spinner label='Loading…' />
       )}
-      <Canvas className='!fixed inset-0 -z-10 hidden dark:block'>
-        <Stars count={1_000} depth={700} fade />
-      </Canvas>
+      <Comp.Stars />
       <Comp.Theme>
         {({ resolvedTheme }) => <Toaster pauseWhenPageIsHidden theme={resolvedTheme} />}
       </Comp.Theme>
