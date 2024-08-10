@@ -39,6 +39,7 @@ import {
   useRafInterval,
   useRafState,
   useSetState,
+  useSize,
   useUpdate,
   useUpdateEffect
 } from 'ahooks'
@@ -84,15 +85,17 @@ const use = {
       listenStorageChange: true
     })
 
-    const isValidIconBookmark = (iconObject, icon) => _.isEqual(iconObject, stringToIcon(icon.id))
-    const isIconBookmarked = icon => state.some(iconObject => isValidIconBookmark(iconObject, icon))
+    const [isValidIcon, isIconBookmarked] = [
+      (iconObject, icon) => _.isEqual(iconObject, stringToIcon(icon.id)),
+      icon => state.some(iconObject => isValidIcon(iconObject, icon))
+    ]
 
     return {
       bookmarkIcons: state,
       isIconBookmarked: isIconBookmarked,
       toggleIconBookmark: icon => {
         if (isIconBookmarked(icon)) {
-          setState(state => state.filter(iconObject => !isValidIconBookmark(iconObject, icon)))
+          setState(state => state.filter(iconObject => !isValidIcon(iconObject, icon)))
           toast('Bookmark removed')
         } else {
           setState(state => [...state, stringToIcon(icon.id)])
@@ -310,8 +313,7 @@ const use = {
         duration: Number.POSITIVE_INFINITY
       })
 
-      const promise = await Promise.all([data, filename])
-      const download = () => saveAs(...promise)
+      const [promise, download] = [await Promise.all([data, filename]), () => saveAs(...promise)]
 
       download()
 
@@ -325,13 +327,13 @@ const use = {
         duration: null
       })
     },
-    iconsAs: function (icons, filename, pathType = 'default') {
+    iconsAs: function (icons, filename, iconPath = 'default') {
       const zip = new JSZip()
 
       for (let icon of icons) {
         icon = use.parse.icon(icon)
 
-        zip.file(icon.paths.svg[pathType], icon.to.html)
+        zip.file(icon.paths.svg[iconPath], icon.to.html)
       }
 
       return this.as(zip.generateAsync({ type: 'blob' }), filename)
@@ -471,8 +473,7 @@ const Comp = {
   HoverCard: ({ align = 'center', children, dropdown, tooltip }) => {
     const [state, setState] = useState()
     const ref = useRef()
-    const x = use.spring
-    const setX = v => x.set(v / 4)
+    const [x, setX] = [use.spring, v => x.set(v / 4)]
 
     return (
       <HoverCard.Root closeDelay={200} onOpenChange={setState} openDelay={0}>
@@ -795,17 +796,18 @@ const Comp = {
     )
   }),
   Stars: () => {
-    const { clientX, clientY } = useMouse()
-    const x = use.spring
-    const y = use.spring
+    const ref = useRef()
+    const size = useSize(ref)
+    const mouse = useMouse()
+    const [x, y] = [use.spring, use.spring]
 
     useUpdateEffect(() => {
-      x.set(clientX / 200)
-      y.set(clientY / 200)
-    }, [clientX, clientY])
+      x.set(mouse.clientX / (size.width / 4))
+      y.set(mouse.clientY / (size.height / 4))
+    }, [mouse.clientX, mouse.clientY])
 
     return (
-      <m.div className='fixed inset-0 -z-10 hidden dark:block' style={{ x, y }}>
+      <m.div className='fixed inset-0 -z-10 hidden dark:block' ref={ref} style={{ x, y }}>
         <Canvas>
           <Stars count={1_000} depth={700} fade />
         </Canvas>
