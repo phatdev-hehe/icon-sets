@@ -270,6 +270,9 @@ const use = {
   get id() {
     return nanoid()
   },
+  get mouse() {
+    return { cursor: useMouse() }
+  },
   parse: {
     icon: (icon, k = icon.id) => {
       if (iconsCache.has(k)) return iconsCache.get(k)
@@ -306,6 +309,9 @@ const use = {
   get recentlyViewedIcons() {
     return [...iconsCache.values()]
   },
+  get ref() {
+    return { ref: useRef() }
+  },
   save: {
     as: async (data, filename) => {
       const { currentToast } = use.toast(filename, {
@@ -341,6 +347,11 @@ const use = {
   },
   get spring() {
     return useSpring(0)
+  },
+  get state() {
+    const [state, setState] = useState()
+
+    return { setState, state }
   },
   toast: (message, data, id = toast(message, data)) => ({
     currentToast: { update: data => toast(message, { ...data, id }) }
@@ -471,8 +482,8 @@ const Comp = {
     )
   },
   HoverCard: ({ align = 'center', children, dropdown, tooltip }) => {
-    const [state, setState] = useState()
-    const ref = useRef()
+    const { setState, state } = use.state
+    const { ref } = use.ref
     const [x, setX] = [use.spring, v => x.set(v / 4)]
 
     return (
@@ -534,7 +545,7 @@ const Comp = {
   IconGrid: ({ footer, footerRight, icons, iconsFromStorage, ...props }) => {
     const { globalState } = use.globalState
     const { isIconBookmarked, toggleIconBookmark } = use.bookmarkIcons
-    const [state, setState] = useState()
+    const { setState, state } = use.state
 
     if (iconsFromStorage)
       icons = iconsFromStorage.map(i =>
@@ -796,15 +807,15 @@ const Comp = {
     )
   }),
   Stars: () => {
-    const ref = useRef()
+    const { ref } = use.ref
     const size = useSize(ref)
-    const mouse = useMouse()
+    const { cursor } = use.mouse
     const [x, y] = [use.spring, use.spring]
 
     useUpdateEffect(() => {
-      x.set(mouse.clientX / (size.width / 4))
-      y.set(mouse.clientY / (size.height / 4))
-    }, [mouse.clientX, mouse.clientY])
+      x.set(cursor.clientX / (size.width * 0.5))
+      y.set(cursor.clientY / (size.height * 0.5))
+    }, [cursor.clientX, cursor.clientY])
 
     return (
       <m.div className='fixed inset-0 -z-10 hidden dark:block' ref={ref} style={{ x, y }}>
