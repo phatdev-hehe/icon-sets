@@ -7,7 +7,7 @@
   "dependencies": {
     "@ahooksjs/use-url-state": "^3.5.1",
     "@emotion/react": "^11.13.0",
-    "@iconify/json": "^2.2.235",
+    "@iconify/json": "^2.2.236",
     "@iconify/react": "^5.0.2",
     "@iconify/utils": "^2.1.30",
     "@nextui-org/react": "^2.4.6",

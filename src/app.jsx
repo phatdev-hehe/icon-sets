@@ -378,19 +378,15 @@ const Comp = {
         endReached={loadMoreIcons}
         footerRight={
           <Comp.IconButton
-            dropdown={
-              <Comp.Listbox>
-                {{
-                  [use.pluralize(sizes, 'size')]: sizes.map(size => ({
-                    description: 'icons',
-                    isActive: size === state.size,
-                    onPress: () => setState({ size }),
-                    title: size
-                  }))
-                }}
-              </Comp.Listbox>
-            }
             icon='line-md:arrow-align-right'
+            listbox={{
+              [use.pluralize(sizes, 'size')]: sizes.map(size => ({
+                description: 'icons',
+                isActive: size === state.size,
+                onPress: () => setState({ size }),
+                title: size
+              }))
+            }}
           />
         }
         icons={state.icons}
@@ -431,43 +427,39 @@ const Comp = {
         footerRight={
           iconSet.themes || iconSet.categories ? (
             <Comp.IconButton
-              dropdown={
-                <Comp.Listbox>
-                  {{
-                    ...(iconSet.themes && {
-                      [use.pluralize(iconSet.themes, 'theme')]: Object.entries(iconSet.themes).map(
-                        ([theme, title, isActive = state.theme === theme]) => ({
-                          isActive: isActive,
-                          onPress: () => setState({ theme: !isActive && theme }),
-                          title: title
-                        })
-                      )
-                    }),
-                    ...(iconSet.categories && {
-                      [use.pluralize(iconSet.categories, 'category')]: Object.keys(
-                        iconSet.categories
-                      ).map(category => {
-                        const isActive = state.category === category
-
-                        return {
-                          isActive: isActive,
-                          onPress: () => setState({ category: !isActive && category }),
-                          title: category
-                        }
-                      })
-                    }),
-                    Download: [
-                      {
-                        description: use.pluralize(iconSet.icons, 'icon'),
-                        isDisabled: !use.count(iconSet.icons),
-                        onPress: () => use.save.iconsAs(iconSet.icons, `${iconSet.name}.zip`),
-                        title: `${iconSet.name}.zip`
-                      }
-                    ]
-                  }}
-                </Comp.Listbox>
-              }
               icon={_.isEqual(state, initialState) ? 'line-md:filter' : 'line-md:filter-filled'}
+              listbox={{
+                ...(iconSet.themes && {
+                  [use.pluralize(iconSet.themes, 'theme')]: Object.entries(iconSet.themes).map(
+                    ([theme, title, isActive = state.theme === theme]) => ({
+                      isActive: isActive,
+                      onPress: () => setState({ theme: !isActive && theme }),
+                      title: title
+                    })
+                  )
+                }),
+                ...(iconSet.categories && {
+                  [use.pluralize(iconSet.categories, 'category')]: Object.keys(
+                    iconSet.categories
+                  ).map(category => {
+                    const isActive = state.category === category
+
+                    return {
+                      isActive: isActive,
+                      onPress: () => setState({ category: !isActive && category }),
+                      title: category
+                    }
+                  })
+                }),
+                Download: [
+                  {
+                    description: use.pluralize(iconSet.icons, 'icon'),
+                    isDisabled: !use.count(iconSet.icons),
+                    onPress: () => use.save.iconsAs(iconSet.icons, `${iconSet.name}.zip`),
+                    title: `${iconSet.name}.zip`
+                  }
+                ]
+              }}
             />
           ) : (
             <Comp.IconButton
@@ -481,7 +473,7 @@ const Comp = {
       />
     )
   },
-  HoverCard: ({ align = 'center', children, dropdown, tooltip }) => {
+  HoverCard: ({ align = 'center', children, listbox, tooltip }) => {
     const { setState, state } = use.state
     const { ref } = use.ref
     const [x, setX] = [use.spring, v => x.set(v / 4)]
@@ -510,7 +502,7 @@ const Comp = {
           {state && (
             <HoverCard.Portal forceMount>
               <HoverCard.Content
-                align={dropdown ? 'start' : align}
+                align={listbox ? 'start' : align}
                 ref={ref}
                 side={tooltip && 'top'}
                 sideOffset={10}>
@@ -518,7 +510,7 @@ const Comp = {
                   animate={{ scale: [0.7, 1] }}
                   className={cn({
                     card: true,
-                    'max-h-[25rem] w-[16rem] overflow-hidden overflow-y-auto p-2': dropdown,
+                    'max-h-[25rem] w-[16rem] overflow-hidden overflow-y-auto p-2': listbox,
                     'px-2.5 py-1 text-sm': tooltip
                   })}
                   exit={{ opacity: 0, scale: 0.7 }}
@@ -526,7 +518,7 @@ const Comp = {
                     transformOrigin: 'var(--radix-hover-card-content-transform-origin)',
                     x: x
                   }}>
-                  {tooltip ?? dropdown}
+                  {tooltip ?? <Comp.Listbox>{listbox}</Comp.Listbox>}
                 </m.div>
               </HoverCard.Content>
             </HoverCard.Portal>
@@ -535,8 +527,8 @@ const Comp = {
       </HoverCard.Root>
     )
   },
-  IconButton: ({ dropdown, onPress, tooltip, ...rest }) => (
-    <Comp.HoverCard {...{ dropdown, tooltip }}>
+  IconButton: ({ listbox, onPress, tooltip, ...rest }) => (
+    <Comp.HoverCard {...{ listbox, tooltip }}>
       <Link onPress={onPress}>
         <Icon className='size-8 cursor-pointer' {...rest} />
       </Link>
@@ -552,7 +544,7 @@ const Comp = {
         globalState.allIconSets[i.prefix].icons.find(icon => icon.name === i.name)
       )
 
-    if (state) icons = _.orderBy(icons, ['name'], ['asc'])
+    if (state) icons = _.orderBy(icons, ...state)
 
     return (
       <Card
@@ -588,50 +580,46 @@ const Comp = {
 
             return (
               <Comp.HoverCard
-                dropdown={
-                  <Comp.Listbox>
-                    {{
-                      [`#${index + 1}`]: [
+                listbox={{
+                  [`#${index + 1}`]: [
+                    {
+                      description: icon.setName,
+                      onPress: () => {
+                        const url = URL.createObjectURL(
+                          new Blob([icon.to.html], { type: 'image/svg+xml' })
+                        )
+
+                        open(url)
+                        URL.revokeObjectURL(url)
+                      },
+                      title: icon.name
+                    }
+                  ],
+                  Bookmark: ['Add', 'Remove'].map(title => ({
+                    isDisabled: (title === 'Add') === isIconBookmarked(icon),
+                    onPress: () => toggleIconBookmark(icon),
+                    title: title
+                  })),
+                  ...mapObject(icon.paths, (fileType, iconPath) => {
+                    const text = {
+                      css: icon.to.css,
+                      json: JSON.stringify(icon.data, null, 2),
+                      svg: icon.to.html,
+                      txt: icon.to.dataUrl
+                    }[fileType]
+
+                    return [
+                      fileType.toUpperCase(),
+                      [
+                        { onPress: () => use.copy(text), title: 'Copy' },
                         {
-                          description: icon.setName,
-                          onPress: () => {
-                            const url = URL.createObjectURL(
-                              new Blob([icon.to.html], { type: 'image/svg+xml' })
-                            )
-
-                            open(url)
-                            URL.revokeObjectURL(url)
-                          },
-                          title: icon.name
+                          onPress: () => use.save.as(new Blob([text]), iconPath.detail),
+                          title: 'Download'
                         }
-                      ],
-                      Bookmark: ['Add', 'Remove'].map(title => ({
-                        isDisabled: (title === 'Add') === isIconBookmarked(icon),
-                        onPress: () => toggleIconBookmark(icon),
-                        title: title
-                      })),
-                      ...mapObject(icon.paths, (fileType, iconPath) => {
-                        const text = {
-                          css: icon.to.css,
-                          json: JSON.stringify(icon.data, null, 2),
-                          svg: icon.to.html,
-                          txt: icon.to.dataUrl
-                        }[fileType]
-
-                        return [
-                          fileType.toUpperCase(),
-                          [
-                            { onPress: () => use.copy(text), title: 'Copy' },
-                            {
-                              onPress: () => use.save.as(new Blob([text]), iconPath.detail),
-                              title: 'Download'
-                            }
-                          ]
-                        ]
-                      })
-                    }}
-                  </Comp.Listbox>
-                }>
+                      ]
+                    ]
+                  })
+                }}>
                 <Button
                   isIconOnly
                   onPress={() => toggleIconBookmark(icon)}
@@ -653,9 +641,26 @@ const Comp = {
               {use.pluralize(icons, 'icon')}
               {footerRight ?? (
                 <Comp.IconButton
-                  icon={state ? 'line-md:watch' : 'line-md:watch-off'}
-                  onPress={() => setState(!state)}
-                  tooltip={state ? 'Sorted' : 'Sort'}
+                  icon='line-md:watch'
+                  listbox={{
+                    ...mapObject(
+                      {
+                        'All attributes': ['id', 'name', 'setName'],
+                        'Icon id': ['id'],
+                        'Icon name': ['name'],
+                        'Set name': ['setName']
+                      },
+                      (title, keys) => [
+                        title,
+                        ['asc', 'desc'].map(order => ({
+                          isDisabled: _.isEqual(state, [keys, [order]]),
+                          onPress: () => setState([keys, [order]]),
+                          title: { asc: 'Ascending', desc: 'Descending' }[order]
+                        }))
+                      ]
+                    ),
+                    '': [{ isDisabled: !state, onPress: () => setState(), title: 'Default' }]
+                  }}
                 />
               )}
             </div>
@@ -766,31 +771,27 @@ const Comp = {
             }}
             endContent={
               <Comp.IconButton
-                dropdown={
-                  <Comp.Listbox>
-                    {{
-                      [`All results (${use.count(state.searchResults)})`]: [
-                        {
-                          isDisabled: isUnfiltered(),
-                          onPress: () => setState(state => ({ icons: state.searchResults })),
-                          title: 'View'
-                        },
-                        {
-                          isDisabled: !use.count(state.searchResults),
-                          onPress: () =>
-                            use.save.iconsAs(
-                              state.searchResults,
-                              `${use.pluralize(state.searchResults, 'icon')} found.zip`,
-                              'detail'
-                            ),
-                          title: 'Download'
-                        }
-                      ],
-                      ...listboxSections
-                    }}
-                  </Comp.Listbox>
-                }
                 icon={isUnfiltered() ? 'line-md:filter' : 'line-md:filter-filled'}
+                listbox={{
+                  [`All results (${use.count(state.searchResults)})`]: [
+                    {
+                      isDisabled: isUnfiltered(),
+                      onPress: () => setState(state => ({ icons: state.searchResults })),
+                      title: 'View'
+                    },
+                    {
+                      isDisabled: !use.count(state.searchResults),
+                      onPress: () =>
+                        use.save.iconsAs(
+                          state.searchResults,
+                          `${use.pluralize(state.searchResults, 'icon')} found.zip`,
+                          'detail'
+                        ),
+                      title: 'Download'
+                    }
+                  ],
+                  ...listboxSections
+                }}
               />
             }
             isInvalid={!use.count(state.icons)}
