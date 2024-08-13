@@ -23,7 +23,7 @@
     "framer-motion": "^11.3.24",
     "fuse.js": "^7.0.0",
     "idb-keyval": "^6.2.1",
-    "jotai": "^2.9.2",
+    "jotai": "^2.9.3",
     "jotai-immer": "^0.4.1",
     "jszip": "^3.10.1",
     "lru-cache": "^11.0.0",
@@ -37,7 +37,7 @@
     "react-dom": "^18.2.0",
     "react-resizable-panels": "^2.0.20",
     "react-router-dom": "^6.26.0",
-    "react-virtuoso": "^4.9.0",
+    "react-virtuoso": "^4.10.0",
     "semver": "^7.6.3",
     "sonner": "^1.5.0",
     "sort-keys": "^5.0.0"

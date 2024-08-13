@@ -309,9 +309,6 @@ const use = {
   get recentlyViewedIcons() {
     return [...iconsCache.values()]
   },
-  get ref() {
-    return { ref: useRef() }
-  },
   save: {
     as: async (data, filename) => {
       const { currentToast } = use.toast(filename, {
@@ -347,11 +344,6 @@ const use = {
   },
   get spring() {
     return useSpring(0)
-  },
-  get state() {
-    const [state, setState] = useState()
-
-    return { setState, state }
   },
   toast: (message, data, id = toast(message, data)) => ({
     currentToast: { update: data => toast(message, { ...data, id }) }
@@ -474,8 +466,8 @@ const Comp = {
     )
   },
   HoverCard: ({ align = 'center', children, listbox, tooltip }) => {
-    const { setState, state } = use.state
-    const { ref } = use.ref
+    const [state, setState] = useState()
+    const ref = useRef()
     const [x, setX] = [use.spring, v => x.set(v / 4)]
 
     return (
@@ -534,13 +526,13 @@ const Comp = {
       </Link>
     </Comp.HoverCard>
   ),
-  IconGrid: ({ footer, footerRight, icons, iconsFromStorage, ...props }) => {
+  IconGrid: ({ footer, footerRight, icons, localIcons, ...props }) => {
     const { globalState } = use.globalState
     const { isIconBookmarked, toggleIconBookmark } = use.bookmarkIcons
-    const { setState, state } = use.state
+    const [state, setState] = useState()
 
-    if (iconsFromStorage)
-      icons = iconsFromStorage.map(i =>
+    if (localIcons)
+      icons = localIcons.map(i =>
         globalState.allIconSets[i.prefix].icons.find(icon => icon.name === i.name)
       )
 
@@ -641,7 +633,7 @@ const Comp = {
               {use.pluralize(icons, 'icon')}
               {footerRight ?? (
                 <Comp.IconButton
-                  icon='line-md:watch'
+                  icon='line-md:arrows-vertical'
                   listbox={{
                     ...mapObject(
                       {
@@ -652,14 +644,19 @@ const Comp = {
                       },
                       (title, keys) => [
                         title,
-                        ['asc', 'desc'].map(order => ({
-                          isDisabled: _.isEqual(state, [keys, [order]]),
-                          onPress: () => setState([keys, [order]]),
-                          title: { asc: 'Ascending', desc: 'Descending' }[order]
-                        }))
+                        ['asc', 'desc'].map(order => {
+                          const b = [keys, [order]]
+                          const isActive = _.isEqual(state, b)
+
+                          return {
+                            isActive: isActive,
+                            isDisabled: !use.count(icons),
+                            onPress: () => setState(!isActive && b),
+                            title: { asc: 'Ascending', desc: 'Descending' }[order]
+                          }
+                        })
                       ]
-                    ),
-                    '': [{ isDisabled: !state, onPress: () => setState(), title: 'Default' }]
+                    )
                   }}
                 />
               )}
@@ -671,8 +668,8 @@ const Comp = {
   },
   Listbox: ({ children: sections }) => (
     <Listbox aria-label={use.id} variant='light'>
-      {Object.entries(sections).map(([title, items], index, data) => (
-        <ListboxSection key={use.id} showDivider={index !== use.count(data) - 1} title={title}>
+      {Object.entries(sections).map(([title, items], index) => (
+        <ListboxSection key={use.id} showDivider={index !== use.count(sections) - 1} title={title}>
           {items.map(({ color = 'primary', descriptions = [], isActive, title, ...props }) => (
             <ListboxItem
               classNames={{ title: isActive && `text-${color}` }}
@@ -808,7 +805,7 @@ const Comp = {
     )
   }),
   Stars: () => {
-    const { ref } = use.ref
+    const ref = useRef()
     const size = useSize(ref)
     const { cursor } = use.mouse
     const [x, y] = [use.spring, use.spring]
@@ -821,7 +818,7 @@ const Comp = {
     return (
       <m.div className='fixed inset-0 -z-10 hidden dark:block' ref={ref} style={{ x, y }}>
         <Canvas>
-          <Stars count={1_000} depth={700} fade />
+          <Stars count={1_000} depth={800} fade />
         </Canvas>
       </m.div>
     )
@@ -920,7 +917,7 @@ export default () => {
                 {state === use.pluralize(globalState.allIconSets, 'icon set') && (
                   <Comp.IconGrid icons={globalState.allIcons} />
                 )}
-                {state === 'Bookmarks' && <Comp.IconGrid iconsFromStorage={bookmarkIcons} />}
+                {state === 'Bookmarks' && <Comp.IconGrid localIcons={bookmarkIcons} />}
                 {state === 'Recently viewed' && <Comp.RecentlyViewedIcons />}
                 {Object.keys(globalState.allIconSets).includes(state) && (
                   <Comp.FilterIcons {...globalState.allIconSets[state]} />
