@@ -139,7 +139,7 @@ const use = {
             duration: Number.POSITIVE_INFINITY
           })
 
-        if ((await this.version.current()) === 'not_found')
+        if (await this.version.isNotFound())
           return toast(message, {
             action: (
               <Comp.Button
@@ -152,7 +152,7 @@ const use = {
             duration: Number.POSITIVE_INFINITY
           })
 
-        if (use.count(await idb.keys())) {
+        if (await this.version.isValid()) {
           toast(
             message,
             (await this.shouldUpdate())
@@ -173,7 +173,7 @@ const use = {
           const { currentToast } = use.toast(message, {
             description: (
               <>
-                Downloading
+                Downloading {use.pluralize(this.module, 'icon set')}
                 <ScrollShadow className='h-96'>
                   <Comp.Listbox>
                     {{
@@ -281,6 +281,12 @@ const use = {
       current: async () => await idb.get('version'),
       isLatest: async function () {
         return (await this.current()) === this.latest
+      },
+      isNotFound: async function () {
+        return (await this.current()) === 'not_found'
+      },
+      isValid: async function () {
+        return semver.valid(await this.current())
       },
       latest: semver.valid(semver.coerce(dependencies['@iconify/json']))
     }
