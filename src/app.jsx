@@ -61,7 +61,8 @@ import { nanoid } from 'nanoid'
 import { ThemeProvider, useTheme } from 'next-themes'
 import pluralize from 'pluralize'
 import prettyBytes from 'pretty-bytes'
-import { memo, useEffect, useRef, useState } from 'react'
+import { memo, useRef, useState } from 'react'
+import { For, useSingleEffect } from 'react-haiku'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { RouterProvider, createBrowserRouter } from 'react-router-dom'
 import { VirtuosoGrid } from 'react-virtuoso'
@@ -388,7 +389,7 @@ const Comp = {
         icons: [...state.icons, ..._.sampleSize(globalState.allIcons, state.size)]
       }))
 
-    useEffect(loadMoreIcons, [])
+    useSingleEffect(loadMoreIcons)
 
     return (
       <Comp.IconGrid
@@ -507,10 +508,10 @@ const Comp = {
               if (align === 'center') return setX(clientX - rect.left - rect.width / 2)
 
               const { width: contentWidth } = ref.current.getBoundingClientRect()
-              const offsetX = clientX - rect[{ end: 'right', start: 'left' }[align]]
-              const v = { end: offsetX + contentWidth, start: offsetX - contentWidth }[align]
+              const x = clientX - rect[{ end: 'right', start: 'left' }[align]]
+              const v = { end: x + contentWidth, start: x - contentWidth }[align]
 
-              setX({ end: v < 0, start: v > 0 }[align] ? v : offsetX)
+              setX({ end: v < 0, start: v > 0 }[align] ? v : x)
             }
           }}>
           {children}
@@ -699,9 +700,9 @@ const Comp = {
             <ListboxItem
               classNames={{ title: isActive && `text-${color}` }}
               color={isActive ? color : ''}
-              description={descriptions.map(description => (
-                <div key={use.id}>{description}</div>
-              ))}
+              description={
+                <For each={descriptions} render={description => <div>{description}</div>} />
+              }
               key={use.id}
               textValue={use.id}
               {...props}>
@@ -722,7 +723,7 @@ const Comp = {
     </LazyMotion>
   ),
   RecentlyViewedIcons: () => {
-    useEffect(use.update, [])
+    useSingleEffect(use.update)
 
     return (
       <Comp.IconGrid
