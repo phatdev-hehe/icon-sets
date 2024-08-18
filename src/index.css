@@ -37,7 +37,7 @@
     @apply card justify-between gap-4;
 
     [data-content] {
-      @apply size-full;
+      @apply w-full;
 
       [data-title] {
         @apply line-clamp-1;

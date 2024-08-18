@@ -62,9 +62,10 @@ import { ThemeProvider, useTheme } from 'next-themes'
 import pluralize from 'pluralize'
 import prettyBytes from 'pretty-bytes'
 import { memo, useRef, useState } from 'react'
-import { For, useSingleEffect } from 'react-haiku'
+import { For } from 'react-haiku'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { RouterProvider, createBrowserRouter } from 'react-router-dom'
+import { useAsync, useEffectOnce } from 'react-use'
 import { VirtuosoGrid } from 'react-virtuoso'
 import semver from 'semver'
 import { Toaster, toast } from 'sonner'
@@ -80,39 +81,30 @@ const atom = atomWithImmer({ allIcons: [], allIconSets: {} })
 const iconsCache = new LRUCache({ max: 500 })
 
 const use = {
-  asyncResult: (effect, initialState) => {
-    const [state, setState] = useRafState(initialState)
-
-    useAsyncEffect(async () => setState(await effect()), [])
-
-    return state
-  },
+  async: (fn, initialValue) => useAsync(fn).value ?? initialValue,
   get bookmarkIcons() {
     const [state, setState] = useLocalStorageState('bookmark-icons', {
       defaultValue: [],
       listenStorageChange: true
     })
 
-    const [isValidIcon, isIconBookmarked] = [
-      (iconObject, icon) => _.isEqual(iconObject, stringToIcon(icon.id)),
-      icon => state.some(iconObject => isValidIcon(iconObject, icon))
-    ]
+    const isIconBookmarked = icon => state.some(iconObject => _.isEqual(icon.to.object, iconObject))
 
     return {
       bookmarkIcons: state,
       isIconBookmarked: isIconBookmarked,
       toggleIconBookmark: icon => {
-        if (isIconBookmarked(icon)) {
-          setState(state => state.filter(iconObject => !isValidIcon(iconObject, icon)))
-          toast('Bookmark removed')
-        } else {
-          setState(state => [...state, stringToIcon(icon.id)])
-          toast('Bookmark added')
-        }
+        setState(state =>
+          isIconBookmarked(icon)
+            ? state.filter(iconObject => !_.isEqual(icon.to.object, iconObject))
+            : [...state, icon.to.object]
+        )
+
+        use.toast(isIconBookmarked(icon) ? 'Bookmark removed' : 'Bookmark added')
       }
     }
   },
-  copy: text => toast(copy(text) ? 'Copied!' : 'Copy failed'),
+  copy: text => use.toast(copy(text) ? 'Copied!' : 'Copy failed'),
   count: value => {
     if (Array.isArray(value)) return value.length
     if (typeof value === 'object') return Object.keys(value).length
@@ -125,56 +117,50 @@ const use = {
     return { globalState, setGlobalState }
   },
   iconSets: {
-    clear: async (shouldClear = true) => {
-      shouldClear && (await idb.clear())
+    clear: async (clear = true) => {
+      clear && (await idb.clear())
       location.reload(true)
     },
     get init() {
       const { setGlobalState } = use.globalState
       const [state, setState] = useRafState(true)
 
-      useAsyncEffect(async (message = 'App') => {
+      useAsyncEffect(async () => {
         if (!window)
-          return toast(message, {
-            description: 'Browser not supported',
-            duration: Number.POSITIVE_INFINITY
-          })
+          return use.toast('Browser not supported', { duration: Number.POSITIVE_INFINITY })
 
         if (await this.version.isNotFound())
-          return toast(message, {
+          return use.toast('Invalid data', {
             action: (
-              <Comp.Button
-                color='warning'
-                onPress={async () => this.clear(await this.shouldUpdate())}>
-                Relaunch
-              </Comp.Button>
+              <Comp.IconButton
+                icon='line-md:rotate-270'
+                onPress={async () => this.clear(await this.version.isOutdated())}
+                tooltip='Relaunch'
+              />
             ),
-            description: 'Invalid data',
             duration: Number.POSITIVE_INFINITY
           })
 
         if (await this.version.isValid()) {
-          toast(
-            message,
-            (await this.shouldUpdate())
-              ? {
-                  action: (
-                    <Comp.Button color='primary' onPress={this.clear}>
-                      Update
-                    </Comp.Button>
-                  ),
-                  description: 'New update found',
-                  duration: Number.POSITIVE_INFINITY
-                }
-              : { description: 'Update not found' }
-          )
+          ;(await this.version.isOutdated())
+            ? use.toast('New update found', {
+                action: (
+                  <Comp.IconButton
+                    icon='line-md:arrow-small-down'
+                    onPress={this.clear}
+                    tooltip={`Version ${this.version.latest}`}
+                  />
+                ),
+                duration: Number.POSITIVE_INFINITY
+              })
+            : use.toast('Update not found')
 
           setState()
         } else {
-          const { currentToast } = use.toast(message, {
+          const { currentToast } = use.toast(use.pluralize(this.module, 'icon set'), {
             description: (
               <>
-                Downloading {use.pluralize(this.module, 'icon set')}
+                Downloading
                 <ScrollShadow className='h-96'>
                   <Comp.Listbox>
                     {{
@@ -226,16 +212,18 @@ const use = {
             )
 
             await idb.update('version', () => this.version.latest)
-            currentToast.update({ description: 'Please wait', duration: null })
-            setState(await this.shouldUpdate())
+            currentToast.dismiss
+            setState(await this.version.isOutdated())
           } catch {
             currentToast.update({
               action: (
-                <Comp.Button color='warning' onPress={this.clear}>
-                  Try again
-                </Comp.Button>
+                <Comp.IconButton
+                  icon='line-md:rotate-270'
+                  onPress={this.clear}
+                  tooltip='Try again'
+                />
               ),
-              description: 'An error occurred'
+              description: 'Download failed'
             })
           }
         }
@@ -272,19 +260,16 @@ const use = {
 
       return key in collections ? [key, value] : mapObjectSkip
     }),
-    shouldUpdate: async function () {
-      return (
-        !(await this.version.isLatest()) ||
-        !_.isEqual(_.xor(Object.keys(collections), await idb.keys()), ['version'])
-      )
-    },
     version: {
       current: async () => await idb.get('version'),
-      isLatest: async function () {
-        return (await this.current()) === this.latest
-      },
       isNotFound: async function () {
         return (await this.current()) === 'not_found'
+      },
+      isOutdated: async function () {
+        return !(
+          (await this.current()) === this.latest &&
+          _.isEqual(_.xor(Object.keys(collections), await idb.keys()), ['version'])
+        )
       },
       isValid: async function () {
         return semver.valid(await this.current())
@@ -315,7 +300,8 @@ const use = {
         to: {
           css: getIconCSS(icon.data),
           dataUrl: getIconContentCSS(icon.data, svg.attributes).slice(31, -6),
-          html: iconToHTML(replaceIDs(svg.body, use.id), svg.attributes)
+          html: iconToHTML(replaceIDs(svg.body, use.id), svg.attributes),
+          object: stringToIcon(icon.id)
         },
         ...icon
       }
@@ -337,7 +323,7 @@ const use = {
   save: {
     as: async (data, filename) => {
       const { currentToast } = use.toast(filename, {
-        description: 'Preparing to download',
+        action: <Comp.IconButton icon='line-md:loading-loop' tooltip='Preparing to download' />,
         duration: Number.POSITIVE_INFINITY
       })
 
@@ -347,11 +333,8 @@ const use = {
 
       currentToast.update({
         action: (
-          <Comp.Button color='primary' onPress={download}>
-            Download
-          </Comp.Button>
+          <Comp.IconButton icon='line-md:arrow-small-down' onPress={download} tooltip='Download' />
         ),
-        description: 'Sent download link',
         duration: null
       })
     },
@@ -371,7 +354,12 @@ const use = {
     return useSpring(0)
   },
   toast: (message, data, id = toast(message, data)) => ({
-    currentToast: { update: data => toast(message, { ...data, id }) }
+    currentToast: {
+      get dismiss() {
+        return toast.dismiss(id)
+      },
+      update: data => toast(message, { ...data, id })
+    }
   }),
   get update() {
     return useUpdate()
@@ -379,7 +367,6 @@ const use = {
 }
 
 const Comp = {
-  Button: props => <Button size='sm' variant='bordered' {...props} />,
   EndlessIcons: ({ step = 100, sizes = _.range(step, 1_000 + step, step) }) => {
     const { globalState } = use.globalState
     const [state, setState] = useSetState({ icons: [], size: step })
@@ -389,7 +376,7 @@ const Comp = {
         icons: [...state.icons, ..._.sampleSize(globalState.allIcons, state.size)]
       }))
 
-    useSingleEffect(loadMoreIcons)
+    useEffectOnce(loadMoreIcons)
 
     return (
       <Comp.IconGrid
@@ -547,8 +534,8 @@ const Comp = {
   },
   IconButton: ({ listbox, onPress, tooltip, ...rest }) => (
     <Comp.HoverCard {...{ listbox, tooltip }}>
-      <Link onPress={onPress}>
-        <Icon className='size-8 cursor-pointer' {...rest} />
+      <Link className='size-8' onPress={onPress}>
+        <Icon className='size-full cursor-pointer' {...rest} />
       </Link>
     </Comp.HoverCard>
   ),
@@ -723,7 +710,7 @@ const Comp = {
     </LazyMotion>
   ),
   RecentlyViewedIcons: () => {
-    useSingleEffect(use.update)
+    useEffectOnce(use.update)
 
     return (
       <Comp.IconGrid
@@ -870,7 +857,7 @@ export default () => {
               {({ resolvedTheme, setTheme }) => (
                 <Comp.Listbox>
                   {{
-                    [use.asyncResult(use.iconSets.version.current, 0)]: [
+                    [use.async(use.iconSets.version.current, 0)]: [
                       ['Endless scrolling', 'Hehe'],
                       ['Bookmarks', use.pluralize(bookmarkIcons, 'icon')],
                       ['Recently viewed', use.pluralize(use.recentlyViewedIcons, 'icon')],
@@ -925,7 +912,7 @@ export default () => {
                       {
                         color: 'warning',
                         description: prettyBytes(
-                          use.asyncResult(() => navigator.storage.estimate(), { usage: 0 }).usage
+                          use.async(() => navigator.storage.estimate(), { usage: 0 }).usage
                         ),
                         isActive: true,
                         onPress: use.iconSets.clear,
@@ -963,7 +950,9 @@ export default () => {
       )}
       <Comp.Stars />
       <Comp.Theme>
-        {({ resolvedTheme }) => <Toaster pauseWhenPageIsHidden theme={resolvedTheme} />}
+        {({ resolvedTheme }) => (
+          <Toaster className='z-auto' pauseWhenPageIsHidden theme={resolvedTheme} />
+        )}
       </Comp.Theme>
     </Comp.Providers>
   )
