@@ -57,6 +57,7 @@ import { atomWithImmer } from 'jotai-immer'
 import JSZip from 'jszip'
 import { LRUCache } from 'lru-cache'
 import mapObject, { mapObjectSkip } from 'map-obj'
+import millify from 'millify'
 import { nanoid } from 'nanoid'
 import { ThemeProvider, useTheme } from 'next-themes'
 import pluralize from 'pluralize'
@@ -78,7 +79,7 @@ import collections from '/node_modules/@iconify/json/collections.json'
 dayjs.extend(relativeTime)
 
 const atom = atomWithImmer({ allIcons: [], allIconSets: {} })
-const iconsCache = new LRUCache({ max: 500 })
+const iconsCache = new LRUCache({ max: 1_000 })
 
 const use = {
   async: (fn, initialValue) => useAsync(fn).value ?? initialValue,
@@ -300,7 +301,11 @@ const use = {
 
     return v
   },
-  pluralize: (value, word) => pluralize(word, __.size(value), true),
+  pluralize: (value, word, pretty) => {
+    value = __.size(value)
+
+    return `${pretty ? `${millify(value)} ` : ''}${pluralize(word, value, !pretty)}`
+  },
   get recentlyViewedIcons() {
     return [...iconsCache.values()]
   },
@@ -309,13 +314,13 @@ const use = {
 
     return dayjs.unix(t).fromNow()
   },
-  saveAs: async function (data, filename) {
+  saveAs: async function (getData, filename) {
     const { currentToast } = this.toast(filename, {
       action: <Comp.IconButton icon='line-md:loading-loop' tooltip='Preparing to download' />,
       duration: Number.POSITIVE_INFINITY
     })
 
-    const [promise, download] = [await Promise.all([data, filename]), () => saveAs(...promise)]
+    const [data, download] = [await getData, () => saveAs(data, filename)]
 
     download()
 
@@ -851,11 +856,11 @@ export default () => {
                   {{
                     [use.async(use.iconSets.version.current, 0)]: [
                       ['Endless scrolling', 'Hehe'],
-                      ['Bookmarks', use.pluralize(bookmarkIcons, 'icon')],
-                      ['Recently viewed', use.pluralize(use.recentlyViewedIcons, 'icon')],
+                      ['Bookmarks', use.pluralize(bookmarkIcons, 'icon', true)],
+                      ['Recently viewed', use.pluralize(use.recentlyViewedIcons, 'icon', true)],
                       [
                         use.pluralize(globalState.allIconSets, 'icon set'),
-                        use.pluralize(globalState.allIcons, 'icon')
+                        use.pluralize(globalState.allIcons, 'icon', true)
                       ]
                     ].map(([title, description]) => ({
                       description: description,
@@ -875,7 +880,7 @@ export default () => {
                             descriptions: [
                               iconSet.author,
                               iconSet.license,
-                              use.pluralize(iconSet.icons, 'icon'),
+                              use.pluralize(iconSet.icons, 'icon', true),
                               use.relativeTime(iconSet.lastModified)
                             ],
                             isActive: state === iconSet.prefix,
