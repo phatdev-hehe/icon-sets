@@ -34,7 +34,6 @@ import {
   useCreation,
   useDebounceEffect,
   useDeepCompareEffect,
-  useLocalStorageState,
   useMouse,
   useRafInterval,
   useRafState,
@@ -48,6 +47,7 @@ import copy from 'copy-to-clipboard'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import * as _ from 'es-toolkit'
+import * as __ from 'es-toolkit/compat'
 import { saveAs } from 'file-saver'
 import { AnimatePresence, LazyMotion, domAnimation, m, useSpring } from 'framer-motion'
 import Fuse from 'fuse.js'
@@ -62,10 +62,10 @@ import { ThemeProvider, useTheme } from 'next-themes'
 import pluralize from 'pluralize'
 import prettyBytes from 'pretty-bytes'
 import { memo, useRef, useState } from 'react'
-import { For } from 'react-haiku'
+import { For, useLocalStorage, useSingleEffect } from 'react-haiku'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { RouterProvider, createBrowserRouter } from 'react-router-dom'
-import { useAsync, useEffectOnce } from 'react-use'
+import { useAsync } from 'react-use'
 import { VirtuosoGrid } from 'react-virtuoso'
 import semver from 'semver'
 import { Toaster, toast } from 'sonner'
@@ -83,11 +83,7 @@ const iconsCache = new LRUCache({ max: 500 })
 const use = {
   async: (fn, initialValue) => useAsync(fn).value ?? initialValue,
   get bookmarkIcons() {
-    const [state, setState] = useLocalStorageState('bookmark-icons', {
-      defaultValue: [],
-      listenStorageChange: true
-    })
-
+    const [state, setState] = useLocalStorage('bookmark-icons', [])
     const isIconBookmarked = icon => state.some(iconObject => _.isEqual(icon.to.object, iconObject))
 
     return {
@@ -100,16 +96,14 @@ const use = {
             : [...state, icon.to.object]
         )
 
-        use.toast(isIconBookmarked(icon) ? 'Bookmark removed' : 'Bookmark added')
+        this.toast(isIconBookmarked(icon) ? 'Bookmark removed' : 'Bookmark added')
       }
     }
   },
-  copy: text => use.toast(copy(text) ? 'Copied!' : 'Copy failed'),
-  count: value => {
-    if (Array.isArray(value)) return value.length
-    if (typeof value === 'object') return Object.keys(value).length
-
-    return +value
+  copy: function (text) {
+    this.toast(copy(text) ? 'Copied' : 'Copy failed', {
+      description: this.pluralize(text, 'character')
+    })
   },
   get globalState() {
     const [globalState, setGlobalState] = useAtom(atom)
@@ -280,75 +274,68 @@ const use = {
   get id() {
     return nanoid()
   },
-  get mouse() {
-    return { cursor: useMouse() }
-  },
-  parse: {
-    icon: (icon, k = icon.id) => {
-      if (iconsCache.has(k)) return iconsCache.get(k)
+  parseIcon: function (icon, k = icon.id) {
+    if (iconsCache.has(k)) return iconsCache.get(k)
 
-      const svg = iconToSVG(icon.data)
+    const svg = iconToSVG(icon.data)
 
-      const v = {
-        filenames: mapObject({ css: {}, json: {}, svg: {}, txt: {} }, fileType => [
-          fileType,
-          {
-            default: `${icon.name}.${fileType}`,
-            detail: `[${icon.setName}] ${icon.name}.${fileType}`
-          }
-        ]),
-        to: {
-          css: getIconCSS(icon.data),
-          dataUrl: getIconContentCSS(icon.data, svg.attributes).slice(31, -6),
-          html: iconToHTML(replaceIDs(svg.body, use.id), svg.attributes),
-          object: stringToIcon(icon.id)
-        },
-        ...icon
-      }
-
-      iconsCache.set(k, v)
-
-      return v
-    },
-    unix: t => {
-      useRafInterval(use.update, 60_000)
-
-      return dayjs.unix(t).fromNow()
+    const v = {
+      filenames: mapObject({ css: {}, json: {}, svg: {}, txt: {} }, fileType => [
+        fileType,
+        {
+          default: `${icon.name}.${fileType}`,
+          detail: `[${icon.setName}] ${icon.name}.${fileType}`
+        }
+      ]),
+      to: {
+        css: getIconCSS(icon.data),
+        dataUrl: getIconContentCSS(icon.data, svg.attributes).slice(31, -6),
+        html: iconToHTML(replaceIDs(svg.body, this.id), svg.attributes),
+        object: stringToIcon(icon.id)
+      },
+      ...icon
     }
+
+    iconsCache.set(k, v)
+
+    return v
   },
-  pluralize: (value, word) => pluralize(word, use.count(value), true),
+  pluralize: (value, word) => pluralize(word, __.size(value), true),
   get recentlyViewedIcons() {
     return [...iconsCache.values()]
   },
-  save: {
-    as: async (data, filename) => {
-      const { currentToast } = use.toast(filename, {
-        action: <Comp.IconButton icon='line-md:loading-loop' tooltip='Preparing to download' />,
-        duration: Number.POSITIVE_INFINITY
-      })
+  relativeTime: function (t) {
+    useRafInterval(this.update, 60_000)
 
-      const [promise, download] = [await Promise.all([data, filename]), () => saveAs(...promise)]
+    return dayjs.unix(t).fromNow()
+  },
+  saveAs: async function (data, filename) {
+    const { currentToast } = this.toast(filename, {
+      action: <Comp.IconButton icon='line-md:loading-loop' tooltip='Preparing to download' />,
+      duration: Number.POSITIVE_INFINITY
+    })
 
-      download()
+    const [promise, download] = [await Promise.all([data, filename]), () => saveAs(...promise)]
 
-      currentToast.update({
-        action: (
-          <Comp.IconButton icon='line-md:arrow-small-down' onPress={download} tooltip='Download' />
-        ),
-        duration: null
-      })
-    },
-    iconsAs: function (icons, filename, nameType = 'default') {
-      const zip = new JSZip()
+    download()
 
-      for (let icon of icons) {
-        icon = use.parse.icon(icon)
+    currentToast.update({
+      action: (
+        <Comp.IconButton icon='line-md:arrow-small-down' onPress={download} tooltip='Download' />
+      ),
+      duration: null
+    })
+  },
+  saveIconsAs: function (icons, filename, iconNameType = 'default') {
+    const zip = new JSZip()
 
-        zip.file(icon.filenames.svg[nameType], icon.to.html)
-      }
+    for (let icon of icons) {
+      icon = this.parseIcon(icon)
 
-      return this.as(zip.generateAsync({ type: 'blob' }), filename)
+      zip.file(icon.filenames.svg[iconNameType], icon.to.html)
     }
+
+    return this.saveAs(zip.generateAsync({ type: 'blob' }), filename)
   },
   get spring() {
     return useSpring(0)
@@ -376,7 +363,7 @@ const Comp = {
         icons: [...state.icons, ..._.sampleSize(globalState.allIcons, state.size)]
       }))
 
-    useEffectOnce(loadMoreIcons)
+    useSingleEffect(loadMoreIcons)
 
     return (
       <Comp.IconGrid
@@ -430,7 +417,7 @@ const Comp = {
     return (
       <Comp.IconGrid
         footerRight={
-          iconSet.themes || iconSet.categories ? (
+          (iconSet.themes || iconSet.categories) && (
             <Comp.IconButton
               icon={_.isEqual(state, initialState) ? 'line-md:filter' : 'line-md:filter-filled'}
               listbox={{
@@ -459,18 +446,12 @@ const Comp = {
                 Download: [
                   {
                     description: use.pluralize(iconSet.icons, 'icon'),
-                    isDisabled: !use.count(iconSet.icons),
-                    onPress: () => use.save.iconsAs(iconSet.icons, `${iconSet.name}.zip`),
+                    isDisabled: !__.size(iconSet.icons),
+                    onPress: () => use.saveIconsAs(iconSet.icons, `${iconSet.name}.zip`),
                     title: `${iconSet.name}.zip`
                   }
                 ]
               }}
-            />
-          ) : (
-            <Comp.IconButton
-              icon='line-md:arrow-small-down'
-              onPress={() => use.save.iconsAs(iconSet.icons, `${iconSet.name}.zip`)}
-              tooltip={`${iconSet.name}.zip`}
             />
           )
         }
@@ -551,6 +532,9 @@ const Comp = {
 
     if (state) icons = _.orderBy(icons, ...state)
 
+    const isSameIconSet = icons.every(icon => icons[0].setName === icon.setName)
+    const filename = `${isSameIconSet && __.size(icons) ? icons[0].setName : use.pluralize(icons, 'icon')}.zip`
+
     return (
       <Card
         classNames={{
@@ -563,7 +547,7 @@ const Comp = {
           className='overflow-hidden'
           components={{
             Footer: () =>
-              use.count(icons) ? (
+              __.size(icons) ? (
                 <div className='h-[--footer-height]' />
               ) : (
                 <div className='flex-center text-sm text-foreground-500'>No icons</div>
@@ -581,7 +565,7 @@ const Comp = {
           data={icons}
           itemClassName='p-6'
           itemContent={(index, icon) => {
-            icon = use.parse.icon(icon)
+            icon = use.parseIcon(icon)
 
             return (
               <Comp.HoverCard
@@ -618,7 +602,7 @@ const Comp = {
                       [
                         { onPress: () => use.copy(text), title: 'Copy' },
                         {
-                          onPress: () => use.save.as(new Blob([text]), filename.detail),
+                          onPress: () => use.saveAs(new Blob([text]), filename.detail),
                           title: 'Download'
                         }
                       ]
@@ -663,13 +647,21 @@ const Comp = {
 
                           return {
                             isActive: isActive,
-                            isDisabled: !use.count(icons),
+                            isDisabled: !__.size(icons),
                             onPress: () => setState(!isActive && b),
                             title: { asc: 'Ascending', desc: 'Descending' }[order]
                           }
                         })
                       ]
-                    )
+                    ),
+                    Download: [
+                      {
+                        isDisabled: !__.size(icons),
+                        onPress: () =>
+                          use.saveIconsAs(icons, filename, isSameIconSet ? 'default' : 'detail'),
+                        title: filename
+                      }
+                    ]
                   }}
                 />
               )}
@@ -682,7 +674,7 @@ const Comp = {
   Listbox: ({ children: sections }) => (
     <Listbox aria-label={use.id} variant='light'>
       {Object.entries(sections).map(([title, items], index) => (
-        <ListboxSection key={use.id} showDivider={index !== use.count(sections) - 1} title={title}>
+        <ListboxSection key={use.id} showDivider={index !== __.size(sections) - 1} title={title}>
           {items.map(({ color = 'primary', descriptions = [], isActive, title, ...props }) => (
             <ListboxItem
               classNames={{ title: isActive && `text-${color}` }}
@@ -710,7 +702,7 @@ const Comp = {
     </LazyMotion>
   ),
   RecentlyViewedIcons: () => {
-    useEffectOnce(use.update)
+    useSingleEffect(use.update)
 
     return (
       <Comp.IconGrid
@@ -741,19 +733,19 @@ const Comp = {
 
     listboxSections = mapObject(
       sortKeys(listboxSections, {
-        compare: (a, b) => use.count(listboxSections[b]) - use.count(listboxSections[a])
+        compare: (a, b) => __.size(listboxSections[b]) - __.size(listboxSections[a])
       }),
       (iconSetName, icons) => [
-        `${iconSetName} (${use.count(icons)})`,
+        `${iconSetName} (${__.size(icons)})`,
         [
           {
-            isDisabled: isUnfiltered(icons) || !use.count(icons),
+            isDisabled: isUnfiltered(icons) || !__.size(icons),
             onPress: () => setState({ icons }),
             title: 'View'
           },
           {
-            isDisabled: !use.count(icons),
-            onPress: () => use.save.iconsAs(icons, `${iconSetName}.zip`),
+            isDisabled: !__.size(icons),
+            onPress: () => use.saveIconsAs(icons, `${iconSetName}.zip`),
             title: 'Download'
           }
         ]
@@ -777,22 +769,22 @@ const Comp = {
             autoFocus
             classNames={{
               inputWrapper: 'border-none',
-              label: use.count(state.icons) && '!text-foreground-500'
+              label: __.size(state.icons) && '!text-foreground-500'
             }}
             endContent={
               <Comp.IconButton
                 icon={isUnfiltered() ? 'line-md:filter' : 'line-md:filter-filled'}
                 listbox={{
-                  [`All results (${use.count(state.searchResults)})`]: [
+                  [`All results (${__.size(state.searchResults)})`]: [
                     {
                       isDisabled: isUnfiltered(),
                       onPress: () => setState(state => ({ icons: state.searchResults })),
                       title: 'View'
                     },
                     {
-                      isDisabled: !use.count(state.searchResults),
+                      isDisabled: !__.size(state.searchResults),
                       onPress: () =>
-                        use.save.iconsAs(
+                        use.saveIconsAs(
                           state.searchResults,
                           `${use.pluralize(state.searchResults, 'icon')} found.zip`,
                           'detail'
@@ -804,7 +796,7 @@ const Comp = {
                 }}
               />
             }
-            isInvalid={!use.count(state.icons)}
+            isInvalid={!__.size(state.icons)}
             label={use.pluralize(state.icons, 'icon')}
             onValueChange={search => setSearchPattern({ search })}
             placeholder={placeholder}
@@ -820,13 +812,13 @@ const Comp = {
   Stars: () => {
     const ref = useRef()
     const size = useSize(ref)
-    const { cursor } = use.mouse
+    const mouse = useMouse()
     const [x, y] = [use.spring, use.spring]
 
     useUpdateEffect(() => {
-      x.set(cursor.clientX / (size.width * 0.5))
-      y.set(cursor.clientY / (size.height * 0.5))
-    }, [cursor.clientX, cursor.clientY])
+      x.set(mouse.clientX / (size.width * 0.5))
+      y.set(mouse.clientY / (size.height * 0.5))
+    }, [mouse.clientX, mouse.clientY])
 
     return (
       <m.div className='fixed inset-0 -z-10 hidden dark:block' ref={ref} style={{ x, y }}>
@@ -878,13 +870,13 @@ export default () => {
                           ({ category }) => category
                         ),
                         (category, iconSets) => [
-                          `${category} (${use.count(iconSets)})`,
+                          `${category} (${__.size(iconSets)})`,
                           _.orderBy(iconSets, ['name'], ['asc']).map(iconSet => ({
                             descriptions: [
                               iconSet.author,
                               iconSet.license,
                               use.pluralize(iconSet.icons, 'icon'),
-                              use.parse.unix(iconSet.lastModified)
+                              use.relativeTime(iconSet.lastModified)
                             ],
                             isActive: state === iconSet.prefix,
                             onPress: () => setState(iconSet.prefix),
