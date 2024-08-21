@@ -723,39 +723,19 @@ const Comp = {
     const fuse = useCreation(() => new Fuse(globalState.allIcons, { keys: ['name'], threshold: 0 }))
     const [state, setState] = useSetState({ icons: [], searchResults: [] })
 
-    const isUnfiltered = (searchResults = state.searchResults) =>
-      _.isEqual(searchResults, state.icons)
-
     const [{ search: searchPattern }, setSearchPattern] = useUrlState(
       { search: placeholder },
       { navigateMode: 'replace' }
     )
 
-    let listboxSections = mapObject(globalState.allIconSets, (key, iconSet) => [
-      iconSet.name,
-      state.searchResults.filter(icon => icon.prefix === iconSet.prefix)
-    ])
+    const listbox = useCreation(() => {
+      const listbox = mapObject(globalState.allIconSets, (key, iconSet) => [
+        iconSet.name,
+        state.searchResults.filter(icon => icon.prefix === iconSet.prefix)
+      ])
 
-    listboxSections = mapObject(
-      sortKeys(listboxSections, {
-        compare: (a, b) => __.size(listboxSections[b]) - __.size(listboxSections[a])
-      }),
-      (iconSetName, icons) => [
-        `${iconSetName} (${__.size(icons)})`,
-        [
-          {
-            isDisabled: isUnfiltered(icons) || !__.size(icons),
-            onPress: () => setState({ icons }),
-            title: 'View'
-          },
-          {
-            isDisabled: !__.size(icons),
-            onPress: () => use.saveIconsAs(icons, `${iconSetName}.zip`),
-            title: 'Download'
-          }
-        ]
-      ]
-    )
+      return sortKeys(listbox, { compare: (a, b) => __.size(listbox[b]) - __.size(listbox[a]) })
+    }, [state.searchResults])
 
     useDebounceEffect(
       () => {
@@ -778,11 +758,11 @@ const Comp = {
             }}
             endContent={
               <Comp.IconButton
-                icon={isUnfiltered() ? 'line-md:filter' : 'line-md:filter-filled'}
+                icon='line-md:watch'
                 listbox={{
                   [`All results (${__.size(state.searchResults)})`]: [
                     {
-                      isDisabled: isUnfiltered(),
+                      isDisabled: _.isEqual(...Object.values(state)),
                       onPress: () => setState(state => ({ icons: state.searchResults })),
                       title: 'View'
                     },
@@ -797,7 +777,21 @@ const Comp = {
                       title: 'Download'
                     }
                   ],
-                  ...listboxSections
+                  ...mapObject(listbox, (iconSetName, icons) => [
+                    `${iconSetName} (${__.size(icons)})`,
+                    [
+                      {
+                        isDisabled: _.isEqual(icons, state.icons) || !__.size(icons),
+                        onPress: () => setState({ icons }),
+                        title: 'View'
+                      },
+                      {
+                        isDisabled: !__.size(icons),
+                        onPress: () => use.saveIconsAs(icons, `${iconSetName}.zip`),
+                        title: 'Download'
+                      }
+                    ]
+                  ])
                 }}
               />
             }
