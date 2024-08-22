@@ -58,6 +58,7 @@ import JSZip from 'jszip'
 import { LRUCache } from 'lru-cache'
 import mapObject, { mapObjectSkip } from 'map-obj'
 import millify from 'millify'
+import MotionNumber from 'motion-number/lazy'
 import { nanoid } from 'nanoid'
 import { ThemeProvider, useTheme } from 'next-themes'
 import pluralize from 'pluralize'
@@ -106,6 +107,7 @@ const use = {
       description: this.pluralize(text, 'character')
     })
   },
+  count: value => (value === +value ? value : __.size(value)),
   get globalState() {
     const [globalState, setGlobalState] = useAtom(atom)
 
@@ -301,8 +303,8 @@ const use = {
 
     return v
   },
-  pluralize: (value, word, pretty) => {
-    value = __.size(value)
+  pluralize: function (value, word, pretty) {
+    value = this.count(value)
 
     return `${pretty ? `${millify(value)} ` : ''}${pluralize(word, value, !pretty)}`
   },
@@ -451,7 +453,7 @@ const Comp = {
                 Download: [
                   {
                     description: use.pluralize(iconSet.icons, 'icon'),
-                    isDisabled: !__.size(iconSet.icons),
+                    isDisabled: !use.count(iconSet.icons),
                     onPress: () => use.saveIconsAs(iconSet.icons, `${iconSet.name}.zip`),
                     title: `${iconSet.name}.zip`
                   }
@@ -538,7 +540,7 @@ const Comp = {
     if (state) icons = _.orderBy(icons, ...state)
 
     const isSameIconSet = icons.every(icon => icons[0].setName === icon.setName)
-    const filename = `${isSameIconSet && __.size(icons) ? icons[0].setName : use.pluralize(icons, 'icon')}.zip`
+    const filename = `${isSameIconSet && use.count(icons) ? icons[0].setName : use.pluralize(icons, 'icon')}.zip`
 
     return (
       <Card
@@ -552,7 +554,7 @@ const Comp = {
           className='overflow-hidden'
           components={{
             Footer: () =>
-              __.size(icons) ? (
+              use.count(icons) ? (
                 <div className='h-[--footer-height]' />
               ) : (
                 <div className='flex-center text-sm text-foreground-500'>No icons</div>
@@ -632,7 +634,7 @@ const Comp = {
         <CardFooter>
           {footer ?? (
             <div className='flex-center justify-between px-3 text-sm'>
-              {use.pluralize(icons, 'icon')}
+              <Comp.MotionPluralize value={icons} word='icon' />
               {footerRight ?? (
                 <Comp.IconButton
                   icon='line-md:arrows-vertical'
@@ -652,7 +654,7 @@ const Comp = {
 
                           return {
                             isActive: isActive,
-                            isDisabled: !__.size(icons),
+                            isDisabled: !use.count(icons),
                             onPress: () => setState(!isActive && b),
                             title: { asc: 'Ascending', desc: 'Descending' }[order]
                           }
@@ -661,7 +663,7 @@ const Comp = {
                     ),
                     Download: [
                       {
-                        isDisabled: !__.size(icons),
+                        isDisabled: !use.count(icons),
                         onPress: () =>
                           use.saveIconsAs(icons, filename, isSameIconSet ? 'default' : 'detail'),
                         title: filename
@@ -679,7 +681,7 @@ const Comp = {
   Listbox: ({ children: sections }) => (
     <Listbox aria-label={use.id} variant='light'>
       {Object.entries(sections).map(([title, items], index) => (
-        <ListboxSection key={use.id} showDivider={index !== __.size(sections) - 1} title={title}>
+        <ListboxSection key={use.id} showDivider={index !== use.count(sections) - 1} title={title}>
           {items.map(({ color = 'primary', descriptions = [], isActive, title, ...props }) => (
             <ListboxItem
               classNames={{ title: isActive && `text-${color}` }}
@@ -697,6 +699,23 @@ const Comp = {
       ))}
     </Listbox>
   ),
+  MotionPluralize: ({ value, word }) => {
+    const [state, setState] = useState(0)
+
+    useDeepCompareEffect(() => setState(use.count(value)), [value])
+
+    return (
+      <Comp.HoverCard tooltip={use.pluralize(state, word)}>
+        <span>
+          <MotionNumber
+            after={() => ` ${pluralize(word, state)}`}
+            format={{ compactDisplay: 'short', notation: 'compact' }}
+            value={state}
+          />
+        </span>
+      </Comp.HoverCard>
+    )
+  },
   Providers: ({ children }) => (
     <LazyMotion features={domAnimation} strict>
       <ThemeProvider attribute='class' disableTransitionOnChange>
@@ -734,7 +753,7 @@ const Comp = {
         state.searchResults.filter(icon => icon.prefix === iconSet.prefix)
       ])
 
-      return sortKeys(listbox, { compare: (a, b) => __.size(listbox[b]) - __.size(listbox[a]) })
+      return sortKeys(listbox, { compare: (a, b) => use.count(listbox[b]) - use.count(listbox[a]) })
     }, [state.searchResults])
 
     useDebounceEffect(
@@ -754,20 +773,20 @@ const Comp = {
             autoFocus
             classNames={{
               inputWrapper: 'border-none',
-              label: __.size(state.icons) && '!text-foreground-500'
+              label: use.count(state.icons) && '!text-foreground-500'
             }}
             endContent={
               <Comp.IconButton
                 icon='line-md:watch'
                 listbox={{
-                  [`All results (${__.size(state.searchResults)})`]: [
+                  [`All results (${use.count(state.searchResults)})`]: [
                     {
                       isDisabled: _.isEqual(...Object.values(state)),
                       onPress: () => setState(state => ({ icons: state.searchResults })),
                       title: 'View'
                     },
                     {
-                      isDisabled: !__.size(state.searchResults),
+                      isDisabled: !use.count(state.searchResults),
                       onPress: () =>
                         use.saveIconsAs(
                           state.searchResults,
@@ -778,15 +797,15 @@ const Comp = {
                     }
                   ],
                   ...mapObject(listbox, (iconSetName, icons) => [
-                    `${iconSetName} (${__.size(icons)})`,
+                    `${iconSetName} (${use.count(icons)})`,
                     [
                       {
-                        isDisabled: _.isEqual(icons, state.icons) || !__.size(icons),
+                        isDisabled: _.isEqual(icons, state.icons) || !use.count(icons),
                         onPress: () => setState({ icons }),
                         title: 'View'
                       },
                       {
-                        isDisabled: !__.size(icons),
+                        isDisabled: !use.count(icons),
                         onPress: () => use.saveIconsAs(icons, `${iconSetName}.zip`),
                         title: 'Download'
                       }
@@ -795,8 +814,8 @@ const Comp = {
                 }}
               />
             }
-            isInvalid={!__.size(state.icons)}
-            label={use.pluralize(state.icons, 'icon')}
+            isInvalid={!use.count(state.icons)}
+            label={<Comp.MotionPluralize value={state.icons} word='icon' />}
             onValueChange={search => setSearchPattern({ search })}
             placeholder={placeholder}
             startContent={<Icon className='size-5' icon='line-md:search' />}
@@ -869,7 +888,7 @@ export default () => {
                           ({ category }) => category
                         ),
                         (category, iconSets) => [
-                          `${category} (${__.size(iconSets)})`,
+                          `${category} (${use.count(iconSets)})`,
                           _.orderBy(iconSets, ['name'], ['asc']).map(iconSet => ({
                             descriptions: [
                               iconSet.author,
