@@ -47,22 +47,23 @@ import copy from 'copy-to-clipboard'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import * as _ from 'es-toolkit'
-import * as __ from 'es-toolkit/compat'
+import { size } from 'es-toolkit/compat'
 import { saveAs } from 'file-saver'
 import { AnimatePresence, LazyMotion, domAnimation, m, useSpring } from 'framer-motion'
 import Fuse from 'fuse.js'
 import * as idb from 'idb-keyval'
+import { formatNumber } from 'intl-number-helper'
 import { useAtom } from 'jotai'
 import { atomWithImmer } from 'jotai-immer'
 import JSZip from 'jszip'
 import { LRUCache } from 'lru-cache'
 import mapObject, { mapObjectSkip } from 'map-obj'
-import millify from 'millify'
 import MotionNumber from 'motion-number/lazy'
 import { nanoid } from 'nanoid'
 import { ThemeProvider, useTheme } from 'next-themes'
 import pluralize from 'pluralize'
 import prettyBytes from 'pretty-bytes'
+import prand from 'pure-rand'
 import { memo, useRef, useState } from 'react'
 import { For, useLocalStorage, useSingleEffect } from 'react-haiku'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
@@ -107,7 +108,7 @@ const use = {
       description: this.pluralize(text, 'character')
     })
   },
-  count: value => (value === +value ? value : __.size(value)),
+  count: value => (value === +value ? value : size(value)),
   get globalState() {
     const [globalState, setGlobalState] = useAtom(atom)
 
@@ -139,18 +140,17 @@ const use = {
           })
 
         if (await this.version.isValid()) {
-          ;(await this.version.isOutdated())
-            ? use.toast('New update found', {
-                action: (
-                  <Comp.IconButton
-                    icon='line-md:arrow-small-down'
-                    onPress={this.clear}
-                    tooltip={`Version ${this.version.latest}`}
-                  />
-                ),
-                duration: Number.POSITIVE_INFINITY
-              })
-            : use.toast('Update not found')
+          ;(await this.version.isOutdated()) &&
+            use.toast('New update found', {
+              action: (
+                <Comp.IconButton
+                  icon='line-md:arrow-small-down'
+                  onPress={this.clear}
+                  tooltip={`Version ${this.version.latest}`}
+                />
+              ),
+              duration: Number.POSITIVE_INFINITY
+            })
 
           setState()
         } else {
@@ -243,9 +243,27 @@ const use = {
           return [key, iconSet]
         })
 
+        const allIcons = Object.values(allIconSets).flatMap(({ icons }) => icons)
+
+        let dailyIcons = Object.groupBy(allIcons, ({ name }) => name)
+
+        dailyIcons =
+          dailyIcons[
+            Object.keys(dailyIcons)[
+              prand.unsafeUniformIntDistribution(
+                0,
+                Object.keys(dailyIcons).length - 1,
+                prand.xoroshiro128plus(
+                  new Date().getDate() + new Date().getMonth() + new Date().getFullYear() + 1
+                )
+              )
+            ]
+          ]
+
         setGlobalState(draft => {
+          draft.allIcons = allIcons
           draft.allIconSets = allIconSets
-          draft.allIcons = Object.values(allIconSets).flatMap(({ icons }) => icons)
+          draft.dailyIcons = dailyIcons
           draft.hasData = true
         })
       }, [state])
@@ -306,7 +324,7 @@ const use = {
   pluralize: function (value, word, pretty) {
     value = this.count(value)
 
-    return `${pretty ? `${millify(value)} ` : ''}${pluralize(word, value, !pretty)}`
+    return `${pretty ? `${formatNumber(value, undefined, 's')} ` : ''}${pluralize(word, value, !pretty)}`
   },
   get recentlyViewedIcons() {
     return [...iconsCache.values()]
@@ -527,13 +545,13 @@ const Comp = {
       </Link>
     </Comp.HoverCard>
   ),
-  IconGrid: ({ footer, footerRight, icons, localIcons, ...props }) => {
+  IconGrid: ({ footer, footerRight, iconNames, icons, ...props }) => {
     const { globalState } = use.globalState
     const { isIconBookmarked, toggleIconBookmark } = use.bookmarkIcons
     const [state, setState] = useState()
 
-    if (localIcons)
-      icons = localIcons.map(i =>
+    if (iconNames)
+      icons = iconNames.map(i =>
         globalState.allIconSets[i.prefix].icons.find(icon => icon.name === i.name)
       )
 
@@ -591,11 +609,13 @@ const Comp = {
                       title: icon.name
                     }
                   ],
-                  Bookmark: ['Add', 'Remove'].map(title => ({
-                    isDisabled: (title === 'Add') === isIconBookmarked(icon),
-                    onPress: () => toggleIconBookmark(icon),
-                    title: title
-                  })),
+                  [isIconBookmarked(icon) ? 'Bookmarked' : 'Bookmark']: ['Add', 'Remove'].map(
+                    title => ({
+                      isDisabled: (title === 'Add') === isIconBookmarked(icon),
+                      onPress: () => toggleIconBookmark(icon),
+                      title: title
+                    })
+                  ),
                   ...mapObject(icon.filenames, (fileType, filename) => {
                     const text = {
                       css: icon.to.css,
@@ -654,7 +674,7 @@ const Comp = {
 
                           return {
                             isActive: isActive,
-                            isDisabled: !use.count(icons),
+                            isDisabled: !use.count(icons) || use.count(icons) === 1,
                             onPress: () => setState(!isActive && b),
                             title: { asc: 'Ascending', desc: 'Descending' }[order]
                           }
@@ -854,7 +874,7 @@ export default () => {
 
   const { globalState } = use.globalState
   const { bookmarkIcons } = use.bookmarkIcons
-  const [state, setState] = useState('Endless scrolling')
+  const [state, setState] = useState(0)
 
   return (
     <Comp.Providers>
@@ -868,22 +888,23 @@ export default () => {
                 <Comp.Listbox>
                   {{
                     [use.async(use.iconSets.version.current, 0)]: [
-                      ['Endless scrolling', 'Hehe'],
-                      ['Bookmarks', use.pluralize(bookmarkIcons, 'icon', true)],
-                      ['Recently viewed', use.pluralize(use.recentlyViewedIcons, 'icon', true)],
                       [
                         use.pluralize(globalState.allIconSets, 'icon set'),
                         use.pluralize(globalState.allIcons, 'icon', true)
-                      ]
-                    ].map(([title, description]) => ({
+                      ],
+                      ['Endless scrolling', 'Hehe'],
+                      ['Bookmarks', use.pluralize(bookmarkIcons, 'icon', true)],
+                      ['Recently viewed', use.pluralize(use.recentlyViewedIcons, 'icon', true)],
+                      ['Daily', use.pluralize(globalState.dailyIcons, 'icon')]
+                    ].map(([title, description], index) => ({
                       description: description,
-                      isActive: state === title,
-                      onPress: () => setState(title),
+                      isActive: state === index,
+                      onPress: () => setState(index),
                       title: title
                     })),
                     ...sortKeys(
                       mapObject(
-                        _.groupBy(
+                        Object.groupBy(
                           Object.values(globalState.allIconSets),
                           ({ category }) => category
                         ),
@@ -938,13 +959,12 @@ export default () => {
           <Panel>
             <PanelGroup direction='vertical'>
               <Panel>
-                {state === 'Endless scrolling' && <Comp.EndlessIcons />}
-                {state === use.pluralize(globalState.allIconSets, 'icon set') && (
-                  <Comp.IconGrid icons={globalState.allIcons} />
-                )}
-                {state === 'Bookmarks' && <Comp.IconGrid localIcons={bookmarkIcons} />}
-                {state === 'Recently viewed' && <Comp.RecentlyViewedIcons />}
-                {Object.keys(globalState.allIconSets).includes(state) && (
+                {state === 0 && <Comp.IconGrid icons={globalState.allIcons} />}
+                {state === 1 && <Comp.EndlessIcons />}
+                {state === 2 && <Comp.IconGrid iconNames={bookmarkIcons} />}
+                {state === 3 && <Comp.RecentlyViewedIcons />}
+                {state === 4 && <Comp.IconGrid icons={globalState.dailyIcons} />}
+                {globalState.allIconSets[state] && (
                   <Comp.FilterIcons {...globalState.allIconSets[state]} />
                 )}
               </Panel>
