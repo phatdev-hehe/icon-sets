@@ -80,11 +80,13 @@ import collections from '/node_modules/@iconify/json/collections.json'
 
 dayjs.extend(relativeTime)
 
-const atom = atomWithImmer({ allIcons: [], allIconSets: {} })
-const iconsCache = new LRUCache({ max: 1_000 })
+const [atom, iconsCache] = [
+  atomWithImmer({ allIcons: [], allIconSets: {} }),
+  new LRUCache({ max: 1_000 })
+]
 
 const use = {
-  async: (fn, initialValue) => useAsync(fn).value ?? initialValue,
+  async: (fn, defaultValue) => useAsync(fn).value ?? defaultValue,
   get bookmarkIcons() {
     const [state, setState] = useLocalStorage('bookmark-icons', [])
     const isIconBookmarked = icon => state.some(iconObject => _.isEqual(icon.to.object, iconObject))
@@ -324,7 +326,7 @@ const use = {
   pluralize: function (value, word, pretty) {
     value = this.count(value)
 
-    return `${pretty ? `${formatNumber(value, undefined, 's')} ` : ''}${pluralize(word, value, !pretty)}`
+    return `${pretty ? `${formatNumber(value, 'en-us', 's')} ` : ''}${pluralize(word, value, !pretty)}`
   },
   get recentlyViewedIcons() {
     return [...iconsCache.values()]
@@ -730,6 +732,7 @@ const Comp = {
           <MotionNumber
             after={() => ` ${pluralize(word, state)}`}
             format={{ compactDisplay: 'short', notation: 'compact' }}
+            locales='en-us'
             value={state}
           />
         </span>
