@@ -1,3 +1,14 @@
+// can kt??
+// thua thieu keyword [async, await, new,...]
+// ten bien, ham co y nghia [icons, allIcons,...]
+// su dung `use.atom` de chua cac icons (neu dc)
+// <DocVaHienThiIcons /> phai thoa cac dieu kien sau (0 icons, 1 icon, 2 icons)
+
+// to chuc code :v
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/get
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/this
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Destructuring_assignment
+
 import useUrlState from '@ahooksjs/use-url-state'
 import { css } from '@emotion/react'
 import { Icon } from '@iconify/react'
@@ -53,7 +64,7 @@ import { AnimatePresence, LazyMotion, domAnimation, m, useSpring } from 'framer-
 import Fuse from 'fuse.js'
 import * as idb from 'idb-keyval'
 import { formatNumber } from 'intl-number-helper'
-import { useAtom } from 'jotai'
+import { useAtomValue, useSetAtom } from 'jotai'
 import { atomWithImmer } from 'jotai-immer'
 import JSZip from 'jszip'
 import { LRUCache } from 'lru-cache'
@@ -64,7 +75,7 @@ import { ThemeProvider, useTheme } from 'next-themes'
 import pluralize from 'pluralize'
 import prettyBytes from 'pretty-bytes'
 import prand from 'pure-rand'
-import { memo, useRef, useState } from 'react'
+import { memo, useRef } from 'react'
 import { For, useLocalStorage, useSingleEffect } from 'react-haiku'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { RouterProvider, createBrowserRouter } from 'react-router-dom'
@@ -86,7 +97,10 @@ const [atom, iconsCache] = [
 ]
 
 const use = {
-  async: (fn, defaultValue) => useAsync(fn).value ?? defaultValue,
+  async: (fn, initialValue) => useAsync(fn).value ?? initialValue,
+  get atom() {
+    return { atom: useAtomValue(atom), setAtom: useSetAtom(atom) }
+  },
   get bookmarkIcons() {
     const [state, setState] = useLocalStorage('bookmark-icons', [])
     const isIconBookmarked = icon => state.some(iconObject => _.isEqual(icon.to.object, iconObject))
@@ -111,18 +125,13 @@ const use = {
     })
   },
   count: value => (value === +value ? value : size(value)),
-  get globalState() {
-    const [globalState, setGlobalState] = useAtom(atom)
-
-    return { globalState, setGlobalState }
-  },
   iconSets: {
     clear: async (clear = true) => {
       clear && (await idb.clear())
-      location.reload(true)
+      location.reload()
     },
     get init() {
-      const { setGlobalState } = use.globalState
+      const { setAtom } = use.atom
       const [state, setState] = useRafState(true)
 
       useAsyncEffect(async () => {
@@ -156,10 +165,10 @@ const use = {
 
           setState()
         } else {
-          const { currentToast } = use.toast(use.pluralize(this.module, 'icon set'), {
+          const { currentToast } = use.toast('Working on updates', {
             description: (
               <>
-                Downloading
+                {use.pluralize(this.module, 'icon set')}
                 <ScrollShadow className='h-96'>
                   <Comp.Listbox>
                     {{
@@ -222,7 +231,8 @@ const use = {
                   tooltip='Try again'
                 />
               ),
-              description: 'Download failed'
+              description: null,
+              title: 'Update failed'
             })
           }
         }
@@ -262,7 +272,7 @@ const use = {
             ]
           ]
 
-        setGlobalState(draft => {
+        setAtom(draft => {
           draft.allIcons = allIcons
           draft.allIconSets = allIconSets
           draft.dailyIcons = dailyIcons
@@ -382,12 +392,12 @@ const use = {
 
 const Comp = {
   EndlessIcons: ({ step = 100, sizes = _.range(step, 1_000 + step, step) }) => {
-    const { globalState } = use.globalState
+    const { atom } = use.atom
     const [state, setState] = useSetState({ icons: [], size: step })
 
     const loadMoreIcons = () =>
       setState(state => ({
-        icons: [...state.icons, ..._.sampleSize(globalState.allIcons, state.size)]
+        icons: [...state.icons, ..._.sampleSize(atom.allIcons, state.size)]
       }))
 
     useSingleEffect(loadMoreIcons)
@@ -487,7 +497,7 @@ const Comp = {
     )
   },
   HoverCard: ({ align = 'center', children, listbox, tooltip }) => {
-    const [state, setState] = useState()
+    const [state, setState] = useRafState()
     const ref = useRef()
     const [x, setX] = [use.spring, v => x.set(v / 4)]
 
@@ -502,9 +512,11 @@ const Comp = {
 
               if (align === 'center') return setX(clientX - rect.left - rect.width / 2)
 
-              const { width: contentWidth } = ref.current.getBoundingClientRect()
-              const x = clientX - rect[{ end: 'right', start: 'left' }[align]]
-              const v = { end: x + contentWidth, start: x - contentWidth }[align]
+              const [w, x, v] = [
+                ref.current.getBoundingClientRect().width,
+                clientX - rect[{ end: 'right', start: 'left' }[align]],
+                { end: x + w, start: x - w }[align]
+              ]
 
               setX({ end: v < 0, start: v > 0 }[align] ? v : x)
             }
@@ -548,13 +560,13 @@ const Comp = {
     </Comp.HoverCard>
   ),
   IconGrid: ({ footer, footerRight, iconNames, icons, ...props }) => {
-    const { globalState } = use.globalState
+    const { atom } = use.atom
     const { isIconBookmarked, toggleIconBookmark } = use.bookmarkIcons
-    const [state, setState] = useState()
+    const [state, setState] = useRafState()
 
     if (iconNames)
       icons = iconNames.map(i =>
-        globalState.allIconSets[i.prefix].icons.find(icon => icon.name === i.name)
+        atom.allIconSets[i.prefix].icons.find(icon => icon.name === i.name)
       )
 
     if (state) icons = _.orderBy(icons, ...state)
@@ -722,7 +734,7 @@ const Comp = {
     </Listbox>
   ),
   MotionPluralize: ({ value, word }) => {
-    const [state, setState] = useState(0)
+    const [state, setState] = useRafState(0)
 
     useDeepCompareEffect(() => setState(use.count(value)), [value])
 
@@ -761,8 +773,8 @@ const Comp = {
     )
   },
   SearchIcons: memo(({ placeholder = 'Search' }) => {
-    const { globalState } = use.globalState
-    const fuse = useCreation(() => new Fuse(globalState.allIcons, { keys: ['name'], threshold: 0 }))
+    const { atom } = use.atom
+    const fuse = useCreation(() => new Fuse(atom.allIcons, { keys: ['name'], threshold: 0 }))
     const [state, setState] = useSetState({ icons: [], searchResults: [] })
 
     const [{ search: searchPattern }, setSearchPattern] = useUrlState(
@@ -771,7 +783,7 @@ const Comp = {
     )
 
     const listbox = useCreation(() => {
-      const listbox = mapObject(globalState.allIconSets, (key, iconSet) => [
+      const listbox = mapObject(atom.allIconSets, (key, iconSet) => [
         iconSet.name,
         state.searchResults.filter(icon => icon.prefix === iconSet.prefix)
       ])
@@ -875,13 +887,13 @@ const Comp = {
 export default () => {
   use.iconSets.init
 
-  const { globalState } = use.globalState
+  const { atom } = use.atom
   const { bookmarkIcons } = use.bookmarkIcons
-  const [state, setState] = useState(0)
+  const [state, setState] = useRafState(0)
 
   return (
     <Comp.Providers>
-      {globalState.hasData ? (
+      {atom.hasData ? (
         <PanelGroup
           className='card !~w-[50rem]/[66rem] lg:~lg:!~h-[50rem]/[38rem]'
           direction='horizontal'>
@@ -892,13 +904,13 @@ export default () => {
                   {{
                     [use.async(use.iconSets.version.current, 0)]: [
                       [
-                        use.pluralize(globalState.allIconSets, 'icon set'),
-                        use.pluralize(globalState.allIcons, 'icon', true)
+                        use.pluralize(atom.allIconSets, 'icon set'),
+                        use.pluralize(atom.allIcons, 'icon', true)
                       ],
                       ['Endless scrolling', 'Hehe'],
                       ['Bookmarks', use.pluralize(bookmarkIcons, 'icon', true)],
                       ['Recently viewed', use.pluralize(use.recentlyViewedIcons, 'icon', true)],
-                      ['Daily', use.pluralize(globalState.dailyIcons, 'icon')]
+                      ['Daily', use.pluralize(atom.dailyIcons, 'icon')]
                     ].map(([title, description], index) => ({
                       description: description,
                       isActive: state === index,
@@ -907,10 +919,7 @@ export default () => {
                     })),
                     ...sortKeys(
                       mapObject(
-                        Object.groupBy(
-                          Object.values(globalState.allIconSets),
-                          ({ category }) => category
-                        ),
+                        Object.groupBy(Object.values(atom.allIconSets), ({ category }) => category),
                         (category, iconSets) => [
                           `${category} (${use.count(iconSets)})`,
                           _.orderBy(iconSets, ['name'], ['asc']).map(iconSet => ({
@@ -962,14 +971,12 @@ export default () => {
           <Panel>
             <PanelGroup direction='vertical'>
               <Panel>
-                {state === 0 && <Comp.IconGrid icons={globalState.allIcons} />}
+                {state === 0 && <Comp.IconGrid icons={atom.allIcons} />}
                 {state === 1 && <Comp.EndlessIcons />}
                 {state === 2 && <Comp.IconGrid iconNames={bookmarkIcons} />}
                 {state === 3 && <Comp.RecentlyViewedIcons />}
-                {state === 4 && <Comp.IconGrid icons={globalState.dailyIcons} />}
-                {globalState.allIconSets[state] && (
-                  <Comp.FilterIcons {...globalState.allIconSets[state]} />
-                )}
+                {state === 4 && <Comp.IconGrid icons={atom.dailyIcons} />}
+                {atom.allIconSets[state] && <Comp.FilterIcons {...atom.allIconSets[state]} />}
               </Panel>
               <PanelResizeHandle />
               <Panel>
