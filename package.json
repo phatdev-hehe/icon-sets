@@ -7,7 +7,7 @@
   "dependencies": {
     "@ahooksjs/use-url-state": "^3.5.1",
     "@emotion/react": "^11.13.3",
-    "@iconify/json": "^2.2.241",
+    "@iconify/json": "^2.2.242",
     "@iconify/react": "^5.0.2",
     "@iconify/utils": "^2.1.32",
     "@nextui-org/react": "^2.4.6",
@@ -35,7 +35,6 @@
     "non.geist": "^1.0.3",
     "pluralize": "^8.0.0",
     "pretty-bytes": "^6.1.1",
-    "pure-rand": "^6.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-haiku": "^2.1.7",
@@ -50,7 +49,7 @@
   "devDependencies": {
     "@vitejs/plugin-react-swc": "^3.7.0",
     "autoprefixer": "^10.4.20",
-    "eslint-plugin-perfectionist": "^3.2.0",
+    "eslint-plugin-perfectionist": "^3.3.0",
     "eslint-plugin-react": "^7.35.0",
     "fluid-tailwind": "^1.0.3",
     "postcss": "^8.4.41",

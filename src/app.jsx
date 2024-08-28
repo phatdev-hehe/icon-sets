@@ -74,7 +74,6 @@ import { nanoid } from 'nanoid'
 import { ThemeProvider, useTheme } from 'next-themes'
 import pluralize from 'pluralize'
 import prettyBytes from 'pretty-bytes'
-import prand from 'pure-rand'
 import { memo, useRef } from 'react'
 import { For, useLocalStorage, useSingleEffect } from 'react-haiku'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
@@ -92,7 +91,7 @@ import collections from '/node_modules/@iconify/json/collections.json'
 dayjs.extend(relativeTime)
 
 const [atom, iconsCache] = [
-  atomWithImmer({ allIcons: [], allIconSets: {} }),
+  atomWithImmer({ allIcons: [], allIconSets: {}, hasData: false }),
   new LRUCache({ max: 1_000 })
 ]
 
@@ -144,7 +143,7 @@ const use = {
               <Comp.IconButton
                 icon='line-md:rotate-270'
                 onPress={async () => this.clear(await this.version.isOutdated())}
-                tooltip='Relaunch'
+                tooltip='Try again'
               />
             ),
             duration: Number.POSITIVE_INFINITY
@@ -157,7 +156,7 @@ const use = {
                 <Comp.IconButton
                   icon='line-md:arrow-small-down'
                   onPress={this.clear}
-                  tooltip={`Version ${this.version.latest}`}
+                  tooltip='Update'
                 />
               ),
               duration: Number.POSITIVE_INFINITY
@@ -170,8 +169,8 @@ const use = {
               <>
                 {use.pluralize(this.module, 'icon set')}
                 <ScrollShadow className='h-96'>
-                  <Comp.Listbox>
-                    {{
+                  <Comp.Listbox
+                    sections={{
                       '': Object.keys(this.module).map(key => {
                         const iconSet = collections[key]
 
@@ -182,7 +181,7 @@ const use = {
                         }
                       })
                     }}
-                  </Comp.Listbox>
+                  />
                 </ScrollShadow>
               </>
             ),
@@ -255,27 +254,9 @@ const use = {
           return [key, iconSet]
         })
 
-        const allIcons = Object.values(allIconSets).flatMap(({ icons }) => icons)
-
-        let dailyIcons = Object.groupBy(allIcons, ({ name }) => name)
-
-        dailyIcons =
-          dailyIcons[
-            Object.keys(dailyIcons)[
-              prand.unsafeUniformIntDistribution(
-                0,
-                Object.keys(dailyIcons).length - 1,
-                prand.xoroshiro128plus(
-                  new Date().getDate() + new Date().getMonth() + new Date().getFullYear() + 1
-                )
-              )
-            ]
-          ]
-
         setAtom(draft => {
-          draft.allIcons = allIcons
+          draft.allIcons = Object.values(allIconSets).flatMap(({ icons }) => icons)
           draft.allIconSets = allIconSets
-          draft.dailyIcons = dailyIcons
           draft.hasData = true
         })
       }, [state])
@@ -428,7 +409,7 @@ const Comp = {
     const [state, setState, isValidState = key => typeof state[key] === 'string'] =
       useSetState(initialState)
 
-    iconSet = _.clone(iconSet)
+    iconSet = structuredClone(iconSet)
     iconSet.themes = iconSet.prefixes ?? iconSet.suffixes
 
     iconSet.icons = iconSet.icons.filter(icon => {
@@ -534,16 +515,16 @@ const Comp = {
                 <m.div
                   animate={{ scale: [0.7, 1] }}
                   className={cn({
-                    card: true,
-                    'max-h-[25rem] w-[16rem] overflow-hidden overflow-y-auto p-2': listbox,
-                    'px-2.5 py-1 text-sm': tooltip
+                    'card text-sm': true,
+                    'max-h-96 w-64 overflow-x-hidden p-2': listbox,
+                    'px-2.5 py-1': tooltip
                   })}
                   exit={{ opacity: 0, scale: 0.7 }}
                   style={{
                     transformOrigin: 'var(--radix-hover-card-content-transform-origin)',
                     x: x
                   }}>
-                  {tooltip ?? <Comp.Listbox>{listbox}</Comp.Listbox>}
+                  {tooltip ?? <Comp.Listbox sections={listbox} />}
                 </m.div>
               </HoverCard.Content>
             </HoverCard.Portal>
@@ -577,7 +558,7 @@ const Comp = {
     return (
       <Card
         classNames={{
-          base: 'h-full rounded-none bg-background',
+          base: 'h-full rounded-none bg-background text-sm',
           footer: 'absolute inset-x-0 bottom-0 h-[--footer-height] rounded-none'
         }}
         isFooterBlurred
@@ -589,7 +570,7 @@ const Comp = {
               use.count(icons) ? (
                 <div className='h-[--footer-height]' />
               ) : (
-                <div className='flex-center text-sm text-foreground-500'>No icons</div>
+                <div className='flex-center text-foreground-500'>No icons</div>
               ),
             ScrollSeekPlaceholder: ({ height, index, width }) => {
               const icon = icons[index]
@@ -667,7 +648,7 @@ const Comp = {
         />
         <CardFooter>
           {footer ?? (
-            <div className='flex-center justify-between px-3 text-sm'>
+            <div className='flex-center justify-between px-3'>
               <Comp.MotionPluralize value={icons} word='icon' />
               {footerRight ?? (
                 <Comp.IconButton
@@ -712,7 +693,7 @@ const Comp = {
       </Card>
     )
   },
-  Listbox: ({ children: sections }) => (
+  Listbox: ({ sections }) => (
     <Listbox aria-label={use.id} variant='light'>
       {Object.entries(sections).map(([title, items], index) => (
         <ListboxSection key={use.id} showDivider={index !== use.count(sections) - 1} title={title}>
@@ -881,7 +862,7 @@ const Comp = {
       </m.div>
     )
   },
-  Theme: ({ children }) => children(useTheme())
+  Theme: ({ render }) => render(useTheme())
 }
 
 export default () => {
@@ -898,10 +879,10 @@ export default () => {
           className='card !~w-[50rem]/[66rem] lg:~lg:!~h-[50rem]/[38rem]'
           direction='horizontal'>
           <Panel className='py-2' defaultSize={24}>
-            <Comp.Theme>
-              {({ resolvedTheme, setTheme }) => (
-                <Comp.Listbox>
-                  {{
+            <Comp.Theme
+              render={({ resolvedTheme, setTheme }) => (
+                <Comp.Listbox
+                  sections={{
                     [use.async(use.iconSets.version.current, 0)]: [
                       [
                         use.pluralize(atom.allIconSets, 'icon set'),
@@ -909,8 +890,7 @@ export default () => {
                       ],
                       ['Endless scrolling', 'Hehe'],
                       ['Bookmarks', use.pluralize(bookmarkIcons, 'icon', true)],
-                      ['Recently viewed', use.pluralize(use.recentlyViewedIcons, 'icon', true)],
-                      ['Daily', use.pluralize(atom.dailyIcons, 'icon')]
+                      ['Recently viewed', use.pluralize(use.recentlyViewedIcons, 'icon', true)]
                     ].map(([title, description], index) => ({
                       description: description,
                       isActive: state === index,
@@ -963,9 +943,9 @@ export default () => {
                       }
                     ]
                   }}
-                </Comp.Listbox>
+                />
               )}
-            </Comp.Theme>
+            />
           </Panel>
           <PanelResizeHandle />
           <Panel>
@@ -975,7 +955,6 @@ export default () => {
                 {state === 1 && <Comp.EndlessIcons />}
                 {state === 2 && <Comp.IconGrid iconNames={bookmarkIcons} />}
                 {state === 3 && <Comp.RecentlyViewedIcons />}
-                {state === 4 && <Comp.IconGrid icons={atom.dailyIcons} />}
                 {atom.allIconSets[state] && <Comp.FilterIcons {...atom.allIconSets[state]} />}
               </Panel>
               <PanelResizeHandle />
@@ -989,11 +968,11 @@ export default () => {
         <Spinner label='Loading…' />
       )}
       <Comp.Stars />
-      <Comp.Theme>
-        {({ resolvedTheme }) => (
+      <Comp.Theme
+        render={({ resolvedTheme }) => (
           <Toaster className='z-auto' pauseWhenPageIsHidden theme={resolvedTheme} />
         )}
-      </Comp.Theme>
+      />
     </Comp.Providers>
   )
 }
