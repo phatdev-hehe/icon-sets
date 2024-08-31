@@ -59,6 +59,7 @@ import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import * as _ from 'es-toolkit'
 import { size } from 'es-toolkit/compat'
+import { sort } from 'fast-sort'
 import { saveAs } from 'file-saver'
 import { AnimatePresence, LazyMotion, domAnimation, m, useSpring } from 'framer-motion'
 import Fuse from 'fuse.js'
@@ -75,6 +76,7 @@ import { ThemeProvider, useTheme } from 'next-themes'
 import pluralize from 'pluralize'
 import prettyBytes from 'pretty-bytes'
 import { memo, useRef } from 'react'
+import isEqual from 'react-fast-compare'
 import { For, useLocalStorage, useSingleEffect } from 'react-haiku'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { RouterProvider, createBrowserRouter } from 'react-router-dom'
@@ -102,7 +104,7 @@ const use = {
   },
   get bookmarkIcons() {
     const [state, setState] = useLocalStorage('bookmark-icons', [])
-    const isIconBookmarked = icon => state.some(iconObject => _.isEqual(icon.to.object, iconObject))
+    const isIconBookmarked = icon => state.some(iconObject => isEqual(icon.to.object, iconObject))
 
     return {
       bookmarkIcons: state,
@@ -110,7 +112,7 @@ const use = {
       toggleIconBookmark: icon => {
         setState(state =>
           isIconBookmarked(icon)
-            ? state.filter(iconObject => !_.isEqual(icon.to.object, iconObject))
+            ? state.filter(iconObject => !isEqual(icon.to.object, iconObject))
             : [...state, icon.to.object]
         )
 
@@ -123,13 +125,64 @@ const use = {
       description: this.pluralize(text, 'character')
     })
   },
-  count: value => (value === +value ? value : size(value)),
+  downloadIcons: function (icons) {
+    icons = this.icons(icons)
+
+    const zip = new JSZip()
+
+    for (let icon of icons.get) {
+      icon = this.icon(icon)
+
+      zip.file(icon.filenames.svg[icons.isSameIconSetName ? 'default' : 'detail'], icon.to.html)
+    }
+
+    return this.saveAs(zip.generateAsync({ type: 'blob' }), icons.download.filename)
+  },
+  icon: function (icon, k = icon.id) {
+    if (iconsCache.has(k)) return iconsCache.get(k)
+
+    const svg = iconToSVG(icon.data)
+
+    const v = {
+      filenames: mapObject({ css: {}, json: {}, svg: {}, txt: {} }, fileType => [
+        fileType,
+        {
+          default: `${icon.name}.${fileType}`,
+          detail: `[${icon.setName}] ${icon.name}.${fileType}`
+        }
+      ]),
+      to: {
+        css: getIconCSS(icon.data),
+        dataUrl: getIconContentCSS(icon.data, svg.attributes).slice(31, -6),
+        html: iconToHTML(replaceIDs(svg.body, this.id), svg.attributes),
+        object: stringToIcon(icon.id)
+      },
+      ...icon
+    }
+
+    iconsCache.set(k, v)
+
+    return v
+  },
+  icons: function (icons) {
+    const [firstIcon] = icons
+    const isSameIconSetName = icons.every(icon => firstIcon.setName === icon.setName)
+
+    return {
+      download: {
+        filename: `${isSameIconSetName && this.size(icons) ? firstIcon.setName : this.pluralize(icons, 'icon')}.zip`,
+        fn: () => this.downloadIcons(icons)
+      },
+      get: icons,
+      isSameIconSetName: isSameIconSetName
+    }
+  },
   iconSets: {
     clear: async (clear = true) => {
       clear && (await idb.clear())
       location.reload()
     },
-    get init() {
+    get get() {
       const { setAtom } = use.atom
       const [state, setState] = useRafState(true)
 
@@ -276,7 +329,7 @@ const use = {
       isOutdated: async function () {
         return !(
           (await this.current()) === this.latest &&
-          _.isEqual(_.xor(Object.keys(collections), await idb.keys()), ['version'])
+          isEqual(_.xor(Object.keys(collections), await idb.keys()), ['version'])
         )
       },
       isValid: async function () {
@@ -288,34 +341,8 @@ const use = {
   get id() {
     return nanoid()
   },
-  parseIcon: function (icon, k = icon.id) {
-    if (iconsCache.has(k)) return iconsCache.get(k)
-
-    const svg = iconToSVG(icon.data)
-
-    const v = {
-      filenames: mapObject({ css: {}, json: {}, svg: {}, txt: {} }, fileType => [
-        fileType,
-        {
-          default: `${icon.name}.${fileType}`,
-          detail: `[${icon.setName}] ${icon.name}.${fileType}`
-        }
-      ]),
-      to: {
-        css: getIconCSS(icon.data),
-        dataUrl: getIconContentCSS(icon.data, svg.attributes).slice(31, -6),
-        html: iconToHTML(replaceIDs(svg.body, this.id), svg.attributes),
-        object: stringToIcon(icon.id)
-      },
-      ...icon
-    }
-
-    iconsCache.set(k, v)
-
-    return v
-  },
   pluralize: function (value, word, pretty) {
-    value = this.count(value)
+    value = this.size(value)
 
     return `${pretty ? `${formatNumber(value, 'en-us', 's')} ` : ''}${pluralize(word, value, !pretty)}`
   },
@@ -344,17 +371,7 @@ const use = {
       duration: null
     })
   },
-  saveIconsAs: function (icons, filename, iconNameType = 'default') {
-    const zip = new JSZip()
-
-    for (let icon of icons) {
-      icon = this.parseIcon(icon)
-
-      zip.file(icon.filenames.svg[iconNameType], icon.to.html)
-    }
-
-    return this.saveAs(zip.generateAsync({ type: 'blob' }), filename)
-  },
+  size: target => (target === +target ? target : size(target)),
   get spring() {
     return useSpring(0)
   },
@@ -410,10 +427,10 @@ const Comp = {
       useSetState(initialState)
 
     iconSet = structuredClone(iconSet)
-    iconSet.themes = iconSet.prefixes ?? iconSet.suffixes
+    iconSet.themes = iconSet.prefixes ?? iconSet.suffixes ?? {}
 
     iconSet.icons = iconSet.icons.filter(icon => {
-      const isMatchingTheme = (theme = state.theme) =>
+      const predicate = (theme = state.theme) =>
         icon.name[iconSet.prefixes ? 'startsWith' : 'endsWith'](
           iconSet.prefixes ? `${theme}-` : `-${theme}`
         )
@@ -421,11 +438,11 @@ const Comp = {
       return (
         (!isValidState('category') || iconSet.categories?.[state.category]?.includes(icon.name)) &&
         (!isValidState('theme') ||
-          (state.theme === ''
-            ? !Object.keys(iconSet.themes).some(isMatchingTheme)
-            : isMatchingTheme()))
+          (state.theme === '' ? !Object.keys(iconSet.themes).some(predicate) : predicate()))
       )
     })
+
+    iconSet.icons = use.icons(iconSet.icons)
 
     useDeepCompareEffect(
       () => setState(initialState),
@@ -435,9 +452,9 @@ const Comp = {
     return (
       <Comp.IconGrid
         footerRight={
-          (iconSet.themes || iconSet.categories) && (
+          (use.size(iconSet.themes) || use.size(iconSet.categories) || undefined) && (
             <Comp.IconButton
-              icon={_.isEqual(state, initialState) ? 'line-md:filter' : 'line-md:filter-filled'}
+              icon={isEqual(state, initialState) ? 'line-md:filter' : 'line-md:filter-filled'}
               listbox={{
                 ...(iconSet.themes && {
                   [use.pluralize(iconSet.themes, 'theme')]: Object.entries(iconSet.themes).map(
@@ -463,17 +480,17 @@ const Comp = {
                 }),
                 Download: [
                   {
-                    description: use.pluralize(iconSet.icons, 'icon'),
-                    isDisabled: !use.count(iconSet.icons),
-                    onPress: () => use.saveIconsAs(iconSet.icons, `${iconSet.name}.zip`),
-                    title: `${iconSet.name}.zip`
+                    description: use.pluralize(iconSet.icons.get, 'icon'),
+                    isDisabled: !use.size(iconSet.icons.get),
+                    onPress: iconSet.icons.download.fn,
+                    title: iconSet.icons.download.filename
                   }
                 ]
               }}
             />
           )
         }
-        icons={iconSet.icons}
+        icons={iconSet.icons.get}
       />
     )
   },
@@ -546,14 +563,13 @@ const Comp = {
     const [state, setState] = useRafState()
 
     if (iconNames)
-      icons = iconNames.map(i =>
-        atom.allIconSets[i.prefix].icons.find(icon => icon.name === i.name)
+      icons = iconNames.map(({ name, prefix }) =>
+        atom.allIconSets[prefix].icons.find(icon => name === icon.name)
       )
 
-    if (state) icons = _.orderBy(icons, ...state)
+    if (state) icons = sort(icons).by(state)
 
-    const isSameIconSet = icons.every(icon => icons[0].setName === icon.setName)
-    const filename = `${isSameIconSet && use.count(icons) ? icons[0].setName : use.pluralize(icons, 'icon')}.zip`
+    icons = use.icons(icons)
 
     return (
       <Card
@@ -567,13 +583,13 @@ const Comp = {
           className='overflow-hidden'
           components={{
             Footer: () =>
-              use.count(icons) ? (
+              use.size(icons.get) ? (
                 <div className='h-[--footer-height]' />
               ) : (
                 <div className='flex-center text-foreground-500'>No icons</div>
               ),
             ScrollSeekPlaceholder: ({ height, index, width }) => {
-              const icon = icons[index]
+              const icon = icons.get[index]
 
               return (
                 <div className='flex-center' style={{ height, width }}>
@@ -582,10 +598,10 @@ const Comp = {
               )
             }
           }}
-          data={icons}
+          data={icons.get}
           itemClassName='p-6'
           itemContent={(index, icon) => {
-            icon = use.parseIcon(icon)
+            icon = use.icon(icon)
 
             return (
               <Comp.HoverCard
@@ -649,7 +665,7 @@ const Comp = {
         <CardFooter>
           {footer ?? (
             <div className='flex-center justify-between px-3'>
-              <Comp.MotionPluralize value={icons} word='icon' />
+              <Comp.MotionPluralize value={icons.get} word='icon' />
               {footerRight ?? (
                 <Comp.IconButton
                   icon='line-md:arrows-vertical'
@@ -664,13 +680,13 @@ const Comp = {
                       (title, keys) => [
                         title,
                         ['asc', 'desc'].map(order => {
-                          const b = [keys, [order]]
-                          const isActive = _.isEqual(state, b)
+                          const s = keys.map(key => ({ [order]: key }))
+                          const isActive = isEqual(s, state)
 
                           return {
                             isActive: isActive,
-                            isDisabled: !use.count(icons) || use.count(icons) === 1,
-                            onPress: () => setState(!isActive && b),
+                            isDisabled: use.size(icons.get) < 2,
+                            onPress: () => setState(!isActive && s),
                             title: { asc: 'Ascending', desc: 'Descending' }[order]
                           }
                         })
@@ -678,10 +694,9 @@ const Comp = {
                     ),
                     Download: [
                       {
-                        isDisabled: !use.count(icons),
-                        onPress: () =>
-                          use.saveIconsAs(icons, filename, isSameIconSet ? 'default' : 'detail'),
-                        title: filename
+                        isDisabled: !use.size(icons.get),
+                        onPress: icons.download.fn,
+                        title: icons.download.filename
                       }
                     ]
                   }}
@@ -696,7 +711,7 @@ const Comp = {
   Listbox: ({ sections }) => (
     <Listbox aria-label={use.id} variant='light'>
       {Object.entries(sections).map(([title, items], index) => (
-        <ListboxSection key={use.id} showDivider={index !== use.count(sections) - 1} title={title}>
+        <ListboxSection key={use.id} showDivider={index !== use.size(sections) - 1} title={title}>
           {items.map(({ color = 'primary', descriptions = [], isActive, title, ...props }) => (
             <ListboxItem
               classNames={{ title: isActive && `text-${color}` }}
@@ -717,7 +732,7 @@ const Comp = {
   MotionPluralize: ({ value, word }) => {
     const [state, setState] = useRafState(0)
 
-    useDeepCompareEffect(() => setState(use.count(value)), [value])
+    useDeepCompareEffect(() => setState(use.size(value)), [value])
 
     return (
       <Comp.HoverCard tooltip={use.pluralize(state, word)}>
@@ -769,7 +784,7 @@ const Comp = {
         state.searchResults.filter(icon => icon.prefix === iconSet.prefix)
       ])
 
-      return sortKeys(listbox, { compare: (a, b) => use.count(listbox[b]) - use.count(listbox[a]) })
+      return sortKeys(listbox, { compare: (a, b) => use.size(listbox[b]) - use.size(listbox[a]) })
     }, [state.searchResults])
 
     useDebounceEffect(
@@ -789,40 +804,35 @@ const Comp = {
             autoFocus
             classNames={{
               inputWrapper: 'border-none',
-              label: use.count(state.icons) && '!text-foreground-500'
+              label: use.size(state.icons) && '!text-foreground-500'
             }}
             endContent={
               <Comp.IconButton
                 icon='line-md:watch'
                 listbox={{
-                  [`All results (${use.count(state.searchResults)})`]: [
+                  [`All results (${use.size(state.searchResults)})`]: [
                     {
-                      isDisabled: _.isEqual(...Object.values(state)),
+                      isDisabled: isEqual(...Object.values(state)),
                       onPress: () => setState(state => ({ icons: state.searchResults })),
                       title: 'View'
                     },
                     {
-                      isDisabled: !use.count(state.searchResults),
-                      onPress: () =>
-                        use.saveIconsAs(
-                          state.searchResults,
-                          `${use.pluralize(state.searchResults, 'icon')} found.zip`,
-                          'detail'
-                        ),
+                      isDisabled: !use.size(state.searchResults),
+                      onPress: () => use.downloadIcons(state.searchResults),
                       title: 'Download'
                     }
                   ],
                   ...mapObject(listbox, (iconSetName, icons) => [
-                    `${iconSetName} (${use.count(icons)})`,
+                    `${iconSetName} (${use.size(icons)})`,
                     [
                       {
-                        isDisabled: _.isEqual(icons, state.icons) || !use.count(icons),
+                        isDisabled: isEqual(icons, state.icons) || !use.size(icons),
                         onPress: () => setState({ icons }),
                         title: 'View'
                       },
                       {
-                        isDisabled: !use.count(icons),
-                        onPress: () => use.saveIconsAs(icons, `${iconSetName}.zip`),
+                        isDisabled: !use.size(icons),
+                        onPress: () => use.downloadIcons(icons),
                         title: 'Download'
                       }
                     ]
@@ -830,7 +840,7 @@ const Comp = {
                 }}
               />
             }
-            isInvalid={!use.count(state.icons)}
+            isInvalid={!use.size(state.icons)}
             label={<Comp.MotionPluralize value={state.icons} word='icon' />}
             onValueChange={search => setSearchPattern({ search })}
             placeholder={placeholder}
@@ -866,7 +876,7 @@ const Comp = {
 }
 
 export default () => {
-  use.iconSets.init
+  use.iconSets.get
 
   const { atom } = use.atom
   const { bookmarkIcons } = use.bookmarkIcons
@@ -901,22 +911,24 @@ export default () => {
                       mapObject(
                         Object.groupBy(Object.values(atom.allIconSets), ({ category }) => category),
                         (category, iconSets) => [
-                          `${category} (${use.count(iconSets)})`,
-                          _.orderBy(iconSets, ['name'], ['asc']).map(iconSet => ({
-                            descriptions: [
-                              iconSet.author,
-                              iconSet.license,
-                              use.pluralize(iconSet.icons, 'icon', true),
-                              use.relativeTime(iconSet.lastModified)
-                            ],
-                            isActive: state === iconSet.prefix,
-                            onPress: () => setState(iconSet.prefix),
-                            title: (
-                              <div className={cn({ 'italic underline': iconSet.palette })}>
-                                {iconSet.name}
-                              </div>
-                            )
-                          }))
+                          `${category} (${use.size(iconSets)})`,
+                          sort(iconSets)
+                            .asc('name')
+                            .map(iconSet => ({
+                              descriptions: [
+                                iconSet.author,
+                                iconSet.license,
+                                use.pluralize(iconSet.icons, 'icon', true),
+                                use.relativeTime(iconSet.lastModified)
+                              ],
+                              isActive: state === iconSet.prefix,
+                              onPress: () => setState(iconSet.prefix),
+                              title: (
+                                <div className={cn({ 'italic underline': iconSet.palette })}>
+                                  {iconSet.name}
+                                </div>
+                              )
+                            }))
                         ]
                       )
                     ),
@@ -969,9 +981,7 @@ export default () => {
       )}
       <Comp.Stars />
       <Comp.Theme
-        render={({ resolvedTheme }) => (
-          <Toaster className='z-auto' pauseWhenPageIsHidden theme={resolvedTheme} />
-        )}
+        render={({ resolvedTheme }) => <Toaster className='z-auto' theme={resolvedTheme} />}
       />
     </Comp.Providers>
   )
