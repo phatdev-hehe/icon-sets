@@ -1,8 +1,14 @@
-// can kt??
-// thua thieu keyword [async, await, new,...]
-// ten bien, ham co y nghia [icons, allIcons,...]
+// viet lai codebase
+// https://iconify.design/docs/libraries/tools/
+
+// neu ko thi
+// kt thua thieu keyword [async, await, new,...]
+// kt ten bien, ham co y nghia [icons, allIcons,...]
 // su dung `use.atom` de chua cac icons (neu dc)
 // <DocVaHienThiIcons /> phai thoa cac dieu kien sau (0 icons, 1 icon, 2 icons)
+
+// <Comp.SearchIcons /> su dung `use.icons`
+// sau do tich hop `use.downloadIcons` va `use.icons` thanh 1 hook duy nhat `use.icons`
 
 // to chuc code :v
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/get
@@ -90,11 +96,10 @@ import { dependencies } from '../package.json'
 
 import collections from '/node_modules/@iconify/json/collections.json'
 
-dayjs.extend(relativeTime)
-
 const [atom, iconsCache] = [
   atomWithImmer({ allIcons: [], allIconSets: {}, hasData: false }),
-  new LRUCache({ max: 1_000 })
+  new LRUCache({ max: 1_000 }),
+  dayjs.extend(relativeTime)
 ]
 
 const use = {
@@ -133,7 +138,7 @@ const use = {
     for (let icon of icons.get) {
       icon = this.icon(icon)
 
-      zip.file(icon.filenames.svg[icons.isSameIconSetName ? 'default' : 'detail'], icon.to.html)
+      zip.file(icon.filenames.svg[icons.isSameIconSet ? 'default' : 'detail'], icon.to.html)
     }
 
     return this.saveAs(zip.generateAsync({ type: 'blob' }), icons.download.filename)
@@ -166,15 +171,16 @@ const use = {
   },
   icons: function (icons) {
     const [firstIcon] = icons
-    const isSameIconSetName = icons.every(icon => firstIcon.setName === icon.setName)
+    const isSameIconSet = icons.every(icon => icon.prefix === firstIcon.prefix)
 
     return {
       download: {
-        filename: `${isSameIconSetName && this.size(icons) ? firstIcon.setName : this.pluralize(icons, 'icon')}.zip`,
+        filename: `${isSameIconSet && firstIcon ? firstIcon.setName : this.pluralize(icons, 'icon')}.zip`,
         fn: () => this.downloadIcons(icons)
       },
       get: icons,
-      isSameIconSetName: isSameIconSetName
+      isSameIconSet: isSameIconSet,
+      size: this.size(icons)
     }
   },
   iconSets: {
@@ -182,7 +188,7 @@ const use = {
       clear && (await idb.clear())
       location.reload()
     },
-    get get() {
+    get default() {
       const { setAtom } = use.atom
       const [state, setState] = useRafState(true)
 
@@ -429,20 +435,21 @@ const Comp = {
     iconSet = structuredClone(iconSet)
     iconSet.themes = iconSet.prefixes ?? iconSet.suffixes ?? {}
 
-    iconSet.icons = iconSet.icons.filter(icon => {
-      const predicate = (theme = state.theme) =>
-        icon.name[iconSet.prefixes ? 'startsWith' : 'endsWith'](
-          iconSet.prefixes ? `${theme}-` : `-${theme}`
+    iconSet.icons = use.icons(
+      iconSet.icons.filter(icon => {
+        const predicate = (theme = state.theme) =>
+          icon.name[iconSet.prefixes ? 'startsWith' : 'endsWith'](
+            iconSet.prefixes ? `${theme}-` : `-${theme}`
+          )
+
+        return (
+          (!isValidState('category') ||
+            iconSet.categories?.[state.category]?.includes(icon.name)) &&
+          (!isValidState('theme') ||
+            (state.theme === '' ? !Object.keys(iconSet.themes).some(predicate) : predicate()))
         )
-
-      return (
-        (!isValidState('category') || iconSet.categories?.[state.category]?.includes(icon.name)) &&
-        (!isValidState('theme') ||
-          (state.theme === '' ? !Object.keys(iconSet.themes).some(predicate) : predicate()))
-      )
-    })
-
-    iconSet.icons = use.icons(iconSet.icons)
+      })
+    )
 
     useDeepCompareEffect(
       () => setState(initialState),
@@ -480,8 +487,7 @@ const Comp = {
                 }),
                 Download: [
                   {
-                    description: use.pluralize(iconSet.icons.get, 'icon'),
-                    isDisabled: !use.size(iconSet.icons.get),
+                    isDisabled: !iconSet.icons.size,
                     onPress: iconSet.icons.download.fn,
                     title: iconSet.icons.download.filename
                   }
@@ -583,7 +589,7 @@ const Comp = {
           className='overflow-hidden'
           components={{
             Footer: () =>
-              use.size(icons.get) ? (
+              icons.size ? (
                 <div className='h-[--footer-height]' />
               ) : (
                 <div className='flex-center text-foreground-500'>No icons</div>
@@ -665,7 +671,7 @@ const Comp = {
         <CardFooter>
           {footer ?? (
             <div className='flex-center justify-between px-3'>
-              <Comp.MotionPluralize value={icons.get} word='icon' />
+              <Comp.MotionPluralize value={icons.size} word='icon' />
               {footerRight ?? (
                 <Comp.IconButton
                   icon='line-md:arrows-vertical'
@@ -685,7 +691,7 @@ const Comp = {
 
                           return {
                             isActive: isActive,
-                            isDisabled: use.size(icons.get) < 2,
+                            isDisabled: icons.size < 2,
                             onPress: () => setState(!isActive && s),
                             title: { asc: 'Ascending', desc: 'Descending' }[order]
                           }
@@ -694,7 +700,7 @@ const Comp = {
                     ),
                     Download: [
                       {
-                        isDisabled: !use.size(icons.get),
+                        isDisabled: !icons.size,
                         onPress: icons.download.fn,
                         title: icons.download.filename
                       }
@@ -787,15 +793,11 @@ const Comp = {
       return sortKeys(listbox, { compare: (a, b) => use.size(listbox[b]) - use.size(listbox[a]) })
     }, [state.searchResults])
 
-    useDebounceEffect(
-      () => {
-        const icons = fuse.search(kebabCase(searchPattern)).map(({ item }) => item)
+    useDebounceEffect(() => {
+      const icons = fuse.search(kebabCase(searchPattern)).map(({ item }) => item)
 
-        setState({ icons: icons, searchResults: icons })
-      },
-      [searchPattern],
-      { wait: 300 }
-    )
+      setState({ icons: icons, searchResults: icons })
+    }, [searchPattern])
 
     return (
       <Comp.IconGrid
@@ -876,7 +878,7 @@ const Comp = {
 }
 
 export default () => {
-  use.iconSets.get
+  use.iconSets.default
 
   const { atom } = use.atom
   const { bookmarkIcons } = use.bookmarkIcons
