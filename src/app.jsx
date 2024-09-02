@@ -124,6 +124,7 @@ const use = {
       description: this.pluralize(text, 'character')
     })
   },
+  count: target => (target === +target ? target : size(target)),
   icon: function (icon, k = icon.id) {
     if (iconsCache.has(k)) return iconsCache.get(k)
 
@@ -156,6 +157,8 @@ const use = {
     const filename = `${isSameIconSet && firstIcon ? firstIcon.setName : this.pluralize(icons, 'icon')}.zip`
 
     return {
+      count: this.count(icons),
+      default: icons,
       download: {
         filename: filename,
         fn: () => {
@@ -170,9 +173,7 @@ const use = {
           this.saveAs(zip.generateAsync({ type: 'blob' }), filename)
         }
       },
-      get: icons,
-      isSameIconSet: isSameIconSet,
-      size: this.size(icons)
+      isSameIconSet: isSameIconSet
     }
   },
   iconSets: {
@@ -340,7 +341,7 @@ const use = {
     return nanoid()
   },
   pluralize: function (value, word, pretty) {
-    value = this.size(value)
+    value = this.count(value)
 
     return `${pretty ? `${formatNumber(value, 'en-us', 's')} ` : ''}${pluralize(word, value, !pretty)}`
   },
@@ -369,7 +370,6 @@ const use = {
       duration: null
     })
   },
-  size: target => (target === +target ? target : size(target)),
   get spring() {
     return useSpring(0)
   },
@@ -418,7 +418,6 @@ const Comp = {
   },
   FilterIcons: iconSet => {
     const initialState = { category: false, theme: false }
-
     const [state, setState] = useSetState(initialState)
     const isValid = key => typeof state[key] === 'string'
 
@@ -448,7 +447,7 @@ const Comp = {
     return (
       <Comp.IconGrid
         footerRight={
-          (use.size(iconSet.theme) || use.size(iconSet.categories) || undefined) && (
+          (use.count(iconSet.theme) || use.count(iconSet.categories) || undefined) && (
             <Comp.IconButton
               icon={isEqual(state, initialState) ? 'line-md:filter' : 'line-md:filter-filled'}
               listbox={{
@@ -476,7 +475,7 @@ const Comp = {
                 }),
                 Download: [
                   {
-                    isDisabled: !iconSet.icons.size,
+                    isDisabled: !iconSet.icons.count,
                     onPress: iconSet.icons.download.fn,
                     title: iconSet.icons.download.filename
                   }
@@ -485,7 +484,7 @@ const Comp = {
             />
           )
         }
-        icons={iconSet.icons.get}
+        icons={iconSet.icons.default}
       />
     )
   },
@@ -577,13 +576,13 @@ const Comp = {
         <VirtuosoGrid
           components={{
             Footer: () =>
-              icons.size ? (
+              icons.count ? (
                 <div className='h-[--footer-height]' />
               ) : (
                 <div className='flex-center text-foreground-500'>No icons</div>
               ),
             ScrollSeekPlaceholder: ({ height, index, width }) => {
-              const icon = icons.get[index]
+              const icon = icons.default[index]
 
               return (
                 <div className='flex-center' style={{ height, width }}>
@@ -592,7 +591,7 @@ const Comp = {
               )
             }
           }}
-          data={icons.get}
+          data={icons.default}
           itemClassName='p-6'
           itemContent={(index, icon) => {
             icon = use.icon(icon)
@@ -659,7 +658,7 @@ const Comp = {
         <CardFooter>
           {footer ?? (
             <div className='flex-center justify-between px-3'>
-              <Comp.MotionPluralize value={icons.size} word='icon' />
+              <Comp.MotionPluralize value={icons.count} word='icon' />
               {footerRight ?? (
                 <Comp.IconButton
                   icon='line-md:arrows-vertical'
@@ -680,7 +679,7 @@ const Comp = {
 
                           return {
                             isActive: isActive,
-                            isDisabled: icons.size < 2,
+                            isDisabled: icons.count < 2,
                             onPress: () => setState(!isActive && s),
                             title: { asc: 'Ascending', desc: 'Descending' }[order]
                           }
@@ -689,7 +688,7 @@ const Comp = {
                     ),
                     Download: [
                       {
-                        isDisabled: !icons.size,
+                        isDisabled: !icons.count,
                         onPress: icons.download.fn,
                         title: icons.download.filename
                       }
@@ -706,7 +705,7 @@ const Comp = {
   Listbox: ({ sections }) => (
     <Listbox aria-label={use.id} variant='light'>
       {Object.entries(sections).map(([title, items], index) => (
-        <ListboxSection key={use.id} showDivider={index !== use.size(sections) - 1} title={title}>
+        <ListboxSection key={use.id} showDivider={index !== use.count(sections) - 1} title={title}>
           {items.map(({ color = 'primary', descriptions = [], isActive, title, ...props }) => (
             <ListboxItem
               classNames={{ title: isActive && `text-${color}` }}
@@ -727,7 +726,7 @@ const Comp = {
   MotionPluralize: ({ value, word }) => {
     const [state, setState] = useRafState(0)
 
-    useDeepCompareEffect(() => setState(use.size(value)), [value])
+    useDeepCompareEffect(() => setState(use.count(value)), [value])
 
     return (
       <Comp.HoverCard tooltip={use.pluralize(state, word)}>
@@ -764,7 +763,7 @@ const Comp = {
     )
   },
   SearchIcons: memo(() => {
-    const [placeholder, initialValue] = ['Search', { download: {}, get: [] }]
+    const [placeholder, initialValue] = ['Search', { default: [], download: {} }]
     const { atom } = use.atom
     const fuse = useCreation(() => new Fuse(atom.allIcons, { keys: ['name'], threshold: 0 }))
     const [state, setState] = useSetState({ filteredIcons: initialValue, icons: initialValue })
@@ -777,10 +776,10 @@ const Comp = {
     const listbox = useCreation(() => {
       const listbox = mapObject(atom.allIconSets, (key, iconSet) => [
         iconSet.name,
-        state.icons.get.filter(icon => icon.prefix === iconSet.prefix)
+        state.icons.default.filter(icon => icon.prefix === iconSet.prefix)
       ])
 
-      return sortKeys(listbox, { compare: (a, b) => use.size(listbox[b]) - use.size(listbox[a]) })
+      return sortKeys(listbox, { compare: (a, b) => use.count(listbox[b]) - use.count(listbox[a]) })
     }, [state.icons])
 
     useDebounceEffect(
@@ -800,20 +799,20 @@ const Comp = {
             autoFocus
             classNames={{
               inputWrapper: 'border-none',
-              label: state.filteredIcons.size && '!text-foreground-500'
+              label: state.filteredIcons.count && '!text-foreground-500'
             }}
             endContent={
               <Comp.IconButton
                 icon='line-md:watch'
                 listbox={{
-                  [`All results (${state.icons.size})`]: [
+                  [`All results (${state.icons.count})`]: [
                     {
                       isDisabled: isEqual(...Object.values(state)),
                       onPress: () => setState(state => ({ filteredIcons: state.icons })),
                       title: 'View'
                     },
                     {
-                      isDisabled: !state.icons.size,
+                      isDisabled: !state.icons.count,
                       onPress: state.icons.download.fn,
                       title: 'Download'
                     }
@@ -822,15 +821,16 @@ const Comp = {
                     icons = use.icons(icons)
 
                     return [
-                      `${iconSetName} (${icons.size})`,
+                      `${iconSetName} (${icons.count})`,
                       [
                         {
-                          isDisabled: isEqual(icons.get, state.filteredIcons.get) || !icons.size,
+                          isDisabled:
+                            isEqual(icons.default, state.filteredIcons.default) || !icons.count,
                           onPress: () => setState({ filteredIcons: icons }),
                           title: 'View'
                         },
                         {
-                          isDisabled: !icons.size,
+                          isDisabled: !icons.count,
                           onPress: icons.download.fn,
                           title: 'Download'
                         }
@@ -840,8 +840,8 @@ const Comp = {
                 }}
               />
             }
-            isInvalid={!state.filteredIcons.size}
-            label={<Comp.MotionPluralize value={state.filteredIcons.size} word='icon' />}
+            isInvalid={!state.filteredIcons.count}
+            label={<Comp.MotionPluralize value={state.filteredIcons.count} word='icon' />}
             onValueChange={search => setSearchPattern({ search })}
             placeholder={placeholder}
             startContent={<Icon className='size-5' icon='line-md:search' />}
@@ -849,7 +849,7 @@ const Comp = {
             variant='bordered'
           />
         }
-        icons={state.filteredIcons.get}
+        icons={state.filteredIcons.default}
       />
     )
   }),
@@ -912,7 +912,7 @@ export default () => {
                       mapObject(
                         Object.groupBy(Object.values(atom.allIconSets), ({ category }) => category),
                         (category, iconSets) => [
-                          `${category} (${use.size(iconSets)})`,
+                          `${category} (${use.count(iconSets)})`,
                           sort(iconSets)
                             .asc('name')
                             .map(iconSet => ({
