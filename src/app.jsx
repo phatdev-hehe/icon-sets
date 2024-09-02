@@ -1,16 +1,10 @@
-// viet lai codebase
-// https://iconify.design/docs/libraries/tools/
-
-// neu ko thi
 // kt thua thieu keyword [async, await, new,...]
 // kt ten bien, ham co y nghia [icons, allIcons,...]
 // su dung `use.atom` de chua cac icons (neu dc)
 // <DocVaHienThiIcons /> phai thoa cac dieu kien sau (0 icons, 1 icon, 2 icons)
 
-// <Comp.SearchIcons /> su dung `use.icons`
-// sau do tich hop `use.downloadIcons` va `use.icons` thanh 1 hook duy nhat `use.icons`
-
 // to chuc code :v
+// https://iconify.design/docs/libraries/tools
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/get
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/this
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Destructuring_assignment
@@ -86,7 +80,7 @@ import isEqual from 'react-fast-compare'
 import { For, useLocalStorage, useSingleEffect } from 'react-haiku'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { RouterProvider, createBrowserRouter } from 'react-router-dom'
-import { useAsync } from 'react-use'
+import { useAsync, useLockBodyScroll } from 'react-use'
 import { VirtuosoGrid } from 'react-virtuoso'
 import semver from 'semver'
 import { Toaster, toast } from 'sonner'
@@ -130,19 +124,6 @@ const use = {
       description: this.pluralize(text, 'character')
     })
   },
-  downloadIcons: function (icons) {
-    icons = this.icons(icons)
-
-    const zip = new JSZip()
-
-    for (let icon of icons.get) {
-      icon = this.icon(icon)
-
-      zip.file(icon.filenames.svg[icons.isSameIconSet ? 'default' : 'detail'], icon.to.html)
-    }
-
-    return this.saveAs(zip.generateAsync({ type: 'blob' }), icons.download.filename)
-  },
   icon: function (icon, k = icon.id) {
     if (iconsCache.has(k)) return iconsCache.get(k)
 
@@ -172,11 +153,22 @@ const use = {
   icons: function (icons) {
     const [firstIcon] = icons
     const isSameIconSet = icons.every(icon => icon.prefix === firstIcon.prefix)
+    const filename = `${isSameIconSet && firstIcon ? firstIcon.setName : this.pluralize(icons, 'icon')}.zip`
 
     return {
       download: {
-        filename: `${isSameIconSet && firstIcon ? firstIcon.setName : this.pluralize(icons, 'icon')}.zip`,
-        fn: () => this.downloadIcons(icons)
+        filename: filename,
+        fn: () => {
+          const zip = new JSZip()
+
+          for (let icon of icons) {
+            icon = this.icon(icon)
+
+            zip.file(icon.filenames.svg[isSameIconSet ? 'default' : 'detail'], icon.to.html)
+          }
+
+          this.saveAs(zip.generateAsync({ type: 'blob' }), filename)
+        }
       },
       get: icons,
       isSameIconSet: isSameIconSet,
@@ -223,7 +215,7 @@ const use = {
 
           setState()
         } else {
-          const { currentToast } = use.toast('Working on updates', {
+          const toast = use.toast('Working on updates', {
             description: (
               <>
                 {use.pluralize(this.module, 'icon set')}
@@ -278,10 +270,10 @@ const use = {
             )
 
             await idb.update('version', () => this.version.latest)
-            currentToast.dismiss
+            toast.dismiss
             setState(await this.version.isOutdated())
           } catch {
-            currentToast.update({
+            toast.update({
               action: (
                 <Comp.IconButton
                   icon='line-md:rotate-270'
@@ -361,8 +353,8 @@ const use = {
     return dayjs.unix(t).fromNow()
   },
   saveAs: async function (getData, filename) {
-    const { currentToast } = this.toast(filename, {
-      action: <Comp.IconButton icon='line-md:loading-loop' tooltip='Preparing to download' />,
+    const toast = this.toast(filename, {
+      action: <Comp.IconButton icon='line-md:loading-loop' tooltip='Preparing' />,
       duration: Number.POSITIVE_INFINITY
     })
 
@@ -370,7 +362,7 @@ const use = {
 
     download()
 
-    currentToast.update({
+    toast.update({
       action: (
         <Comp.IconButton icon='line-md:arrow-small-down' onPress={download} tooltip='Download' />
       ),
@@ -382,12 +374,10 @@ const use = {
     return useSpring(0)
   },
   toast: (message, data, id = toast(message, data)) => ({
-    currentToast: {
-      get dismiss() {
-        return toast.dismiss(id)
-      },
-      update: data => toast(message, { ...data, id })
-    }
+    get dismiss() {
+      return toast.dismiss(id)
+    },
+    update: data => toast(message, { ...data, id })
   }),
   get update() {
     return useUpdate()
@@ -586,7 +576,6 @@ const Comp = {
         isFooterBlurred
         style={{ '--footer-height': '4rem' }}>
         <VirtuosoGrid
-          className='overflow-hidden'
           components={{
             Footer: () =>
               icons.size ? (
@@ -678,10 +667,11 @@ const Comp = {
                   listbox={{
                     ...mapObject(
                       {
-                        'All attributes': ['id', 'name', 'setName'],
+                        All: ['id', 'name', 'setName', 'prefix'],
                         'Icon id': ['id'],
                         'Icon name': ['name'],
-                        'Set name': ['setName']
+                        'Set name': ['setName'],
+                        'Set prefix': ['prefix']
                       },
                       (title, keys) => [
                         title,
@@ -774,10 +764,11 @@ const Comp = {
       />
     )
   },
-  SearchIcons: memo(({ placeholder = 'Search' }) => {
+  SearchIcons: memo(() => {
+    const [placeholder, initialValue] = ['Search', { download: {}, get: [] }]
     const { atom } = use.atom
     const fuse = useCreation(() => new Fuse(atom.allIcons, { keys: ['name'], threshold: 0 }))
-    const [state, setState] = useSetState({ icons: [], searchResults: [] })
+    const [state, setState] = useSetState({ filteredIcons: initialValue, icons: initialValue })
 
     const [{ search: searchPattern }, setSearchPattern] = useUrlState(
       { search: placeholder },
@@ -787,17 +778,21 @@ const Comp = {
     const listbox = useCreation(() => {
       const listbox = mapObject(atom.allIconSets, (key, iconSet) => [
         iconSet.name,
-        state.searchResults.filter(icon => icon.prefix === iconSet.prefix)
+        state.icons.get.filter(icon => icon.prefix === iconSet.prefix)
       ])
 
       return sortKeys(listbox, { compare: (a, b) => use.size(listbox[b]) - use.size(listbox[a]) })
-    }, [state.searchResults])
+    }, [state.icons])
 
-    useDebounceEffect(() => {
-      const icons = fuse.search(kebabCase(searchPattern)).map(({ item }) => item)
+    useDebounceEffect(
+      () => {
+        const icons = use.icons(fuse.search(kebabCase(searchPattern)).map(({ item }) => item))
 
-      setState({ icons: icons, searchResults: icons })
-    }, [searchPattern])
+        setState({ filteredIcons: icons, icons: icons })
+      },
+      [searchPattern],
+      { wait: 300 }
+    )
 
     return (
       <Comp.IconGrid
@@ -806,44 +801,48 @@ const Comp = {
             autoFocus
             classNames={{
               inputWrapper: 'border-none',
-              label: use.size(state.icons) && '!text-foreground-500'
+              label: state.filteredIcons.size && '!text-foreground-500'
             }}
             endContent={
               <Comp.IconButton
                 icon='line-md:watch'
                 listbox={{
-                  [`All results (${use.size(state.searchResults)})`]: [
+                  [`All results (${state.icons.size})`]: [
                     {
                       isDisabled: isEqual(...Object.values(state)),
-                      onPress: () => setState(state => ({ icons: state.searchResults })),
+                      onPress: () => setState(state => ({ filteredIcons: state.icons })),
                       title: 'View'
                     },
                     {
-                      isDisabled: !use.size(state.searchResults),
-                      onPress: () => use.downloadIcons(state.searchResults),
+                      isDisabled: !state.icons.size,
+                      onPress: state.icons.download.fn,
                       title: 'Download'
                     }
                   ],
-                  ...mapObject(listbox, (iconSetName, icons) => [
-                    `${iconSetName} (${use.size(icons)})`,
-                    [
-                      {
-                        isDisabled: isEqual(icons, state.icons) || !use.size(icons),
-                        onPress: () => setState({ icons }),
-                        title: 'View'
-                      },
-                      {
-                        isDisabled: !use.size(icons),
-                        onPress: () => use.downloadIcons(icons),
-                        title: 'Download'
-                      }
+                  ...mapObject(listbox, (iconSetName, icons) => {
+                    icons = use.icons(icons)
+
+                    return [
+                      `${iconSetName} (${icons.size})`,
+                      [
+                        {
+                          isDisabled: isEqual(icons.get, state.filteredIcons.get) || !icons.size,
+                          onPress: () => setState({ filteredIcons: icons }),
+                          title: 'View'
+                        },
+                        {
+                          isDisabled: !icons.size,
+                          onPress: icons.download.fn,
+                          title: 'Download'
+                        }
+                      ]
                     ]
-                  ])
+                  })
                 }}
               />
             }
-            isInvalid={!use.size(state.icons)}
-            label={<Comp.MotionPluralize value={state.icons} word='icon' />}
+            isInvalid={!state.filteredIcons.size}
+            label={<Comp.MotionPluralize value={state.filteredIcons.size} word='icon' />}
             onValueChange={search => setSearchPattern({ search })}
             placeholder={placeholder}
             startContent={<Icon className='size-5' icon='line-md:search' />}
@@ -851,7 +850,7 @@ const Comp = {
             variant='bordered'
           />
         }
-        icons={state.icons}
+        icons={state.filteredIcons.get}
       />
     )
   }),
@@ -878,11 +877,12 @@ const Comp = {
 }
 
 export default () => {
-  use.iconSets.default
-
   const { atom } = use.atom
   const { bookmarkIcons } = use.bookmarkIcons
   const [state, setState] = useRafState(0)
+
+  use.iconSets.default
+  useLockBodyScroll(true)
 
   return (
     <Comp.Providers>
