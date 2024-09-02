@@ -419,11 +419,11 @@ const Comp = {
   FilterIcons: iconSet => {
     const initialState = { category: false, theme: false }
 
-    const [state, setState, isValidState = key => typeof state[key] === 'string'] =
-      useSetState(initialState)
+    const [state, setState] = useSetState(initialState)
+    const isValid = key => typeof state[key] === 'string'
 
     iconSet = structuredClone(iconSet)
-    iconSet.themes = iconSet.prefixes ?? iconSet.suffixes ?? {}
+    iconSet.theme = iconSet.prefixes ?? iconSet.suffixes ?? {}
 
     iconSet.icons = use.icons(
       iconSet.icons.filter(icon => {
@@ -433,10 +433,9 @@ const Comp = {
           )
 
         return (
-          (!isValidState('category') ||
-            iconSet.categories?.[state.category]?.includes(icon.name)) &&
-          (!isValidState('theme') ||
-            (state.theme === '' ? !Object.keys(iconSet.themes).some(predicate) : predicate()))
+          (!isValid('category') || iconSet.categories?.[state.category]?.includes(icon.name)) &&
+          (!isValid('theme') ||
+            (state.theme === '' ? !Object.keys(iconSet.theme).some(predicate) : predicate()))
         )
       })
     )
@@ -449,12 +448,12 @@ const Comp = {
     return (
       <Comp.IconGrid
         footerRight={
-          (use.size(iconSet.themes) || use.size(iconSet.categories) || undefined) && (
+          (use.size(iconSet.theme) || use.size(iconSet.categories) || undefined) && (
             <Comp.IconButton
               icon={isEqual(state, initialState) ? 'line-md:filter' : 'line-md:filter-filled'}
               listbox={{
-                ...(iconSet.themes && {
-                  [use.pluralize(iconSet.themes, 'theme')]: Object.entries(iconSet.themes).map(
+                ...(iconSet.theme && {
+                  [use.pluralize(iconSet.theme, 'theme')]: Object.entries(iconSet.theme).map(
                     ([theme, title, isActive = state.theme === theme]) => ({
                       isActive: isActive,
                       onPress: () => setState({ theme: !isActive && theme }),
@@ -654,7 +653,7 @@ const Comp = {
             )
           }}
           listClassName='flex-center flex-wrap h-auto'
-          scrollSeekConfiguration={{ enter: v => Math.abs(v), exit: v => v === 0 }}
+          scrollSeekConfiguration={{ enter: v => Math.abs(v) > 300, exit: v => v === 0 }}
           {...props}
         />
         <CardFooter>
