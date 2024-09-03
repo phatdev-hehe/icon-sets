@@ -49,10 +49,6 @@
     }
   }
 
-  [data-motion-number] {
-    @apply !leading-[.85];
-  }
-
   .iconify,
   button {
     @apply !min-w-fit;
