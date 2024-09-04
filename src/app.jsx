@@ -1,5 +1,5 @@
-// <Comp.XuLyIcons />
-// can kt cac dieu kien sau (khi 0 icons, 1 icon, 2 icons)
+// <KhiXuLyIconsThi />
+// kt cac dieu kien sau (khi 0 icons, 1 icon, 2 icons)
 
 import useUrlState from '@ahooksjs/use-url-state'
 import { css } from '@emotion/react'
@@ -99,19 +99,17 @@ const use = {
     return state.value
   },
   get atom() {
-    return { atom: useAtomValue(atom), setAtom: useSetAtom(atom) }
+    return { ...useAtomValue(atom), set: useSetAtom(atom) }
   },
   get bookmarkIcons() {
     const [state, setState] = useLocalStorage('bookmark-icons', [])
-
-    const isIconBookmarked = icon =>
-      state.some(iconifyName => isEqual(iconifyName, icon.to.iconifyName))
+    const match = icon => state.some(iconifyName => isEqual(iconifyName, icon.to.iconifyName))
 
     return {
-      bookmarkIcons: state,
-      isIconBookmarked: isIconBookmarked,
-      toggleIconBookmark: icon =>
-        setState((state, isAdded = isIconBookmarked(icon)) => {
+      default: state,
+      match: match,
+      toggle: icon =>
+        setState((state, isAdded = match(icon)) => {
           this.toast(isAdded ? 'Bookmark removed' : 'Bookmark added')
 
           return isAdded
@@ -181,7 +179,7 @@ const use = {
       location.reload()
     },
     get default() {
-      const { setAtom } = use.atom
+      const atom = use.atom
       const [state, setState] = useRafState(true)
 
       useAsyncEffect(async () => {
@@ -306,7 +304,7 @@ const use = {
           return [key, iconSet]
         })
 
-        setAtom(draft => {
+        atom.set(draft => {
           draft.allIcons = Object.values(allIconSets).flatMap(({ icons }) => icons)
           draft.allIconSets = allIconSets
           draft.hasData = true
@@ -387,7 +385,7 @@ const use = {
 
 const Comp = {
   EndlessIcons: ({ step = 100, sizes = _.range(step, 1_000 + step, step) }) => {
-    const { atom } = use.atom
+    const atom = use.atom
     const [state, setState] = useSetState({ icons: [], size: step })
 
     const loadMoreIcons = () =>
@@ -553,8 +551,8 @@ const Comp = {
     </Comp.HoverCard>
   ),
   IconGrid: ({ footer, footerRight, iconNames, icons, ...props }) => {
-    const { atom } = use.atom
-    const { isIconBookmarked, toggleIconBookmark } = use.bookmarkIcons
+    const atom = use.atom
+    const bookmarkIcons = use.bookmarkIcons
     const [state, setState] = useRafState()
 
     if (iconNames)
@@ -614,10 +612,10 @@ const Comp = {
                       title: icon.name
                     }
                   ],
-                  [isIconBookmarked(icon) ? 'Bookmarked' : 'Bookmark']: ['Add', 'Remove'].map(
+                  [bookmarkIcons.match(icon) ? 'Bookmarked' : 'Bookmark']: ['Add', 'Remove'].map(
                     title => ({
-                      isDisabled: (title === 'Add') === isIconBookmarked(icon),
-                      onPress: () => toggleIconBookmark(icon),
+                      isDisabled: (title === 'Add') === bookmarkIcons.match(icon),
+                      onPress: () => bookmarkIcons.toggle(icon),
                       title: title
                     })
                   ),
@@ -643,7 +641,7 @@ const Comp = {
                 }}>
                 <Button
                   isIconOnly
-                  onPress={() => toggleIconBookmark(icon)}
+                  onPress={() => bookmarkIcons.toggle(icon)}
                   radius='full'
                   size='lg'
                   variant='light'>
@@ -765,7 +763,7 @@ const Comp = {
   },
   SearchIcons: () => {
     const [placeholder, initialValue] = ['Search', { default: [], download: {} }]
-    const { atom } = use.atom
+    const atom = use.atom
     const fuse = useCreation(() => new Fuse(atom.allIcons, { keys: ['name'], threshold: 0 }))
     const [state, setState] = useSetState({ filteredIcons: initialValue, icons: initialValue })
 
@@ -873,8 +871,8 @@ const Comp = {
 }
 
 export default () => {
-  const { atom } = use.atom
-  const { bookmarkIcons } = use.bookmarkIcons
+  const atom = use.atom
+  const bookmarkIcons = use.bookmarkIcons
   const [state, setState] = useRafState(0)
 
   use.iconSets.default
@@ -897,7 +895,7 @@ export default () => {
                         use.pluralize(atom.allIcons, 'icon', true)
                       ],
                       ['Endless scrolling', 'Hehe'],
-                      ['Bookmarks', use.pluralize(bookmarkIcons, 'icon', true)],
+                      ['Bookmarks', use.pluralize(bookmarkIcons.default, 'icon', true)],
                       ['Recently viewed', use.pluralize(use.recentlyViewedIcons, 'icon', true)]
                     ].map(([title, description], index) => ({
                       description: description,
@@ -961,7 +959,7 @@ export default () => {
               <Panel>
                 {state === 0 && <Comp.IconGrid icons={atom.allIcons} />}
                 {state === 1 && <Comp.EndlessIcons />}
-                {state === 2 && <Comp.IconGrid iconNames={bookmarkIcons} />}
+                {state === 2 && <Comp.IconGrid iconNames={bookmarkIcons.default} />}
                 {state === 3 && <Comp.RecentlyViewedIcons />}
                 {atom.allIconSets[state] && <Comp.FilterIcons {...atom.allIconSets[state]} />}
               </Panel>
