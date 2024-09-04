@@ -7,7 +7,7 @@
   "dependencies": {
     "@ahooksjs/use-url-state": "^3.5.1",
     "@emotion/react": "^11.13.3",
-    "@iconify/json": "^2.2.243",
+    "@iconify/json": "^2.2.244",
     "@iconify/react": "^5.0.2",
     "@iconify/utils": "^2.1.32",
     "@nextui-org/react": "^2.4.6",
@@ -52,7 +52,7 @@
     "@vitejs/plugin-react-swc": "^3.7.0",
     "autoprefixer": "^10.4.20",
     "eslint-plugin-perfectionist": "^3.3.0",
-    "eslint-plugin-react": "^7.35.1",
+    "eslint-plugin-react": "^7.35.2",
     "fluid-tailwind": "^1.0.3",
     "postcss": "^8.4.44",
     "prettier-plugin-tailwindcss": "^0.6.6",

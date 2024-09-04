@@ -82,9 +82,10 @@ import { dependencies } from '../package.json'
 
 import collections from '/node_modules/@iconify/json/collections.json'
 
-const [atom, iconsCache] = [
+const [atom, iconsCache, locale] = [
   atomWithImmer({ allIcons: null, allIconSets: null, hasData: null }),
   new LRUCache({ max: 1_000 }),
+  'en-US',
   dayjs.extend(relativeTime)
 ]
 
@@ -123,7 +124,7 @@ const use = {
   copy: function (text) {
     this.toast(copy(text) ? 'Copied' : 'Copy failed')
   },
-  count: target => (target === +target ? target : size(target)),
+  count: value => (value === +value ? value : size(value)),
   icon: function (icon, k = icon.id) {
     if (iconsCache.has(k)) return iconsCache.get(k)
 
@@ -171,8 +172,7 @@ const use = {
 
           this.saveAs(zip.generateAsync({ type: 'blob' }), filename)
         }
-      },
-      isUniform: isUniform
+      }
     }
   },
   iconSets: {
@@ -202,7 +202,7 @@ const use = {
 
         if (await this.version.isValid()) {
           ;(await this.version.isOutdated()) &&
-            use.toast('New update found', {
+            use.toast('Version update found', {
               action: (
                 <Comp.IconButton
                   icon='line-md:arrow-small-down'
@@ -210,6 +210,7 @@ const use = {
                   tooltip='Update'
                 />
               ),
+              description: this.version.latest,
               duration: Number.POSITIVE_INFINITY
             })
 
@@ -342,7 +343,7 @@ const use = {
   pluralize: function (value, word, pretty) {
     value = this.count(value)
 
-    return `${pretty ? `${formatNumber(value, 'en-us', 's')} ` : ''}${pluralize(word, value, !pretty)}`
+    return `${pretty ? `${formatNumber(value, locale, 's')} ` : ''}${pluralize(word, value, !pretty)}`
   },
   get recentlyViewedIcons() {
     return [...iconsCache.values()]
@@ -387,7 +388,7 @@ const use = {
 const Comp = {
   EndlessIcons: ({ step = 100, sizes = _.range(step, 1_000 + step, step) }) => {
     const { atom } = use.atom
-    const [state, setState] = useSetState({ icons: null, size: step })
+    const [state, setState] = useSetState({ icons: [], size: step })
 
     const loadMoreIcons = () =>
       setState(state => ({
@@ -706,7 +707,7 @@ const Comp = {
     <Listbox aria-label={use.id} variant='light'>
       {Object.entries(sections).map(([title, items], index) => (
         <ListboxSection key={use.id} showDivider={index !== use.count(sections) - 1} title={title}>
-          {items.map(({ color = 'primary', descriptions, isActive, title, ...props }) => (
+          {items.map(({ color = 'primary', descriptions = [], isActive, title, ...props }) => (
             <ListboxItem
               classNames={{ title: isActive && `text-${color}` }}
               color={isActive ? color : ''}
@@ -733,7 +734,7 @@ const Comp = {
         <span>
           <MotionNumber
             format={{ compactDisplay: 'short', notation: 'compact' }}
-            locales='en-us'
+            locales={locale}
             value={state}
           />
           {` ${pluralize(word, state)}`}
@@ -744,7 +745,7 @@ const Comp = {
   Providers: ({ children }) => (
     <LazyMotion features={domAnimation} strict>
       <ThemeProvider attribute='class' disableTransitionOnChange>
-        <NextUIProvider className='flex-center p-6'>
+        <NextUIProvider className='flex-center p-6' locale={locale}>
           <RouterProvider router={createBrowserRouter([{ element: children, path: '/' }])} />
         </NextUIProvider>
       </ThemeProvider>
