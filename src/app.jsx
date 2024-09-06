@@ -1,6 +1,10 @@
 // <KhiXuLyIconsThi />
 // kt cac dieu kien sau (khi 0 icons, 1 icon, 2 icons)
 
+// toi uu hieu nang
+// https://react.dev/reference/react/startTransition
+// https://ahooks.js.org/hooks/use-creation
+
 import useUrlState from '@ahooksjs/use-url-state'
 import { css } from '@emotion/react'
 import { Icon } from '@iconify/react'
@@ -82,10 +86,11 @@ import { dependencies } from '../package.json'
 
 import collections from '/node_modules/@iconify/json/collections.json'
 
-const [atom, iconsCache, locale] = [
+const [atom, iconsCache, locale, zip] = [
   atomWithImmer({ allIcons: null, allIconSets: null, hasData: null }),
   new LRUCache({ max: 1_000 }),
   'en-US',
+  new JSZip(),
   dayjs.extend(relativeTime)
 ]
 
@@ -103,13 +108,13 @@ const use = {
   },
   get bookmarkIcons() {
     const [state, setState] = useLocalStorage('bookmark-icons', [])
-    const match = icon => state.some(iconifyName => isEqual(iconifyName, icon.to.iconifyName))
+    const has = icon => state.some(iconifyName => isEqual(iconifyName, icon.to.iconifyName))
 
     return {
       default: state,
-      match: match,
+      has: has,
       toggle: icon =>
-        setState((state, isAdded = match(icon)) => {
+        setState((state, isAdded = has(icon)) => {
           this.toast(isAdded ? 'Bookmark removed' : 'Bookmark added')
 
           return isAdded
@@ -120,9 +125,10 @@ const use = {
   },
   bytes: value => bytes(value, { decimalPlaces: 1, unitSeparator: ' ' }),
   copy: function (text) {
-    this.toast(copy(text) ? 'Copied' : 'Copy failed')
+    this.toast(copy(text) ? 'Copied' : 'Copy failed', {
+      description: this.pluralize(text, 'character')
+    })
   },
-  count: value => (value === +value ? value : size(value)),
   icon: function (icon, k = icon.id) {
     if (iconsCache.has(k)) return iconsCache.get(k)
 
@@ -155,13 +161,11 @@ const use = {
     const filename = `${isUniform && firstIcon ? firstIcon.setName : this.pluralize(icons, 'icon')}.zip`
 
     return {
-      count: this.count(icons),
+      count: this.toNumber(icons),
       default: icons,
       download: {
         filename: filename,
         fn: () => {
-          const zip = JSZip()
-
           for (let icon of icons) {
             icon = this.icon(icon)
 
@@ -174,10 +178,7 @@ const use = {
     }
   },
   iconSets: {
-    clear: async (clear = true) => {
-      clear && (await idb.clear())
-      location.reload()
-    },
+    clear: async (clear = true) => (clear && (await idb.clear())) || location.reload(),
     get default() {
       const atom = use.atom
       const [state, setState] = useRafState(true)
@@ -186,21 +187,11 @@ const use = {
         if (!window)
           return use.toast('Browser not supported', { duration: Number.POSITIVE_INFINITY })
 
-        if (await this.version.isNotFound())
-          return use.toast('Invalid data', {
-            action: (
-              <Comp.IconButton
-                icon='line-md:rotate-270'
-                onPress={async () => this.clear(await this.version.isOutdated())}
-                tooltip='Try again'
-              />
-            ),
-            duration: Number.POSITIVE_INFINITY
-          })
+        if (await this.version.isNotFound()) return this.retryToast
 
         if (await this.version.isValid()) {
           ;(await this.version.isOutdated()) &&
-            use.toast('Version update found', {
+            use.toast(`Version ${this.version.latest}`, {
               action: (
                 <Comp.IconButton
                   icon='line-md:arrow-small-down'
@@ -208,7 +199,7 @@ const use = {
                   tooltip='Update'
                 />
               ),
-              description: this.version.latest,
+              description: use.pluralize(this.module, 'icon set'),
               duration: Number.POSITIVE_INFINITY
             })
 
@@ -270,7 +261,7 @@ const use = {
 
             await idb.update('version', () => this.version.latest)
             toast.dismiss
-            setState(await this.version.isOutdated())
+            ;(await this.version.isOutdated()) ? this.retryToast : setState()
           } catch {
             toast.update({
               action: (
@@ -305,9 +296,9 @@ const use = {
         })
 
         atom.set(draft => {
-          draft.allIcons = Object.values(allIconSets).flatMap(({ icons }) => icons)
+          draft.allIcons = Object.values(allIconSets).flatMap(iconSet => iconSet.icons)
           draft.allIconSets = allIconSets
-          draft.hasData = true
+          draft.hasData = !state
         })
       }, [state])
 
@@ -318,28 +309,38 @@ const use = {
 
       return key in collections ? [key, value] : mapObjectSkip
     }),
-    version: {
-      current: async () => await idb.get('version'),
-      isNotFound: async function () {
-        return (await this.current()) === 'not_found'
-      },
-      isOutdated: async function () {
-        return !(
-          (await this.current()) === this.latest &&
-          isEqual(_.xor(Object.keys(collections), await idb.keys()), ['version'])
-        )
-      },
-      isValid: async function () {
-        return semver.valid(await this.current())
-      },
-      latest: semver.valid(semver.coerce(dependencies['@iconify/json']))
+    get retryToast() {
+      return use.toast('Invalid data', {
+        action: (
+          <Comp.IconButton
+            icon='line-md:rotate-270'
+            onPress={async () => this.clear(await this.version.isOutdated())}
+            tooltip='Try again'
+          />
+        ),
+        duration: Number.POSITIVE_INFINITY
+      })
+    },
+    get version() {
+      const current = async () => await idb.get('version')
+      const latest = semver.valid(semver.coerce(dependencies['@iconify/json']))
+
+      return {
+        current: current,
+        isNotFound: async () => (await current()) === 'not_found',
+        isOutdated: async () =>
+          (await current()) !== latest ||
+          !isEqual(_.xor(await idb.keys(), Object.keys(this.module)), ['version']),
+        isValid: async () => semver.valid(await current()),
+        latest: latest
+      }
     }
   },
   get id() {
     return nanoid()
   },
   pluralize: function (value, word, pretty) {
-    value = this.count(value)
+    value = this.toNumber(value)
 
     return `${pretty ? `${formatNumber(value, locale, 's')} ` : ''}${pluralize(word, value, !pretty)}`
   },
@@ -378,6 +379,7 @@ const use = {
     },
     update: data => toast(message, { ...data, id })
   }),
+  toNumber: target => (target === +target ? target : size(target)),
   get update() {
     return useUpdate()
   }
@@ -388,16 +390,16 @@ const Comp = {
     const atom = use.atom
     const [state, setState] = useSetState({ icons: [], size: step })
 
-    const loadMoreIcons = () =>
+    const fetchMoreIcons = () =>
       setState(state => ({
         icons: [...state.icons, ..._.sampleSize(atom.allIcons, state.size)]
       }))
 
-    useSingleEffect(loadMoreIcons)
+    useSingleEffect(fetchMoreIcons)
 
     return (
       <Comp.IconGrid
-        endReached={loadMoreIcons}
+        endReached={fetchMoreIcons}
         footerRight={
           <Comp.IconButton
             icon='line-md:arrow-align-right'
@@ -446,7 +448,7 @@ const Comp = {
     return (
       <Comp.IconGrid
         footerRight={
-          (use.count(iconSet.theme) || use.count(iconSet.categories) || null) && (
+          (use.toNumber(iconSet.theme) || use.toNumber(iconSet.categories) || null) && (
             <Comp.IconButton
               icon={isEqual(state, initialState) ? 'line-md:filter' : 'line-md:filter-filled'}
               listbox={{
@@ -612,9 +614,9 @@ const Comp = {
                       title: icon.name
                     }
                   ],
-                  [bookmarkIcons.match(icon) ? 'Bookmarked' : 'Bookmark']: ['Add', 'Remove'].map(
+                  [bookmarkIcons.has(icon) ? 'Bookmarked' : 'Bookmark']: ['Add', 'Remove'].map(
                     title => ({
-                      isDisabled: (title === 'Add') === bookmarkIcons.match(icon),
+                      isDisabled: (title === 'Add') === bookmarkIcons.has(icon),
                       onPress: () => bookmarkIcons.toggle(icon),
                       title: title
                     })
@@ -664,11 +666,11 @@ const Comp = {
                   listbox={{
                     ...mapObject(
                       {
-                        All: ['id', 'name', 'setName', 'prefix'],
+                        Default: ['id', 'name', 'setName', 'prefix'],
                         'Icon id': ['id'],
                         'Icon name': ['name'],
-                        'Set name': ['setName'],
-                        'Set prefix': ['prefix']
+                        'Icon set name': ['setName'],
+                        'Icon set prefix': ['prefix']
                       },
                       (title, keys) => [
                         title,
@@ -704,7 +706,10 @@ const Comp = {
   Listbox: ({ sections }) => (
     <Listbox aria-label={use.id} variant='light'>
       {Object.entries(sections).map(([title, items], index) => (
-        <ListboxSection key={use.id} showDivider={index !== use.count(sections) - 1} title={title}>
+        <ListboxSection
+          key={use.id}
+          showDivider={index !== use.toNumber(sections) - 1}
+          title={title}>
           {items.map(({ color = 'primary', descriptions = [], isActive, title, ...props }) => (
             <ListboxItem
               classNames={{ title: isActive && `text-${color}` }}
@@ -725,7 +730,7 @@ const Comp = {
   MotionPluralize: ({ value, word }) => {
     const [state, setState] = useRafState(0)
 
-    useDeepCompareEffect(() => setState(use.count(value)), [value])
+    useDeepCompareEffect(() => setState(use.toNumber(value)), [value])
 
     return (
       <Comp.HoverCard tooltip={use.pluralize(state, word)}>
@@ -778,7 +783,9 @@ const Comp = {
         state.icons.default.filter(icon => icon.prefix === iconSet.prefix)
       ])
 
-      return sortKeys(listbox, { compare: (a, b) => use.count(listbox[b]) - use.count(listbox[a]) })
+      return sortKeys(listbox, {
+        compare: (a, b) => use.toNumber(listbox[b]) - use.toNumber(listbox[a])
+      })
     }, [state.icons])
 
     useDebounceEffect(
@@ -907,7 +914,7 @@ export default () => {
                       mapObject(
                         Object.groupBy(Object.values(atom.allIconSets), ({ category }) => category),
                         (category, iconSets) => [
-                          `${category} (${use.count(iconSets)})`,
+                          `${category} (${use.toNumber(iconSets)})`,
                           sort(iconSets)
                             .asc('name')
                             .map(iconSet => ({
