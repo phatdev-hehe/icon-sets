@@ -83,7 +83,7 @@ import { dependencies } from '../package.json'
 
 import collections from '/node_modules/@iconify/json/collections.json'
 
-const [atom, iconsCache, locale] = [
+const [atom, cache, locale] = [
   atomWithImmer({ allIcons: null, allIconSets: null, hasData: null }),
   new LRUCache({ max: 1_000 }),
   'en-US',
@@ -92,12 +92,9 @@ const [atom, iconsCache, locale] = [
 
 const use = {
   async: fn => {
-    const state = useAsync(fn)
+    const { error, loading, value } = useAsync(fn)
 
-    if (state.loading) return 'Loading…'
-    if (state.error) return 'Failed to fetch'
-
-    return state.value
+    return loading ? 'Loading…' : error ? 'Failed to fetch' : value
   },
   get atom() {
     return { ...useAtomValue(atom), set: useSetAtom(atom) }
@@ -105,19 +102,19 @@ const use = {
   blob: (blobParts, path) => new Blob(blobParts, { type: mime.getType(path) }),
   get bookmarkIcons() {
     const [state, setState] = useLocalStorage('bookmark-icons', [])
-    const has = icon => state.some(iconifyName => isEqual(iconifyName, icon.to.iconifyName))
 
     return {
       default: state,
-      has: has,
-      toggle: icon =>
-        setState((state, isAdded = has(icon)) => {
-          this.toast(isAdded ? 'Bookmark removed' : 'Bookmark added')
+      has: icon => state.some(iconifyName => isEqual(iconifyName, icon.to.iconifyName)),
+      toggle: function (icon) {
+        setState((state, isAdded = this.has(icon)) => {
+          use.toast(isAdded ? 'Bookmark removed' : 'Bookmark added')
 
           return isAdded
             ? state.filter(iconifyName => !isEqual(iconifyName, icon.to.iconifyName))
             : [...state, icon.to.iconifyName]
         })
+      }
     }
   },
   bytes: value => bytes(value, { decimalPlaces: 1, unitSeparator: ' ' }),
@@ -129,7 +126,7 @@ const use = {
   icon: function (icon) {
     const k = icon.id
 
-    if (iconsCache.has(k)) return iconsCache.get(k)
+    if (cache.has(k)) return cache.get(k)
 
     const svg = iconToSVG(icon.data)
 
@@ -150,30 +147,31 @@ const use = {
       ...icon
     }
 
-    iconsCache.set(k, v)
+    cache.set(k, v)
 
     return v
   },
   icons: function (icons) {
     const [firstIcon] = icons
-    const isUniform = icons.every(icon => icon.prefix === firstIcon.prefix)
-    const filename = `${isUniform && firstIcon ? firstIcon.setName : this.pluralize(icons, 'icon')}.zip`
+    const hasSamePrefix = icons.every(icon => icon.prefix === firstIcon.prefix)
 
     return {
       count: this.number(icons),
       default: icons,
       download: {
-        filename: filename,
-        fn: () => {
+        filename: `${hasSamePrefix && firstIcon ? firstIcon.setName : this.pluralize(icons, 'icon')}.zip`,
+        get fn() {
           const zip = new JSZip()
 
-          for (let icon of icons) {
-            icon = this.icon(icon)
+          return () => {
+            for (let icon of icons) {
+              icon = use.icon(icon)
 
-            zip.file(icon.filenames.svg[isUniform ? 'default' : 'detail'], icon.to.html)
+              zip.file(icon.filenames.svg[hasSamePrefix ? 'default' : 'detail'], icon.to.html)
+            }
+
+            use.saveAs(zip.generateAsync({ type: 'blob' }), this.filename)
           }
-
-          this.saveAs(zip.generateAsync({ type: 'blob' }), filename)
         }
       }
     }
@@ -235,8 +233,8 @@ const use = {
 
           try {
             await Promise.all(
-              Object.values(this.module).map(async getIconSet => {
-                const iconSet = quicklyValidateIconSet(await getIconSet())
+              Object.values(this.module).map(async iconSet => {
+                iconSet = quicklyValidateIconSet(await iconSet())
 
                 if (!iconSet) throw error
 
@@ -352,20 +350,21 @@ const use = {
     return `${pretty ? `${formatNumber(value, locale, 's')} ` : ''}${pluralize(word, value, !pretty)}`
   },
   get recentlyViewedIcons() {
-    return [...iconsCache.values()]
+    return [...cache.values()]
   },
   relativeTime: function (t) {
     useRafInterval(this.update, 60_000)
 
     return dayjs.unix(t).fromNow()
   },
-  saveAs: async function (getData, filename) {
+  saveAs: async function (data, filename) {
     const toast = this.toast(filename, {
       description: 'Preparing to download',
       duration: Number.POSITIVE_INFINITY
     })
 
-    const [data, download] = [await getData, () => saveAs(data, filename)]
+    data = await data
+    const download = () => saveAs(data, filename)
 
     download()
 
@@ -763,7 +762,8 @@ const Comp = {
     )
   },
   SearchIcons: () => {
-    const [placeholder, initialValue] = ['Search', { default: [], download: {} }]
+    const placeholder = 'Search'
+    const initialValue = { default: [], download: {} }
     const atom = use.atom
     const fuse = useCreation(() => new Fuse(atom.allIcons, { keys: ['name'], threshold: 0 }))
     const [state, setState] = useSetState({ filteredIcons: initialValue, icons: initialValue })
