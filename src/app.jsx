@@ -1,9 +1,5 @@
-// <KhiXuLyIconsThi />
-// kt cac dieu kien sau (khi 0 icons, 1 icon, 2 icons)
-
-// toi uu hieu nang
-// https://react.dev/reference/react/startTransition
-// https://ahooks.js.org/hooks/use-creation
+// cac dieu kien them khi xu ly icons
+// 0 icons, 1 icon, 2 icons
 
 import useUrlState from '@ahooksjs/use-url-state'
 import { css } from '@emotion/react'
@@ -67,6 +63,7 @@ import { atomWithImmer } from 'jotai-immer'
 import JSZip from 'jszip'
 import { LRUCache } from 'lru-cache'
 import mapObject, { mapObjectSkip } from 'map-obj'
+import mime from 'mime/lite'
 import MotionNumber from 'motion-number/lazy'
 import { nanoid } from 'nanoid'
 import { ThemeProvider, useTheme } from 'next-themes'
@@ -86,11 +83,10 @@ import { dependencies } from '../package.json'
 
 import collections from '/node_modules/@iconify/json/collections.json'
 
-const [atom, iconsCache, locale, zip] = [
+const [atom, iconsCache, locale] = [
   atomWithImmer({ allIcons: null, allIconSets: null, hasData: null }),
   new LRUCache({ max: 1_000 }),
   'en-US',
-  new JSZip(),
   dayjs.extend(relativeTime)
 ]
 
@@ -106,6 +102,7 @@ const use = {
   get atom() {
     return { ...useAtomValue(atom), set: useSetAtom(atom) }
   },
+  blob: (blobParts, path) => new Blob(blobParts, { type: mime.getType(path) }),
   get bookmarkIcons() {
     const [state, setState] = useLocalStorage('bookmark-icons', [])
     const has = icon => state.some(iconifyName => isEqual(iconifyName, icon.to.iconifyName))
@@ -129,7 +126,9 @@ const use = {
       description: this.pluralize(text, 'character')
     })
   },
-  icon: function (icon, k = icon.id) {
+  icon: function (icon) {
+    const k = icon.id
+
     if (iconsCache.has(k)) return iconsCache.get(k)
 
     const svg = iconToSVG(icon.data)
@@ -161,11 +160,13 @@ const use = {
     const filename = `${isUniform && firstIcon ? firstIcon.setName : this.pluralize(icons, 'icon')}.zip`
 
     return {
-      count: this.toNumber(icons),
+      count: this.number(icons),
       default: icons,
       download: {
         filename: filename,
         fn: () => {
+          const zip = new JSZip()
+
           for (let icon of icons) {
             icon = this.icon(icon)
 
@@ -339,8 +340,14 @@ const use = {
   get id() {
     return nanoid()
   },
+  number: target => (target === +target ? target : size(target)),
+  openObjectURL: obj => {
+    const url = URL.createObjectURL(obj)
+
+    open(url) && URL.revokeObjectURL(url)
+  },
   pluralize: function (value, word, pretty) {
-    value = this.toNumber(value)
+    value = this.number(value)
 
     return `${pretty ? `${formatNumber(value, locale, 's')} ` : ''}${pluralize(word, value, !pretty)}`
   },
@@ -379,7 +386,6 @@ const use = {
     },
     update: data => toast(message, { ...data, id })
   }),
-  toNumber: target => (target === +target ? target : size(target)),
   get update() {
     return useUpdate()
   }
@@ -448,7 +454,7 @@ const Comp = {
     return (
       <Comp.IconGrid
         footerRight={
-          (use.toNumber(iconSet.theme) || use.toNumber(iconSet.categories) || null) && (
+          (use.number(iconSet.theme) || use.number(iconSet.categories) || null) && (
             <Comp.IconButton
               icon={isEqual(state, initialState) ? 'line-md:filter' : 'line-md:filter-filled'}
               listbox={{
@@ -603,14 +609,7 @@ const Comp = {
                   [`#${index + 1}`]: [
                     {
                       description: icon.setName,
-                      onPress: () => {
-                        const url = URL.createObjectURL(
-                          new Blob([icon.to.html], { type: 'image/svg+xml' })
-                        )
-
-                        open(url)
-                        URL.revokeObjectURL(url)
-                      },
+                      onPress: () => use.openObjectURL(use.blob([icon.to.html], 'svg')),
                       title: icon.name
                     }
                   ],
@@ -629,15 +628,15 @@ const Comp = {
                       txt: icon.to.dataUrl
                     }[fileType]
 
+                    const blob = use.blob([text], fileType)
+
                     return [
-                      fileType.toUpperCase(),
+                      `${fileType.toUpperCase()} (${use.bytes(blob.size)})`,
                       [
-                        { onPress: () => use.copy(text), title: 'Copy' },
-                        {
-                          onPress: () => use.saveAs(new Blob([text]), filename.detail),
-                          title: 'Download'
-                        }
-                      ]
+                        ['View', () => use.openObjectURL(blob)],
+                        ['Copy', () => use.copy(text)],
+                        ['Download', () => use.saveAs(blob, filename.detail)]
+                      ].map(([title, onPress]) => ({ onPress, title }))
                     ]
                   })
                 }}>
@@ -667,10 +666,10 @@ const Comp = {
                     ...mapObject(
                       {
                         Default: ['id', 'name', 'setName', 'prefix'],
-                        'Icon id': ['id'],
-                        'Icon name': ['name'],
-                        'Icon set name': ['setName'],
-                        'Icon set prefix': ['prefix']
+                        Id: ['id'],
+                        Name: ['name'],
+                        'Set name': ['setName'],
+                        'Set prefix': ['prefix']
                       },
                       (title, keys) => [
                         title,
@@ -706,10 +705,7 @@ const Comp = {
   Listbox: ({ sections }) => (
     <Listbox aria-label={use.id} variant='light'>
       {Object.entries(sections).map(([title, items], index) => (
-        <ListboxSection
-          key={use.id}
-          showDivider={index !== use.toNumber(sections) - 1}
-          title={title}>
+        <ListboxSection key={use.id} showDivider={index !== use.number(sections) - 1} title={title}>
           {items.map(({ color = 'primary', descriptions = [], isActive, title, ...props }) => (
             <ListboxItem
               classNames={{ title: isActive && `text-${color}` }}
@@ -730,7 +726,7 @@ const Comp = {
   MotionPluralize: ({ value, word }) => {
     const [state, setState] = useRafState(0)
 
-    useDeepCompareEffect(() => setState(use.toNumber(value)), [value])
+    useDeepCompareEffect(() => setState(use.number(value)), [value])
 
     return (
       <Comp.HoverCard tooltip={use.pluralize(state, word)}>
@@ -784,7 +780,7 @@ const Comp = {
       ])
 
       return sortKeys(listbox, {
-        compare: (a, b) => use.toNumber(listbox[b]) - use.toNumber(listbox[a])
+        compare: (a, b) => use.number(listbox[b]) - use.number(listbox[a])
       })
     }, [state.icons])
 
@@ -914,7 +910,7 @@ export default () => {
                       mapObject(
                         Object.groupBy(Object.values(atom.allIconSets), ({ category }) => category),
                         (category, iconSets) => [
-                          `${category} (${use.toNumber(iconSets)})`,
+                          `${category} (${use.number(iconSets)})`,
                           sort(iconSets)
                             .asc('name')
                             .map(iconSet => ({

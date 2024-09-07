@@ -12,8 +12,8 @@ module.exports = {
         dark: {
           colors: {
             danger: 'orangered',
-            focus: 'greenyellow',
-            primary: { DEFAULT: 'greenyellow' },
+            focus: 'cyan',
+            primary: { DEFAULT: 'cyan' },
             warning: 'orange'
           }
         },
