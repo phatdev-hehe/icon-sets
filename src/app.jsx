@@ -87,7 +87,10 @@ const [atom, cache, locale] = [
   atomWithImmer({ allIcons: null, allIconSets: null, hasData: null }),
   new LRUCache({ max: 1_000 }),
   'en-US',
-  dayjs.extend(relativeTime)
+  dayjs.extend(relativeTime),
+  (JSZip.support = mapObject(JSZip.support, (key, value) =>
+    ['nodebuffer', 'nodestream'].includes(key) ? mapObjectSkip : [key, value]
+  ))
 ]
 
 const use = {
@@ -183,8 +186,20 @@ const use = {
       const [state, setState] = useRafState(true)
 
       useAsyncEffect(async () => {
-        if (!window)
-          return use.toast('Browser not supported', { duration: Number.POSITIVE_INFINITY })
+        // https://stuk.github.io/jszip/documentation/api_jszip/support.html
+        // https://github.com/eligrey/FileSaver.js?tab=readme-ov-file#supported-browsers
+        if (!Object.values(JSZip.support).every(Boolean))
+          return use.toast('Your browser is not supported', {
+            description: `jszip ${JSZip.version}`,
+            duration: Number.POSITIVE_INFINITY,
+            listbox: {
+              '': Object.entries(JSZip.support).map(([title, isSupported]) => ({
+                description: isSupported ? 'Supported' : 'Not supported',
+                isDisabled: !isSupported,
+                title: title
+              }))
+            }
+          })
 
         if (await this.version.isNotFound()) return this.retryToast
 
@@ -205,27 +220,15 @@ const use = {
           setState()
         } else {
           const toast = use.toast('Working on updates', {
-            description: (
-              <>
-                {use.pluralize(this.module, 'icon set')}
-                <ScrollShadow className='h-96'>
-                  <Comp.Listbox
-                    sections={{
-                      '': Object.keys(this.module).map(key => {
-                        const iconSet = collections[key]
+            description: use.pluralize(this.module, 'icon set'),
+            duration: Number.POSITIVE_INFINITY,
+            listbox: {
+              '': Object.keys(this.module).map(key => {
+                const iconSet = collections[key]
 
-                        return {
-                          description: iconSet.author.name,
-                          isDisabled: true,
-                          title: iconSet.name
-                        }
-                      })
-                    }}
-                  />
-                </ScrollShadow>
-              </>
-            ),
-            duration: Number.POSITIVE_INFINITY
+                return { description: iconSet.author.name, isDisabled: true, title: iconSet.name }
+              })
+            }
           })
 
           await idb.clear()
@@ -364,6 +367,7 @@ const use = {
     })
 
     data = await data
+
     const download = () => saveAs(data, filename)
 
     download()
@@ -379,12 +383,32 @@ const use = {
   get spring() {
     return useSpring(0)
   },
-  toast: (message, data, id = toast(message, data)) => ({
-    get dismiss() {
-      return toast.dismiss(id)
-    },
-    update: data => toast(message, { ...data, id })
-  }),
+  toast: (message, data) => {
+    const parseData = ({ description, duration, listbox, ...rest } = {}) => ({
+      description: (
+        <>
+          {description}
+          {listbox && (
+            <ScrollShadow className='max-h-96' style={{ color: 'initial' }}>
+              <Comp.Listbox sections={listbox} />
+            </ScrollShadow>
+          )}
+        </>
+      ),
+      dismissible: duration !== Number.POSITIVE_INFINITY,
+      duration: duration,
+      ...rest
+    })
+
+    const id = toast(message, parseData(data))
+
+    return {
+      get dismiss() {
+        return toast.dismiss(id)
+      },
+      update: data => toast(message, { ...parseData(data), id })
+    }
+  },
   get update() {
     return useUpdate()
   }
@@ -575,7 +599,7 @@ const Comp = {
       <Card
         classNames={{
           base: 'h-full rounded-none bg-background text-sm',
-          footer: 'absolute inset-x-0 bottom-0 h-[--footer-height] rounded-none'
+          footer: 'absolute inset-x-0 bottom-0 rounded-none'
         }}
         isFooterBlurred
         style={{ '--footer-height': '4rem' }}>
@@ -583,7 +607,7 @@ const Comp = {
           components={{
             Footer: () =>
               icons.count ? (
-                <div className='h-[--footer-height]' />
+                <div style={{ height: 'var(--footer-height)' }} />
               ) : (
                 <div className='flex-center text-foreground-500'>No icons</div>
               ),
@@ -654,7 +678,7 @@ const Comp = {
           scrollSeekConfiguration={{ enter: v => Math.abs(v) > 300, exit: v => v === 0 }}
           {...props}
         />
-        <CardFooter>
+        <CardFooter style={{ height: 'var(--footer-height)' }}>
           {footer ?? (
             <div className='flex-center justify-between px-3'>
               <Comp.MotionPluralize value={icons.count} word='icon' />

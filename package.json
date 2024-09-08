@@ -13,7 +13,7 @@
     "@nextui-org/react": "^2.4.6",
     "@radix-ui/react-hover-card": "^1.1.1",
     "@react-three/drei": "^9.112.0",
-    "@react-three/fiber": "^8.17.6",
+    "@react-three/fiber": "^8.17.7",
     "ahooks": "^3.8.1",
     "bytes": "^3.1.2",
     "change-case": "^5.4.4",
