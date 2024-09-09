@@ -69,10 +69,20 @@ import { nanoid } from 'nanoid'
 import { ThemeProvider, useTheme } from 'next-themes'
 import pluralize from 'pluralize'
 import { useRef } from 'react'
+import {
+  browserName,
+  browserVersion,
+  engineName,
+  engineVersion,
+  isBrowser,
+  isDesktop,
+  osName,
+  osVersion
+} from 'react-device-detect'
 import isEqual from 'react-fast-compare'
 import { For, useLocalStorage, useSingleEffect } from 'react-haiku'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
-import { RouterProvider, createBrowserRouter } from 'react-router-dom'
+import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { useAsync, useLockBodyScroll } from 'react-use'
 import { VirtuosoGrid } from 'react-virtuoso'
 import semver from 'semver'
@@ -83,14 +93,16 @@ import { dependencies } from '../package.json'
 
 import collections from '/node_modules/@iconify/json/collections.json'
 
+dayjs.extend(relativeTime)
+
+JSZip.support = mapObject(JSZip.support, (key, value) =>
+  ['nodebuffer', 'nodestream'].includes(key) ? mapObjectSkip : [key, value]
+)
+
 const [atom, cache, locale] = [
   atomWithImmer({ allIcons: null, allIconSets: null, hasData: null }),
   new LRUCache({ max: 1_000 }),
-  'en-US',
-  dayjs.extend(relativeTime),
-  (JSZip.support = mapObject(JSZip.support, (key, value) =>
-    ['nodebuffer', 'nodestream'].includes(key) ? mapObjectSkip : [key, value]
-  ))
+  'en-US'
 ]
 
 const use = {
@@ -186,20 +198,31 @@ const use = {
       const [state, setState] = useRafState(true)
 
       useAsyncEffect(async () => {
-        // https://stuk.github.io/jszip/documentation/api_jszip/support.html
-        // https://github.com/eligrey/FileSaver.js?tab=readme-ov-file#supported-browsers
-        if (!Object.values(JSZip.support).every(Boolean))
+        if (![isBrowser, isDesktop, ...Object.values(JSZip.support)].every(Boolean)) {
+          const section = (p1, p2) => ({
+            [p1]: p2.map(([title, isSupported]) => ({
+              description: isSupported ? 'Found' : 'Not found',
+              isDisabled: !isSupported,
+              title: title
+            }))
+          })
+
           return use.toast('Your browser is not supported', {
-            description: `jszip ${JSZip.version}`,
             duration: Number.POSITIVE_INFINITY,
             listbox: {
-              '': Object.entries(JSZip.support).map(([title, isSupported]) => ({
-                description: isSupported ? 'Supported' : 'Not supported',
-                isDisabled: !isSupported,
-                title: title
-              }))
+              Info: [
+                { description: osVersion, title: osName },
+                { description: browserVersion, title: browserName },
+                { description: engineVersion, title: engineName }
+              ],
+              ...section('Default', [
+                ['Browser', isBrowser],
+                ['Desktop', isDesktop]
+              ]),
+              ...section(`JSZip ${JSZip.version}`, Object.entries(JSZip.support))
             }
           })
+        }
 
         if (await this.version.isNotFound()) return this.retryToast
 
@@ -262,20 +285,11 @@ const use = {
             )
 
             await idb.update('version', () => this.version.latest)
-            toast.dismiss
             ;(await this.version.isOutdated()) ? this.retryToast : setState()
           } catch {
-            toast.update({
-              action: (
-                <Comp.IconButton
-                  icon='line-md:rotate-270'
-                  onPress={this.clear}
-                  tooltip='Try again'
-                />
-              ),
-              description: null,
-              title: 'Update failed'
-            })
+            this.retryToast
+          } finally {
+            toast.dismiss
           }
         }
       }, [])
@@ -376,8 +390,7 @@ const use = {
       action: (
         <Comp.IconButton icon='line-md:arrow-small-down' onPress={download} tooltip='Download' />
       ),
-      description: this.bytes(data.size),
-      duration: null
+      description: this.bytes(data.size)
     })
   },
   get spring() {
@@ -611,11 +624,11 @@ const Comp = {
               ) : (
                 <div className='flex-center text-foreground-500'>No icons</div>
               ),
-            ScrollSeekPlaceholder: ({ height, index, width }) => {
+            ScrollSeekPlaceholder: ({ index, ...style }) => {
               const icon = icons.default[index]
 
               return (
-                <div className='flex-center' style={{ height, width }}>
+                <div className='flex-center' style={style}>
                   <Avatar classNames={{ base: 'bg-background' }} name={icon.name} size='lg' />
                 </div>
               )
@@ -768,7 +781,11 @@ const Comp = {
     <LazyMotion features={domAnimation} strict>
       <ThemeProvider attribute='class' disableTransitionOnChange>
         <NextUIProvider className='flex-center p-6' locale={locale}>
-          <RouterProvider router={createBrowserRouter([{ element: children, path: '/' }])} />
+          <BrowserRouter>
+            <Routes>
+              <Route element={children} path='/' />
+            </Routes>
+          </BrowserRouter>
         </NextUIProvider>
       </ThemeProvider>
     </LazyMotion>
@@ -776,14 +793,7 @@ const Comp = {
   RecentlyViewedIcons: () => {
     useSingleEffect(use.update)
 
-    return (
-      <Comp.IconGrid
-        footerRight={
-          <Comp.IconButton icon='line-md:round-360' onPress={use.update} tooltip='Refresh' />
-        }
-        icons={use.recentlyViewedIcons}
-      />
-    )
+    return <Comp.IconGrid icons={use.recentlyViewedIcons} />
   },
   SearchIcons: () => {
     const placeholder = 'Search'
@@ -911,7 +921,7 @@ export default () => {
         <PanelGroup
           className='card !~w-[50rem]/[66rem] lg:~lg:!~h-[50rem]/[38rem]'
           direction='horizontal'>
-          <Panel className='py-2' defaultSize={24}>
+          <Panel className='py-2' defaultSize={25} maxSize={25}>
             <Comp.Theme
               render={({ resolvedTheme, setTheme }) => (
                 <Comp.Listbox
