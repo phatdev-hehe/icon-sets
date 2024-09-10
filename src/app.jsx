@@ -109,7 +109,7 @@ const use = {
   async: fn => {
     const { error, loading, value } = useAsync(fn)
 
-    return loading ? 'Loading…' : error ? 'Failed to fetch' : value
+    return loading ? 'Loading…' : error ? 'Failed to load data' : value
   },
   get atom() {
     return { ...useAtomValue(atom), set: useSetAtom(atom) }
@@ -120,14 +120,16 @@ const use = {
 
     return {
       default: state,
-      has: icon => state.some(iconifyName => isEqual(iconifyName, icon.to.iconifyName)),
+      has: icon => state.some(iconNameObject => isEqual(iconNameObject, icon.to.iconNameObject)),
       toggle: function (icon) {
-        setState((state, isAdded = this.has(icon)) => {
-          use.toast(isAdded ? 'Bookmark removed' : 'Bookmark added')
+        setState(state => {
+          const hasIcon = this.has(icon)
 
-          return isAdded
-            ? state.filter(iconifyName => !isEqual(iconifyName, icon.to.iconifyName))
-            : [...state, icon.to.iconifyName]
+          use.toast(hasIcon ? 'Bookmark removed' : 'Bookmark added')
+
+          return hasIcon
+            ? state.filter(iconNameObject => !isEqual(iconNameObject, icon.to.iconNameObject))
+            : [...state, icon.to.iconNameObject]
         })
       }
     }
@@ -157,7 +159,7 @@ const use = {
         css: getIconCSS(icon.data),
         dataUrl: getIconContentCSS(icon.data, svg.attributes).slice(31, -6),
         html: iconToHTML(replaceIDs(svg.body, this.id), svg.attributes),
-        iconifyName: stringToIcon(k)
+        iconNameObject: stringToIcon(k)
       },
       ...icon
     }
@@ -434,9 +436,11 @@ const use = {
 }
 
 const Comp = {
-  EndlessIcons: ({ step = 100, sizes = _.range(step, 1_000 + step, step) }) => {
+  EndlessIcons: () => {
+    const size = 100
+    const sizes = _.range(size, 1_000 + size, size)
     const atom = use.atom
-    const [state, setState] = useSetState({ icons: [], size: step })
+    const [state, setState] = useSetState({ icons: [], size: size })
 
     const fetchMoreIcons = () =>
       setState(state => ({
