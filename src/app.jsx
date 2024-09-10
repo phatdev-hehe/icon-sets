@@ -80,7 +80,7 @@ import {
   osVersion
 } from 'react-device-detect'
 import isEqual from 'react-fast-compare'
-import { For, useLocalStorage, useSingleEffect } from 'react-haiku'
+import { For, useFirstRender, useLocalStorage, useSingleEffect, useWindowSize } from 'react-haiku'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { useAsync, useLockBodyScroll } from 'react-use'
@@ -196,12 +196,16 @@ const use = {
     get default() {
       const atom = use.atom
       const [state, setState] = useRafState(true)
+      const windowSize = useWindowSize()
+      const isFirstRender = useFirstRender()
 
       useAsyncEffect(async () => {
-        if (![isBrowser, isDesktop, ...Object.values(JSZip.support)].every(Boolean)) {
+        if (
+          ![isFirstRender, isBrowser, isDesktop, ...Object.values(JSZip.support)].every(Boolean)
+        ) {
           const section = (p1, p2) => ({
             [p1]: p2.map(([title, isSupported]) => ({
-              description: isSupported ? 'Found' : 'Not found',
+              description: isSupported ? 'Yes' : 'No',
               isDisabled: !isSupported,
               title: title
             }))
@@ -213,9 +217,11 @@ const use = {
               Info: [
                 { description: osVersion, title: osName },
                 { description: browserVersion, title: browserName },
-                { description: engineVersion, title: engineName }
+                { description: engineVersion, title: engineName },
+                { description: `${windowSize.width} x ${windowSize.height}`, title: 'Size' }
               ],
               ...section('Default', [
+                ['Initial render', isFirstRender],
                 ['Browser', isBrowser],
                 ['Desktop', isDesktop]
               ]),
