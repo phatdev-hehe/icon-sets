@@ -33,22 +33,6 @@
     }
   }
 
-  [data-sonner-toast] {
-    @apply card justify-between gap-4;
-
-    [data-content] {
-      @apply w-full;
-
-      [data-title] {
-        @apply line-clamp-1;
-      }
-
-      [data-description] {
-        @apply text-foreground-500;
-      }
-    }
-  }
-
   .iconify,
   button {
     @apply !min-w-fit;

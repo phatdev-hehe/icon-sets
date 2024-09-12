@@ -236,7 +236,7 @@ const use = {
 
         if (await this.version.isValid()) {
           ;(await this.version.isOutdated()) &&
-            use.toast(`Version ${this.version.latest}`, {
+            use.toast('Updates available', {
               action: (
                 <Comp.IconButton
                   icon='line-md:arrow-small-down'
@@ -244,7 +244,7 @@ const use = {
                   tooltip='Update'
                 />
               ),
-              description: use.pluralize(this.module, 'icon set'),
+              description: `${this.version.latest} (${use.pluralize(this.module, 'icon set')})`,
               duration: Number.POSITIVE_INFINITY
             })
 
@@ -354,7 +354,7 @@ const use = {
         isNotFound: async () => (await current()) === 'not_found',
         isOutdated: async () =>
           (await current()) !== latest ||
-          !isEqual(_.xor(await idb.keys(), Object.keys(this.module)), ['version']),
+          use.number(_.difference(['version', ...Object.keys(this.module)], await idb.keys())),
         isValid: async () => semver.valid(await current()),
         latest: latest
       }
@@ -377,8 +377,8 @@ const use = {
   get recentlyViewedIcons() {
     return [...cache.values()]
   },
-  relativeTime: function (t) {
-    useRafInterval(this.update, 60_000)
+  relativeTime: t => {
+    useRafInterval(useUpdate(), 60_000)
 
     return dayjs.unix(t).fromNow()
   },
@@ -429,9 +429,6 @@ const use = {
       },
       update: data => toast(message, { ...parseData(data), id })
     }
-  },
-  get update() {
-    return useUpdate()
   }
 }
 
@@ -604,13 +601,13 @@ const Comp = {
       </Link>
     </Comp.HoverCard>
   ),
-  IconGrid: ({ footer, footerRight, iconNames, icons, ...props }) => {
+  IconGrid: ({ footer, footerRight, icons, ...props }) => {
     const atom = use.atom
     const bookmarkIcons = use.bookmarkIcons
     const [state, setState] = useRafState()
 
-    if (iconNames)
-      icons = iconNames.map(({ name, prefix }) =>
+    if (!use.number(_.without(Object.keys(icons[0] ?? {}), 'name', 'prefix', 'provider')))
+      icons = icons.map(({ name, prefix }) =>
         atom.allIconSets[prefix].icons.find(icon => name === icon.name)
       )
 
@@ -801,7 +798,7 @@ const Comp = {
     </LazyMotion>
   ),
   RecentlyViewedIcons: () => {
-    useSingleEffect(use.update)
+    useSingleEffect(useUpdate())
 
     return <Comp.IconGrid icons={use.recentlyViewedIcons} />
   },
@@ -1006,7 +1003,7 @@ export default () => {
               <Panel>
                 {state === 0 && <Comp.IconGrid icons={atom.allIcons} />}
                 {state === 1 && <Comp.EndlessIcons />}
-                {state === 2 && <Comp.IconGrid iconNames={bookmarkIcons.default} />}
+                {state === 2 && <Comp.IconGrid icons={bookmarkIcons.default} />}
                 {state === 3 && <Comp.RecentlyViewedIcons />}
                 {atom.allIconSets[state] && <Comp.FilterIcons {...atom.allIconSets[state]} />}
               </Panel>
@@ -1022,7 +1019,20 @@ export default () => {
       )}
       <Comp.Stars />
       <Comp.Theme
-        render={({ resolvedTheme }) => <Toaster className='z-auto' theme={resolvedTheme} />}
+        render={({ resolvedTheme }) => (
+          <Toaster
+            className='z-auto'
+            theme={resolvedTheme}
+            toastOptions={{
+              classNames: {
+                content: 'w-full',
+                default: 'card justify-between gap-4',
+                description: 'text-foreground-500',
+                title: 'line-clamp-1'
+              }
+            }}
+          />
+        )}
       />
     </Comp.Providers>
   )
