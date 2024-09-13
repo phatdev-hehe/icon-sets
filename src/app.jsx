@@ -1,12 +1,12 @@
-// cac dieu kien them khi xu ly icons
+// Cac dieu kien them khi xu ly icons
 // 0 icons, 1 icon, 2 icons
 
 import useUrlState from '@ahooksjs/use-url-state'
 import { css } from '@emotion/react'
 import { Icon } from '@iconify/react'
 import {
-  getIconCSS,
   getIconContentCSS,
+  getIconCSS,
   iconToHTML,
   iconToSVG,
   parseIconSet,
@@ -19,6 +19,7 @@ import {
   Button,
   Card,
   CardFooter,
+  cn,
   Input,
   Link,
   Listbox,
@@ -26,8 +27,7 @@ import {
   ListboxSection,
   NextUIProvider,
   ScrollShadow,
-  Spinner,
-  cn
+  Spinner
 } from '@nextui-org/react'
 import * as HoverCard from '@radix-ui/react-hover-card'
 import { Stars } from '@react-three/drei'
@@ -54,7 +54,7 @@ import * as _ from 'es-toolkit'
 import { size } from 'es-toolkit/compat'
 import { sort } from 'fast-sort'
 import { saveAs } from 'file-saver'
-import { AnimatePresence, LazyMotion, domAnimation, m, useSpring } from 'framer-motion'
+import { AnimatePresence, domAnimation, LazyMotion, m, useSpring } from 'framer-motion'
 import Fuse from 'fuse.js'
 import * as idb from 'idb-keyval'
 import { formatNumber } from 'intl-number-helper'
@@ -86,7 +86,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { useAsync, useLockBodyScroll } from 'react-use'
 import { VirtuosoGrid } from 'react-virtuoso'
 import semver from 'semver'
-import { Toaster, toast } from 'sonner'
+import { toast, Toaster } from 'sonner'
 import sortKeys from 'sort-keys'
 
 import { dependencies } from '../package.json'
@@ -121,7 +121,7 @@ const use = {
     return {
       default: state,
       has: icon => state.some(iconNameObject => isEqual(iconNameObject, icon.to.iconNameObject)),
-      toggle: function (icon) {
+      toggle(icon) {
         setState(state => {
           const hasIcon = this.has(icon)
 
@@ -135,12 +135,12 @@ const use = {
     }
   },
   bytes: value => bytes(value, { decimalPlaces: 1, unitSeparator: ' ' }),
-  copy: function (text) {
+  copy(text) {
     this.toast(copy(text) ? 'Copied' : 'Copy failed', {
       description: this.pluralize(text, 'character')
     })
   },
-  icon: function (icon) {
+  icon(icon) {
     const k = icon.id
 
     if (cache.has(k)) return cache.get(k)
@@ -168,7 +168,7 @@ const use = {
 
     return v
   },
-  icons: function (icons) {
+  icons(icons) {
     const [firstIcon] = icons
     const hasSamePrefix = icons.every(icon => icon.prefix === firstIcon.prefix)
 
@@ -196,7 +196,7 @@ const use = {
   iconSets: {
     clear: async (clear = true) => (clear && (await idb.clear())) || location.reload(),
     get default() {
-      const atom = use.atom
+      const { atom } = use
       const [state, setState] = useRafState(true)
       const windowSize = useWindowSize()
       const isFirstRender = useFirstRender()
@@ -209,7 +209,7 @@ const use = {
             [p1]: p2.map(([title, isSupported]) => ({
               description: isSupported ? 'Yes' : 'No',
               isDisabled: !isSupported,
-              title: title
+              title
             }))
           })
 
@@ -309,9 +309,9 @@ const use = {
           if (key === 'version') return mapObjectSkip
 
           iconSet.icons = Object.entries(iconSet.icons).map(([name, data]) => ({
-            data: data,
+            data,
             id: `${iconSet.prefix}:${name}`,
-            name: name,
+            name,
             prefix: iconSet.prefix,
             setName: iconSet.name
           }))
@@ -350,26 +350,26 @@ const use = {
       const latest = semver.valid(semver.coerce(dependencies['@iconify/json']))
 
       return {
-        current: current,
+        current,
         isNotFound: async () => (await current()) === 'not_found',
         isOutdated: async () =>
           (await current()) !== latest ||
           use.number(_.difference(['version', ...Object.keys(this.module)], await idb.keys())),
         isValid: async () => semver.valid(await current()),
-        latest: latest
+        latest
       }
     }
   },
   get id() {
     return nanoid()
   },
-  number: target => (target === +target ? target : size(target)),
+  number: target => (target === Number(target) ? target : size(target)),
   openObjectURL: obj => {
     const url = URL.createObjectURL(obj)
 
     open(url) && URL.revokeObjectURL(url)
   },
-  pluralize: function (value, word, pretty) {
+  pluralize(value, word, pretty) {
     value = this.number(value)
 
     return `${pretty ? `${formatNumber(value, locale, 's')} ` : ''}${pluralize(word, value, !pretty)}`
@@ -382,7 +382,7 @@ const use = {
 
     return dayjs.unix(t).fromNow()
   },
-  saveAs: async function (data, filename) {
+  async saveAs(data, filename) {
     const toast = this.toast(filename, {
       description: 'Preparing to download',
       duration: Number.POSITIVE_INFINITY
@@ -417,7 +417,7 @@ const use = {
         </>
       ),
       dismissible: duration !== Number.POSITIVE_INFINITY,
-      duration: duration,
+      duration,
       ...rest
     })
 
@@ -436,8 +436,8 @@ const Comp = {
   EndlessIcons: () => {
     const size = 100
     const sizes = _.range(size, 1_000 + size, size)
-    const atom = use.atom
-    const [state, setState] = useSetState({ icons: [], size: size })
+    const { atom } = use
+    const [state, setState] = useSetState({ icons: [], size })
 
     const fetchMoreIcons = () =>
       setState(state => ({
@@ -504,9 +504,9 @@ const Comp = {
                 ...(iconSet.theme && {
                   [use.pluralize(iconSet.theme, 'theme')]: Object.entries(iconSet.theme).map(
                     ([theme, title, isActive = state.theme === theme]) => ({
-                      isActive: isActive,
+                      isActive,
                       onPress: () => setState({ theme: !isActive && theme }),
-                      title: title
+                      title
                     })
                   )
                 }),
@@ -517,7 +517,7 @@ const Comp = {
                     const isActive = state.category === category
 
                     return {
-                      isActive: isActive,
+                      isActive,
                       onPress: () => setState({ category: !isActive && category }),
                       title: category
                     }
@@ -583,7 +583,7 @@ const Comp = {
                   exit={{ opacity: 0, scale: 0.7 }}
                   style={{
                     transformOrigin: 'var(--radix-hover-card-content-transform-origin)',
-                    x: x
+                    x
                   }}>
                   {tooltip ?? <Comp.Listbox sections={listbox} />}
                 </m.div>
@@ -602,8 +602,7 @@ const Comp = {
     </Comp.HoverCard>
   ),
   IconGrid: ({ footer, footerRight, icons, ...props }) => {
-    const atom = use.atom
-    const bookmarkIcons = use.bookmarkIcons
+    const { atom, bookmarkIcons } = use
     const [state, setState] = useRafState()
 
     if (!use.number(_.without(Object.keys(icons[0] ?? {}), 'name', 'prefix', 'provider')))
@@ -660,7 +659,7 @@ const Comp = {
                     title => ({
                       isDisabled: (title === 'Add') === bookmarkIcons.has(icon),
                       onPress: () => bookmarkIcons.toggle(icon),
-                      title: title
+                      title
                     })
                   ),
                   ...mapObject(icon.filenames, (fileType, filename) => {
@@ -721,7 +720,7 @@ const Comp = {
                           const isActive = isEqual(value, state)
 
                           return {
-                            isActive: isActive,
+                            isActive,
                             isDisabled: icons.count < 2,
                             onPress: () => setState(!isActive && value),
                             title: { asc: 'Ascending', desc: 'Descending' }[order]
@@ -805,7 +804,7 @@ const Comp = {
   SearchIcons: () => {
     const placeholder = 'Search'
     const initialValue = { default: [], download: {} }
-    const atom = use.atom
+    const { atom } = use
     const fuse = useCreation(() => new Fuse(atom.allIcons, { keys: ['name'], threshold: 0 }))
     const [state, setState] = useSetState({ filteredIcons: initialValue, icons: initialValue })
 
@@ -829,7 +828,7 @@ const Comp = {
       () => {
         const icons = use.icons(fuse.search(kebabCase(searchPattern)).map(({ item }) => item))
 
-        setState({ filteredIcons: icons, icons: icons })
+        setState({ filteredIcons: icons, icons })
       },
       [searchPattern],
       { wait: 300 }
@@ -915,8 +914,7 @@ const Comp = {
 }
 
 export default () => {
-  const atom = use.atom
-  const bookmarkIcons = use.bookmarkIcons
+  const { atom, bookmarkIcons } = use
   const [state, setState] = useRafState(0)
 
   use.iconSets.default
@@ -942,10 +940,10 @@ export default () => {
                       ['Bookmarks', use.pluralize(bookmarkIcons.default, 'icon', true)],
                       ['Recently viewed', use.pluralize(use.recentlyViewedIcons, 'icon', true)]
                     ].map(([title, description], index) => ({
-                      description: description,
+                      description,
                       isActive: state === index,
                       onPress: () => setState(index),
-                      title: title
+                      title
                     })),
                     ...sortKeys(
                       mapObject(

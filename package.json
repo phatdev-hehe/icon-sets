@@ -19,7 +19,7 @@
     "change-case": "^5.4.4",
     "copy-to-clipboard": "^3.3.3",
     "dayjs": "^1.11.13",
-    "es-toolkit": "^1.17.0",
+    "es-toolkit": "^1.18.0",
     "fast-sort": "^3.4.1",
     "file-saver": "^2.0.5",
     "framer-motion": "^11.5.4",
@@ -54,12 +54,12 @@
     "@vitejs/plugin-react-swc": "^3.7.0",
     "autoprefixer": "^10.4.20",
     "eslint-plugin-perfectionist": "^3.5.0",
-    "eslint-plugin-react": "^7.36.0",
+    "eslint-plugin-react": "^7.36.1",
     "fluid-tailwind": "^1.0.3",
     "postcss": "^8.4.45",
     "prettier-plugin-tailwindcss": "^0.6.6",
     "tailwind-scrollbar": "^3.1.0",
     "tailwindcss": "^3.4.11",
-    "vite": "^5.4.4"
+    "vite": "^5.4.5"
   }
 }
