@@ -196,10 +196,8 @@ const use = {
   iconSets: {
     clear: async (clear = true) => (clear && (await idb.clear())) || location.reload(),
     get default() {
-      const { atom } = use
+      const { atom, isFirstRender, windowSize } = use
       const [state, setState] = useRafState(true)
-      const windowSize = useWindowSize()
-      const isFirstRender = useFirstRender()
 
       useAsyncEffect(async () => {
         if (
@@ -363,6 +361,9 @@ const use = {
   get id() {
     return nanoid()
   },
+  get isFirstRender() {
+    return useFirstRender()
+  },
   number: target => (target === Number(target) ? target : size(target)),
   openObjectURL: obj => {
     const url = URL.createObjectURL(obj)
@@ -429,6 +430,9 @@ const use = {
       },
       update: data => toast(message, { ...parseData(data), id })
     }
+  },
+  get windowSize() {
+    return useWindowSize()
   }
 }
 
@@ -606,9 +610,9 @@ const Comp = {
     const [state, setState] = useRafState()
 
     if (!use.number(_.without(Object.keys(icons[0] ?? {}), 'name', 'prefix', 'provider')))
-      icons = icons.map(({ name, prefix }) =>
-        atom.allIconSets[prefix].icons.find(icon => name === icon.name)
-      )
+      icons = icons
+        .map(({ name, prefix }) => atom.allIconSets[prefix]?.icons.find(icon => name === icon.name))
+        .filter(Boolean)
 
     if (state) icons = sort(icons).by(state)
 
