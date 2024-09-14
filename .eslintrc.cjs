@@ -1,8 +1,13 @@
-// https://biomejs.dev/linter/rules
-// https://eslint.org/docs/latest/rules
+// https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint
+// https://marketplace.visualstudio.com/items?itemName=biomejs.biome
+// https://code.visualstudio.com/docs/typescript/typescript-refactoring#_code-actions-on-save
 
 module.exports = {
-  extends: ['plugin:react/jsx-runtime', 'plugin:perfectionist/recommended-natural-legacy'],
+  extends: [
+    'plugin:perfectionist/recommended-natural-legacy',
+    'plugin:promise/recommended',
+    'plugin:react/jsx-runtime'
+  ],
   parserOptions: { ecmaVersion: 'latest', sourceType: 'module' },
   rules: Object.fromEntries(
     // (automatically fixable)
