@@ -2,7 +2,6 @@
 // 0 icons, 1 icon, 2 icons
 
 import useUrlState from '@ahooksjs/use-url-state'
-import { css } from '@emotion/react'
 import { Icon } from '@iconify/react'
 import {
   getIconContentCSS,
@@ -11,8 +10,7 @@ import {
   iconToSVG,
   parseIconSet,
   quicklyValidateIconSet,
-  replaceIDs,
-  stringToIcon
+  replaceIDs
 } from '@iconify/utils'
 import {
   Avatar,
@@ -83,6 +81,7 @@ import isEqual from 'react-fast-compare'
 import { For, useFirstRender, useLocalStorage, useSingleEffect, useWindowSize } from 'react-haiku'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import root from 'react-shadow'
 import { useAsync, useLockBodyScroll } from 'react-use'
 import { VirtuosoGrid } from 'react-virtuoso'
 import semver from 'semver'
@@ -120,7 +119,7 @@ const use = {
 
     return {
       default: state,
-      has: icon => state.some(iconNameObject => isEqual(iconNameObject, icon.to.iconNameObject)),
+      has: icon => state.some(currentIcon => currentIcon === icon.id),
       toggle(icon) {
         setState(state => {
           const hasIcon = this.has(icon)
@@ -128,8 +127,8 @@ const use = {
           use.toast(hasIcon ? 'Bookmark removed' : 'Bookmark added')
 
           return hasIcon
-            ? state.filter(iconNameObject => !isEqual(iconNameObject, icon.to.iconNameObject))
-            : [...state, icon.to.iconNameObject]
+            ? state.filter(currentIcon => currentIcon !== icon.id)
+            : [...state, icon.id]
         })
       }
     }
@@ -158,8 +157,7 @@ const use = {
       to: {
         css: getIconCSS(icon.data),
         dataUrl: getIconContentCSS(icon.data, svg.attributes).slice(31, -6),
-        html: iconToHTML(replaceIDs(svg.body, this.id), svg.attributes),
-        iconNameObject: stringToIcon(k)
+        html: iconToHTML(replaceIDs(svg.body, this.id), svg.attributes)
       },
       ...icon
     }
@@ -239,7 +237,7 @@ const use = {
                 <Comp.IconButton
                   icon='line-md:arrow-small-down'
                   onPress={this.clear}
-                  tooltip='Update'
+                  tooltip='Update now'
                 />
               ),
               description: `${this.version.latest} (${use.pluralize(this.module, 'icon set')})`,
@@ -364,7 +362,7 @@ const use = {
   get isFirstRender() {
     return useFirstRender()
   },
-  number: target => (target === Number(target) ? target : size(target)),
+  number: target => (typeof target === 'number' ? target : size(target)),
   openObjectURL: obj => {
     const url = URL.createObjectURL(obj)
 
@@ -609,10 +607,8 @@ const Comp = {
     const { atom, bookmarkIcons } = use
     const [state, setState] = useRafState()
 
-    if (!use.number(_.without(Object.keys(icons[0] ?? {}), 'name', 'prefix', 'provider')))
-      icons = icons
-        .map(({ name, prefix }) => atom.allIconSets[prefix]?.icons.find(icon => name === icon.name))
-        .filter(Boolean)
+    if (icons.some(icon => typeof icon === 'string'))
+      icons = atom.allIcons.filter(icon => icons.includes(icon.id))
 
     if (state) icons = sort(icons).by(state)
 
@@ -655,7 +651,7 @@ const Comp = {
                   [`#${index + 1}`]: [
                     {
                       description: icon.setName,
-                      onPress: () => use.openObjectURL(use.blob([icon.to.html], 'svg')),
+                      onPress: () => use.copy(icon.id),
                       title: icon.name
                     }
                   ],
@@ -692,7 +688,18 @@ const Comp = {
                   radius='full'
                   size='lg'
                   variant='light'>
-                  <div className='!size-8 text-foreground' css={css(icon.to.css.slice(10, -3))} />
+                  <root.div mode='closed'>
+                    <span
+                      className='icon'
+                      style={{
+                        '--size': '2rem',
+                        color: 'hsl(var(--nextui-foreground))',
+                        height: 'var(--size)',
+                        width: 'var(--size)'
+                      }}
+                    />
+                    <style>{icon.to.css}</style>
+                  </root.div>
                 </Button>
               </Comp.HoverCard>
             )
@@ -991,7 +998,7 @@ export default () => {
                         description: use.bytes(use.async(() => navigator.storage.estimate()).usage),
                         isActive: true,
                         onPress: use.iconSets.clear,
-                        title: 'Clear cache'
+                        title: 'Clear data'
                       }
                     ]
                   }}

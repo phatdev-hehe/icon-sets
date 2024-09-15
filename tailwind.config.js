@@ -1,4 +1,3 @@
-import { nextui } from '@nextui-org/react'
 import * as fluid from 'fluid-tailwind'
 
 module.exports = {
@@ -7,7 +6,7 @@ module.exports = {
   plugins: [
     fluid.default,
     require('tailwind-scrollbar'),
-    nextui({
+    require('@nextui-org/react').nextui({
       themes: {
         dark: {
           colors: {
