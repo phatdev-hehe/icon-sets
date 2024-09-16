@@ -1,11 +1,35 @@
-// Cac dieu kien them khi xu ly icons
+// Code refactoring
+
+// xoa tham so ko can thiet (ko dat tham so nhu bien,...)
+// han che dung `es-toolkit` (con loi nhieu)
+// neu ham goi di goi lai thi viet ra 1 bien duy nhat!
+// mot so hook khi goi nen dat thanh bien mot lan nua, tranh hook do goi 2 lan :v
+// kt tu khoa: `} = use` de ro hon, viet mot scope rieng la `libs` thay vi dung chung `use`?? (cho de kt)
+
+// cac dieu kien them khi xu ly icons
 // 0 icons, 1 icon, 2 icons
+
+// ten tham so
+// neu nhu tham so ko biet dat ten thi (p1, p2,...)
+// icon => (currentIcon) => currentIcon.name === icon.name
+
+// han che dung `destructuring assignment`
+// vi `icon.name` de nhin hon `name`
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Destructuring_assignment
+
+// hook nen tra ve mot object, vi du:
+// const { bookmarkIcons } = use
+// bookmarkIcons.set, bookmarkIcons.get, bookmarkIcons.clear,...
+
+// uu tien dung mot so keyword sau
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/this
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/get
 
 import useUrlState from '@ahooksjs/use-url-state'
 import { Icon } from '@iconify/react'
 import {
-  getIconContentCSS,
   getIconCSS,
+  getIconContentCSS,
   iconToHTML,
   iconToSVG,
   parseIconSet,
@@ -17,7 +41,6 @@ import {
   Button,
   Card,
   CardFooter,
-  cn,
   Input,
   Link,
   Listbox,
@@ -25,7 +48,8 @@ import {
   ListboxSection,
   NextUIProvider,
   ScrollShadow,
-  Spinner
+  Spinner,
+  cn
 } from '@nextui-org/react'
 import * as HoverCard from '@radix-ui/react-hover-card'
 import { Stars } from '@react-three/drei'
@@ -52,7 +76,7 @@ import * as _ from 'es-toolkit'
 import { size } from 'es-toolkit/compat'
 import { sort } from 'fast-sort'
 import { saveAs } from 'file-saver'
-import { AnimatePresence, domAnimation, LazyMotion, m, useSpring } from 'framer-motion'
+import { AnimatePresence, LazyMotion, domAnimation, m, useSpring } from 'framer-motion'
 import Fuse from 'fuse.js'
 import * as idb from 'idb-keyval'
 import { formatNumber } from 'intl-number-helper'
@@ -85,10 +109,10 @@ import root from 'react-shadow'
 import { useAsync, useLockBodyScroll } from 'react-use'
 import { VirtuosoGrid } from 'react-virtuoso'
 import semver from 'semver'
-import { toast, Toaster } from 'sonner'
+import { Toaster, toast } from 'sonner'
 import sortKeys from 'sort-keys'
 
-import { dependencies } from '../package.json'
+import pkg from '../package.json'
 
 import collections from '/node_modules/@iconify/json/collections.json'
 
@@ -106,9 +130,9 @@ const [atom, cache, locale] = [
 
 const use = {
   async: fn => {
-    const { error, loading, value } = useAsync(fn)
+    const state = useAsync(fn)
 
-    return loading ? 'Loading…' : error ? 'Failed to load data' : value
+    return state.loading ? 'Loading…' : state.error ? 'Loading error' : state.value
   },
   get atom() {
     return { ...useAtomValue(atom), set: useSetAtom(atom) }
@@ -138,6 +162,9 @@ const use = {
     this.toast(copy(text) ? 'Copied' : 'Copy failed', {
       description: this.pluralize(text, 'character')
     })
+  },
+  get cursor() {
+    return useMouse()
   },
   icon(icon) {
     const k = icon.id
@@ -176,9 +203,9 @@ const use = {
       download: {
         filename: `${hasSamePrefix && firstIcon ? firstIcon.setName : this.pluralize(icons, 'icon')}.zip`,
         get fn() {
-          const zip = new JSZip()
-
           return () => {
+            const zip = new JSZip()
+
             for (let icon of icons) {
               icon = use.icon(icon)
 
@@ -219,7 +246,7 @@ const use = {
                 { description: `${windowSize.width} x ${windowSize.height}`, title: 'Size' }
               ],
               ...section('Default', [
-                ['Initial render', isFirstRender],
+                ['First render', isFirstRender],
                 ['Browser', isBrowser],
                 ['Desktop', isDesktop]
               ]),
@@ -232,15 +259,15 @@ const use = {
 
         if (await this.version.isValid()) {
           ;(await this.version.isOutdated()) &&
-            use.toast('Updates available', {
+            use.toast('New version available', {
               action: (
                 <Comp.IconButton
                   icon='line-md:arrow-small-down'
                   onPress={this.clear}
-                  tooltip='Update now'
+                  tooltip='Update'
                 />
               ),
-              description: `${this.version.latest} (${use.pluralize(this.module, 'icon set')})`,
+              description: this.version.latest,
               duration: Number.POSITIVE_INFINITY
             })
 
@@ -343,7 +370,7 @@ const use = {
     },
     get version() {
       const current = async () => await idb.get('version')
-      const latest = semver.valid(semver.coerce(dependencies['@iconify/json']))
+      const latest = semver.valid(semver.coerce(pkg.dependencies['@iconify/json']))
 
       return {
         current,
@@ -376,8 +403,11 @@ const use = {
   get recentlyViewedIcons() {
     return [...cache.values()]
   },
-  relativeTime: t => {
-    useRafInterval(useUpdate(), 60_000)
+  get ref() {
+    return useRef()
+  },
+  relativeTime(t) {
+    useRafInterval(this.update, 60_000)
 
     return dayjs.unix(t).fromNow()
   },
@@ -428,6 +458,9 @@ const use = {
       },
       update: data => toast(message, { ...parseData(data), id })
     }
+  },
+  get update() {
+    return useUpdate()
   },
   get windowSize() {
     return useWindowSize()
@@ -542,8 +575,8 @@ const Comp = {
   },
   HoverCard: ({ align = 'center', children, listbox, tooltip }) => {
     const [state, setState] = useRafState()
-    const ref = useRef()
-    const [x, setX] = [use.spring, v => x.set(v / 4)]
+    const { ref, spring: x } = use
+    const setX = v => x.set(v / 4)
 
     return (
       <HoverCard.Root closeDelay={200} onOpenChange={setState} openDelay={0}>
@@ -691,12 +724,7 @@ const Comp = {
                   <root.div mode='closed'>
                     <span
                       className='icon'
-                      style={{
-                        '--size': '2rem',
-                        color: 'hsl(var(--nextui-foreground))',
-                        height: 'var(--size)',
-                        width: 'var(--size)'
-                      }}
+                      style={{ color: 'hsl(var(--nextui-foreground))', scale: '2' }}
                     />
                     <style>{icon.to.css}</style>
                   </root.div>
@@ -808,7 +836,7 @@ const Comp = {
     </LazyMotion>
   ),
   RecentlyViewedIcons: () => {
-    useSingleEffect(useUpdate())
+    useSingleEffect(use.update)
 
     return <Comp.IconGrid icons={use.recentlyViewedIcons} />
   },
@@ -850,10 +878,7 @@ const Comp = {
         footer={
           <Input
             autoFocus
-            classNames={{
-              inputWrapper: 'border-none',
-              label: state.filteredIcons.count && '!text-foreground-500'
-            }}
+            classNames={{ inputWrapper: 'border-none', label: '!text-foreground-500' }}
             endContent={
               <Comp.IconButton
                 icon='line-md:watch'
@@ -889,7 +914,6 @@ const Comp = {
                 }}
               />
             }
-            isInvalid={!state.filteredIcons.count}
             label={<Comp.MotionPluralize value={state.filteredIcons.count} word='icon' />}
             onValueChange={search => setSearchPattern({ search })}
             placeholder={placeholder}
@@ -903,15 +927,13 @@ const Comp = {
     )
   },
   Stars: () => {
-    const ref = useRef()
+    const { cursor, ref, spring: x, spring: y } = use
     const size = useSize(ref)
-    const mouse = useMouse()
-    const [x, y] = [use.spring, use.spring]
 
     useUpdateEffect(() => {
-      x.set(mouse.clientX / (size.width * 0.5))
-      y.set(mouse.clientY / (size.height * 0.5))
-    }, [mouse.clientX, mouse.clientY])
+      x.set(cursor.clientX / (size.width * 0.5))
+      y.set(cursor.clientY / (size.height * 0.5))
+    }, [cursor.clientX, cursor.clientY])
 
     return (
       <m.div className='fixed inset-0 -z-10 hidden dark:block' ref={ref} style={{ x, y }}>

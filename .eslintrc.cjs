@@ -1,6 +1,7 @@
 // https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint
 // https://marketplace.visualstudio.com/items?itemName=biomejs.biome
 // https://code.visualstudio.com/docs/typescript/typescript-refactoring#_code-actions-on-save
+// https://github.com/jsx-eslint/eslint-plugin-react
 
 module.exports = {
   extends: [
@@ -12,7 +13,6 @@ module.exports = {
   rules: Object.fromEntries(
     // (automatically fixable)
     [
-      'capitalized-comments',
       'dot-notation',
       'eqeqeq',
       'logical-assignment-operators',
@@ -46,6 +46,7 @@ module.exports = {
       'unicode-bom',
       'yoda'
       // 'arrow-body-style'
+      // 'capitalized-comments'
       // 'curly'
       // 'one-var'
       // 'sort-imports'
