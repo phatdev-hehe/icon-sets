@@ -3,25 +3,26 @@
 // xoa tham so ko can thiet (ko dat tham so nhu bien,...)
 // han che dung `es-toolkit` (con loi nhieu)
 // neu ham goi di goi lai thi viet ra 1 bien duy nhat!
-// mot so hook khi goi nen dat thanh bien mot lan nua, tranh hook do goi 2 lan :v
-// kt tu khoa: `} = use` de ro hon, viet mot scope rieng la `libs` thay vi dung chung `use`?? (cho de kt)
+// kt keyword thieu (new, async - await,...)
+// thay vi dung `&&, ||` thi dung dieu kien if cho de hieu `if (true) a = b`
+// cac dieu kien them khi xu ly icons (0 icons, 1 icon, 2 icons)
 
-// cac dieu kien them khi xu ly icons
-// 0 icons, 1 icon, 2 icons
+// khi cap nhat state thi viet `setState(state => state)`, luc nay state luon la gia tri moi
+// https://react.dev/reference/react/useState#updating-state-based-on-the-previous-state
 
 // ten tham so
-// neu nhu tham so ko biet dat ten thi (p1, p2,...)
 // icon => (currentIcon) => currentIcon.name === icon.name
+// neu nhu tham so ko biet dat ten thi (p1, p2,...)
 
 // han che dung `destructuring assignment`
 // vi `icon.name` de nhin hon `name`
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Destructuring_assignment
 
-// hook nen tra ve mot object, vi du:
-// const { bookmarkIcons } = use
-// bookmarkIcons.set, bookmarkIcons.get, bookmarkIcons.clear,...
+// neu co the, nen tra ve mot object
+// const { bookmarkIcons } = use.libs
+// bookmarkIcons.set, bookmarkIcons.get,...
 
-// uu tien dung mot so keyword sau
+// Codebase
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/this
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/get
 
@@ -134,37 +135,12 @@ const use = {
 
     return state.loading ? 'Loading…' : state.error ? 'Loading error' : state.value
   },
-  get atom() {
-    return { ...useAtomValue(atom), set: useSetAtom(atom) }
-  },
   blob: (blobParts, path) => new Blob(blobParts, { type: mime.getType(path) }),
-  get bookmarkIcons() {
-    const [state, setState] = useLocalStorage('bookmark-icons', [])
-
-    return {
-      default: state,
-      has: icon => state.some(currentIcon => currentIcon === icon.id),
-      toggle(icon) {
-        setState(state => {
-          const hasIcon = this.has(icon)
-
-          use.toast(hasIcon ? 'Bookmark removed' : 'Bookmark added')
-
-          return hasIcon
-            ? state.filter(currentIcon => currentIcon !== icon.id)
-            : [...state, icon.id]
-        })
-      }
-    }
-  },
   bytes: value => bytes(value, { decimalPlaces: 1, unitSeparator: ' ' }),
   copy(text) {
     this.toast(copy(text) ? 'Copied' : 'Copy failed', {
       description: this.pluralize(text, 'character')
     })
-  },
-  get cursor() {
-    return useMouse()
   },
   icon(icon) {
     const k = icon.id
@@ -221,15 +197,15 @@ const use = {
   iconSets: {
     clear: async (clear = true) => (clear && (await idb.clear())) || location.reload(),
     get default() {
-      const { atom, isFirstRender, windowSize } = use
+      const { atom, isFirstRender, windowSize } = use.libs
       const [state, setState] = useRafState(true)
 
       useAsyncEffect(async () => {
         if (
           ![isFirstRender, isBrowser, isDesktop, ...Object.values(JSZip.support)].every(Boolean)
         ) {
-          const section = (p1, p2) => ({
-            [p1]: p2.map(([title, isSupported]) => ({
+          const section = (title, items) => ({
+            [title]: items.map(([title, isSupported]) => ({
               description: isSupported ? 'Yes' : 'No',
               isDisabled: !isSupported,
               title
@@ -255,33 +231,21 @@ const use = {
           })
         }
 
-        if (await this.version.isNotFound()) return this.retryToast
+        if (await this.version.isNotFound()) return await this.version.check()
 
         if (await this.version.isValid()) {
-          ;(await this.version.isOutdated()) &&
-            use.toast('New version available', {
-              action: (
-                <Comp.IconButton
-                  icon='line-md:arrow-small-down'
-                  onPress={this.clear}
-                  tooltip='Update'
-                />
-              ),
-              description: this.version.latest,
-              duration: Number.POSITIVE_INFINITY
-            })
+          if (await this.version.isOutdated()) await this.version.check()
 
           setState()
         } else {
           const toast = use.toast('Working on updates', {
-            description: use.pluralize(this.module, 'icon set'),
+            description: use.pluralize(collections, 'icon set'),
             duration: Number.POSITIVE_INFINITY,
             listbox: {
-              '': Object.keys(this.module).map(key => {
-                const iconSet = collections[key]
-
-                return { description: iconSet.author.name, isDisabled: true, title: iconSet.name }
-              })
+              '': Object.values(collections).map(iconSet => ({
+                description: iconSet.author.name,
+                title: iconSet.name
+              }))
             }
           })
 
@@ -290,35 +254,39 @@ const use = {
 
           try {
             await Promise.all(
-              Object.values(this.module).map(async iconSet => {
-                iconSet = quicklyValidateIconSet(await iconSet())
+              Object.entries(import.meta.glob('/node_modules/@iconify/json/json/*')).map(
+                async ([iconSet, module]) => {
+                  if (!(iconSet.slice(33, -5) in collections)) return
 
-                if (!iconSet) throw error
+                  iconSet = quicklyValidateIconSet(await module())
 
-                parseIconSet(iconSet, (name, data) => {
-                  iconSet.icons[name] = data
-                })
+                  if (!iconSet) throw error
 
-                await idb.set(iconSet.prefix, {
-                  author: iconSet.info.author.name,
-                  categories: iconSet.categories,
-                  category: iconSet.info.category ?? 'Uncategorized',
-                  icons: iconSet.icons,
-                  lastModified: iconSet.lastModified,
-                  license: iconSet.info.license.title,
-                  name: iconSet.info.name,
-                  palette: iconSet.info.palette,
-                  prefix: iconSet.prefix,
-                  prefixes: iconSet.prefixes,
-                  suffixes: iconSet.suffixes
-                })
-              })
+                  parseIconSet(iconSet, (name, data) => {
+                    iconSet.icons[name] = data
+                  })
+
+                  await idb.set(iconSet.prefix, {
+                    author: iconSet.info.author.name,
+                    categories: iconSet.categories,
+                    category: iconSet.info.category ?? 'Uncategorized',
+                    icons: iconSet.icons,
+                    lastModified: iconSet.lastModified,
+                    license: iconSet.info.license.title,
+                    name: iconSet.info.name,
+                    palette: iconSet.info.palette,
+                    prefix: iconSet.prefix,
+                    prefixes: iconSet.prefixes,
+                    suffixes: iconSet.suffixes
+                  })
+                }
+              )
             )
 
             await idb.update('version', () => this.version.latest)
-            ;(await this.version.isOutdated()) ? this.retryToast : setState()
+            ;(await this.version.isOutdated()) ? await this.version.check() : setState()
           } catch {
-            this.retryToast
+            await this.version.check()
           } finally {
             toast.dismiss
           }
@@ -351,33 +319,44 @@ const use = {
 
       return null
     },
-    module: mapObject(import.meta.glob('/node_modules/@iconify/json/json/*'), (key, value) => {
-      key = key.slice(33, -5)
-
-      return key in collections ? [key, value] : mapObjectSkip
-    }),
-    get retryToast() {
-      return use.toast('Invalid data', {
-        action: (
-          <Comp.IconButton
-            icon='line-md:rotate-270'
-            onPress={async () => this.clear(await this.version.isOutdated())}
-            tooltip='Try again'
-          />
-        ),
-        duration: Number.POSITIVE_INFINITY
-      })
-    },
     get version() {
       const current = async () => await idb.get('version')
       const latest = semver.valid(semver.coerce(pkg.dependencies['@iconify/json']))
 
+      const difference = async () => {
+        const keys = _.difference(['version', ...Object.keys(collections)], await idb.keys())
+
+        return mapObject(collections, (key, value) =>
+          keys.includes(key) ? [key, value] : mapObjectSkip
+        )
+      }
+
+      const isOutdated = async () => (await current()) !== latest || use.number(await difference())
+
+      const check = async () =>
+        use.toast('Version check', {
+          duration: Number.POSITIVE_INFINITY,
+          listbox: {
+            Actions: [
+              {
+                description: latest,
+                onPress: async () => this.clear(await isOutdated()),
+                title: 'Update now'
+              }
+            ],
+            'Missing icon sets': Object.values(await difference()).map(iconSet => ({
+              description: iconSet.author.name,
+              title: iconSet.name
+            }))
+          }
+        })
+
       return {
+        check,
         current,
+        difference,
         isNotFound: async () => (await current()) === 'not_found',
-        isOutdated: async () =>
-          (await current()) !== latest ||
-          use.number(_.difference(['version', ...Object.keys(this.module)], await idb.keys())),
+        isOutdated,
         isValid: async () => semver.valid(await current()),
         latest
       }
@@ -386,8 +365,50 @@ const use = {
   get id() {
     return nanoid()
   },
-  get isFirstRender() {
-    return useFirstRender()
+  libs: {
+    get atom() {
+      return { ...useAtomValue(atom), set: useSetAtom(atom) }
+    },
+    get bookmarkIcons() {
+      const [state, setState] = useLocalStorage('bookmark-icons', [])
+
+      return {
+        default: state,
+        has: icon => state.some(currentIcon => currentIcon === icon.id),
+        toggle(icon) {
+          setState(state => {
+            const hasIcon = this.has(icon)
+
+            use.toast(hasIcon ? 'Bookmark removed' : 'Bookmark added')
+
+            return hasIcon
+              ? state.filter(currentIcon => currentIcon !== icon.id)
+              : [...state, icon.id]
+          })
+        }
+      }
+    },
+    get cursor() {
+      return useMouse()
+    },
+    get isFirstRender() {
+      return useFirstRender()
+    },
+    get recentlyViewedIcons() {
+      return [...cache.values()]
+    },
+    get ref() {
+      return useRef()
+    },
+    get rerender() {
+      return useUpdate()
+    },
+    get spring() {
+      return useSpring(0)
+    },
+    get windowSize() {
+      return useWindowSize()
+    }
   },
   number: target => (typeof target === 'number' ? target : size(target)),
   openObjectURL: obj => {
@@ -400,14 +421,10 @@ const use = {
 
     return `${pretty ? `${formatNumber(value, locale, 's')} ` : ''}${pluralize(word, value, !pretty)}`
   },
-  get recentlyViewedIcons() {
-    return [...cache.values()]
-  },
-  get ref() {
-    return useRef()
-  },
   relativeTime(t) {
-    useRafInterval(this.update, 60_000)
+    const { rerender } = use.libs
+
+    useRafInterval(rerender, 60_000)
 
     return dayjs.unix(t).fromNow()
   },
@@ -429,9 +446,6 @@ const use = {
       ),
       description: this.bytes(data.size)
     })
-  },
-  get spring() {
-    return useSpring(0)
   },
   toast: (message, data) => {
     const parseData = ({ description, duration, listbox, ...rest } = {}) => ({
@@ -458,12 +472,6 @@ const use = {
       },
       update: data => toast(message, { ...parseData(data), id })
     }
-  },
-  get update() {
-    return useUpdate()
-  },
-  get windowSize() {
-    return useWindowSize()
   }
 }
 
@@ -471,7 +479,7 @@ const Comp = {
   EndlessIcons: () => {
     const size = 100
     const sizes = _.range(size, 1_000 + size, size)
-    const { atom } = use
+    const { atom } = use.libs
     const [state, setState] = useSetState({ icons: [], size })
 
     const fetchMoreIcons = () =>
@@ -575,7 +583,7 @@ const Comp = {
   },
   HoverCard: ({ align = 'center', children, listbox, tooltip }) => {
     const [state, setState] = useRafState()
-    const { ref, spring: x } = use
+    const { ref, spring: x } = use.libs
     const setX = v => x.set(v / 4)
 
     return (
@@ -637,7 +645,7 @@ const Comp = {
     </Comp.HoverCard>
   ),
   IconGrid: ({ footer, footerRight, icons, ...props }) => {
-    const { atom, bookmarkIcons } = use
+    const { atom, bookmarkIcons } = use.libs
     const [state, setState] = useRafState()
 
     if (icons.some(icon => typeof icon === 'string'))
@@ -836,14 +844,28 @@ const Comp = {
     </LazyMotion>
   ),
   RecentlyViewedIcons: () => {
-    useSingleEffect(use.update)
+    const { recentlyViewedIcons, rerender } = use.libs
+    const [state, setState] = useRafState()
 
-    return <Comp.IconGrid icons={use.recentlyViewedIcons} />
+    useSingleEffect(rerender)
+
+    return (
+      <Comp.IconGrid
+        footerRight={
+          <Comp.IconButton
+            icon='line-md:round-360'
+            onPress={() => setState(state => !state)}
+            tooltip='Reload'
+          />
+        }
+        icons={useCreation(() => recentlyViewedIcons, [state])}
+      />
+    )
   },
   SearchIcons: () => {
     const placeholder = 'Search'
     const initialValue = { default: [], download: {} }
-    const { atom } = use
+    const { atom } = use.libs
     const fuse = useCreation(() => new Fuse(atom.allIcons, { keys: ['name'], threshold: 0 }))
     const [state, setState] = useSetState({ filteredIcons: initialValue, icons: initialValue })
 
@@ -927,7 +949,7 @@ const Comp = {
     )
   },
   Stars: () => {
-    const { cursor, ref, spring: x, spring: y } = use
+    const { cursor, ref, spring: x, spring: y } = use.libs
     const size = useSize(ref)
 
     useUpdateEffect(() => {
@@ -947,7 +969,7 @@ const Comp = {
 }
 
 export default () => {
-  const { atom, bookmarkIcons } = use
+  const { atom, bookmarkIcons, recentlyViewedIcons } = use.libs
   const [state, setState] = useRafState(0)
 
   use.iconSets.default
@@ -971,7 +993,7 @@ export default () => {
                       ],
                       ['Endless scrolling', 'Hehe'],
                       ['Bookmarks', use.pluralize(bookmarkIcons.default, 'icon', true)],
-                      ['Recently viewed', use.pluralize(use.recentlyViewedIcons, 'icon', true)]
+                      ['Recently viewed', use.pluralize(recentlyViewedIcons, 'icon', true)]
                     ].map(([title, description], index) => ({
                       description,
                       isActive: state === index,
