@@ -19,7 +19,7 @@
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Destructuring_assignment
 
 // neu co the, nen tra ve mot object
-// const { bookmarkIcons } = use.libs
+// const { bookmarkIcons } = use.modules
 // bookmarkIcons.set, bookmarkIcons.get,...
 
 // Codebase
@@ -194,178 +194,10 @@ const use = {
       }
     }
   },
-  iconSets: {
-    clear: async (clear = true) => (clear && (await idb.clear())) || location.reload(),
-    get default() {
-      const { atom, isFirstRender, windowSize } = use.libs
-      const [state, setState] = useRafState(true)
-
-      useAsyncEffect(async () => {
-        if (
-          ![isFirstRender, isBrowser, isDesktop, ...Object.values(JSZip.support)].every(Boolean)
-        ) {
-          const section = (title, items) => ({
-            [title]: items.map(([title, isSupported]) => ({
-              description: isSupported ? 'Yes' : 'No',
-              isDisabled: !isSupported,
-              title
-            }))
-          })
-
-          return use.toast('Your browser is not supported', {
-            duration: Number.POSITIVE_INFINITY,
-            listbox: {
-              Info: [
-                { description: osVersion, title: osName },
-                { description: browserVersion, title: browserName },
-                { description: engineVersion, title: engineName },
-                { description: `${windowSize.width} x ${windowSize.height}`, title: 'Size' }
-              ],
-              ...section('Default', [
-                ['First render', isFirstRender],
-                ['Browser', isBrowser],
-                ['Desktop', isDesktop]
-              ]),
-              ...section(`JSZip ${JSZip.version}`, Object.entries(JSZip.support))
-            }
-          })
-        }
-
-        if (await this.version.isNotFound()) return await this.version.check()
-
-        if (await this.version.isValid()) {
-          if (await this.version.isOutdated()) await this.version.check()
-
-          setState()
-        } else {
-          const toast = use.toast('Working on updates', {
-            description: use.pluralize(collections, 'icon set'),
-            duration: Number.POSITIVE_INFINITY,
-            listbox: {
-              '': Object.values(collections).map(iconSet => ({
-                description: iconSet.author.name,
-                title: iconSet.name
-              }))
-            }
-          })
-
-          await idb.clear()
-          await idb.set('version', 'not_found')
-
-          try {
-            await Promise.all(
-              Object.entries(import.meta.glob('/node_modules/@iconify/json/json/*')).map(
-                async ([iconSet, module]) => {
-                  if (!(iconSet.slice(33, -5) in collections)) return
-
-                  iconSet = quicklyValidateIconSet(await module())
-
-                  if (!iconSet) throw error
-
-                  parseIconSet(iconSet, (name, data) => {
-                    iconSet.icons[name] = data
-                  })
-
-                  await idb.set(iconSet.prefix, {
-                    author: iconSet.info.author.name,
-                    categories: iconSet.categories,
-                    category: iconSet.info.category ?? 'Uncategorized',
-                    icons: iconSet.icons,
-                    lastModified: iconSet.lastModified,
-                    license: iconSet.info.license.title,
-                    name: iconSet.info.name,
-                    palette: iconSet.info.palette,
-                    prefix: iconSet.prefix,
-                    prefixes: iconSet.prefixes,
-                    suffixes: iconSet.suffixes
-                  })
-                }
-              )
-            )
-
-            await idb.update('version', () => this.version.latest)
-            ;(await this.version.isOutdated()) ? await this.version.check() : setState()
-          } catch {
-            await this.version.check()
-          } finally {
-            toast.dismiss
-          }
-        }
-      }, [])
-
-      useAsyncEffect(async () => {
-        if (state) return
-
-        const allIconSets = mapObject(Object.fromEntries(await idb.entries()), (key, iconSet) => {
-          if (key === 'version') return mapObjectSkip
-
-          iconSet.icons = Object.entries(iconSet.icons).map(([name, data]) => ({
-            data,
-            id: `${iconSet.prefix}:${name}`,
-            name,
-            prefix: iconSet.prefix,
-            setName: iconSet.name
-          }))
-
-          return [key, iconSet]
-        })
-
-        atom.set(draft => {
-          draft.allIcons = Object.values(allIconSets).flatMap(iconSet => iconSet.icons)
-          draft.allIconSets = allIconSets
-          draft.hasData = !state
-        })
-      }, [state])
-
-      return null
-    },
-    get version() {
-      const current = async () => await idb.get('version')
-      const latest = semver.valid(semver.coerce(pkg.dependencies['@iconify/json']))
-
-      const difference = async () => {
-        const keys = _.difference(['version', ...Object.keys(collections)], await idb.keys())
-
-        return mapObject(collections, (key, value) =>
-          keys.includes(key) ? [key, value] : mapObjectSkip
-        )
-      }
-
-      const isOutdated = async () => (await current()) !== latest || use.number(await difference())
-
-      const check = async () =>
-        use.toast('Version check', {
-          duration: Number.POSITIVE_INFINITY,
-          listbox: {
-            Actions: [
-              {
-                description: latest,
-                onPress: async () => this.clear(await isOutdated()),
-                title: 'Update now'
-              }
-            ],
-            'Missing icon sets': Object.values(await difference()).map(iconSet => ({
-              description: iconSet.author.name,
-              title: iconSet.name
-            }))
-          }
-        })
-
-      return {
-        check,
-        current,
-        difference,
-        isNotFound: async () => (await current()) === 'not_found',
-        isOutdated,
-        isValid: async () => semver.valid(await current()),
-        latest
-      }
-    }
-  },
   get id() {
     return nanoid()
   },
-  libs: {
+  modules: {
     get atom() {
       return { ...useAtomValue(atom), set: useSetAtom(atom) }
     },
@@ -388,8 +220,174 @@ const use = {
         }
       }
     },
-    get cursor() {
-      return useMouse()
+    iconSets: {
+      clear: async (clear = true) => (clear && (await idb.clear())) || location.reload(),
+      get get() {
+        const { atom, isFirstRender, windowSize } = use.modules
+        const [state, setState] = useRafState(true)
+
+        useAsyncEffect(async () => {
+          if (
+            ![isFirstRender, isBrowser, isDesktop, ...Object.values(JSZip.support)].every(Boolean)
+          ) {
+            const section = (title, items) => ({
+              [title]: items.map(([title, isSupported]) => ({
+                description: isSupported ? 'Yes' : 'No',
+                isDisabled: !isSupported,
+                title
+              }))
+            })
+
+            return use.toast('Your browser is not supported', {
+              duration: Number.POSITIVE_INFINITY,
+              listbox: {
+                Info: [
+                  { description: osVersion, title: osName },
+                  { description: browserVersion, title: browserName },
+                  { description: engineVersion, title: engineName },
+                  { description: `${windowSize.width} x ${windowSize.height}`, title: 'Size' }
+                ],
+                ...section('Default', [
+                  ['First render', isFirstRender],
+                  ['Browser', isBrowser],
+                  ['Desktop', isDesktop]
+                ]),
+                ...section(`JSZip ${JSZip.version}`, Object.entries(JSZip.support))
+              }
+            })
+          }
+
+          if (await this.version.isNotFound()) return await this.version.check()
+
+          if (await this.version.isValid()) {
+            if (await this.version.isOutdated()) await this.version.check()
+
+            setState()
+          } else {
+            const toast = use.toast('Working on updates', {
+              description: use.pluralize(collections, 'icon set'),
+              duration: Number.POSITIVE_INFINITY,
+              listbox: {
+                '': Object.values(collections).map(iconSet => ({
+                  description: iconSet.author.name,
+                  title: iconSet.name
+                }))
+              }
+            })
+
+            await idb.clear()
+            await idb.set('version', 'not_found')
+
+            try {
+              await Promise.all(
+                Object.entries(import.meta.glob('/node_modules/@iconify/json/json/*')).map(
+                  async ([iconSet, getIconSet]) => {
+                    if (!(iconSet.slice(33, -5) in collections)) return
+
+                    iconSet = quicklyValidateIconSet(await getIconSet())
+
+                    if (!iconSet) throw error
+
+                    parseIconSet(iconSet, (name, data) => {
+                      iconSet.icons[name] = data
+                    })
+
+                    await idb.set(iconSet.prefix, {
+                      author: iconSet.info.author.name,
+                      categories: iconSet.categories,
+                      category: iconSet.info.category ?? 'Uncategorized',
+                      icons: iconSet.icons,
+                      lastModified: iconSet.lastModified,
+                      license: iconSet.info.license.title,
+                      name: iconSet.info.name,
+                      palette: iconSet.info.palette,
+                      prefix: iconSet.prefix,
+                      prefixes: iconSet.prefixes,
+                      suffixes: iconSet.suffixes
+                    })
+                  }
+                )
+              )
+
+              await idb.update('version', () => this.version.latest)
+              ;(await this.version.isOutdated()) ? await this.version.check() : setState()
+            } catch {
+              await this.version.check()
+            } finally {
+              toast.dismiss
+            }
+          }
+        }, [])
+
+        useAsyncEffect(async () => {
+          if (state) return
+
+          const allIconSets = mapObject(Object.fromEntries(await idb.entries()), (key, iconSet) => {
+            if (key === 'version') return mapObjectSkip
+
+            iconSet.icons = Object.entries(iconSet.icons).map(([name, data]) => ({
+              data,
+              id: `${iconSet.prefix}:${name}`,
+              name,
+              prefix: iconSet.prefix,
+              setName: iconSet.name
+            }))
+
+            return [key, iconSet]
+          })
+
+          atom.set(draft => {
+            draft.allIcons = Object.values(allIconSets).flatMap(iconSet => iconSet.icons)
+            draft.allIconSets = allIconSets
+            draft.hasData = !state
+          })
+        }, [state])
+
+        return null
+      },
+      get version() {
+        const current = async () => await idb.get('version')
+        const latest = semver.valid(semver.coerce(pkg.dependencies['@iconify/json']))
+
+        const difference = async () => {
+          const keys = _.difference(['version', ...Object.keys(collections)], await idb.keys())
+
+          return mapObject(collections, (key, value) =>
+            keys.includes(key) ? [key, value] : mapObjectSkip
+          )
+        }
+
+        const isOutdated = async () =>
+          (await current()) !== latest || use.number(await difference())
+
+        const check = async () =>
+          use.toast('Version check', {
+            duration: Number.POSITIVE_INFINITY,
+            listbox: {
+              Actions: [
+                {
+                  description: latest,
+                  onPress: async () => this.clear(await isOutdated()),
+                  title: 'Update now'
+                }
+              ],
+              'Missing icon sets': Object.values(await difference()).map(iconSet => ({
+                description: iconSet.author.name,
+                title: iconSet.name
+              }))
+            }
+          })
+
+        return {
+          check,
+          current,
+          difference,
+          isNotFound: async () => (await current()) === 'not_found',
+          isOutdated,
+          isValid: async () => semver.valid(await current()),
+          latest
+        }
+      }
     },
     get isFirstRender() {
       return useFirstRender()
@@ -406,6 +404,9 @@ const use = {
     get spring() {
       return useSpring(0)
     },
+    get windowCursor() {
+      return useMouse()
+    },
     get windowSize() {
       return useWindowSize()
     }
@@ -414,7 +415,7 @@ const use = {
   openObjectURL: obj => {
     const url = URL.createObjectURL(obj)
 
-    open(url) && URL.revokeObjectURL(url)
+    if (open(url)) URL.revokeObjectURL(url)
   },
   pluralize(value, word, pretty) {
     value = this.number(value)
@@ -422,7 +423,7 @@ const use = {
     return `${pretty ? `${formatNumber(value, locale, 's')} ` : ''}${pluralize(word, value, !pretty)}`
   },
   relativeTime(t) {
-    const { rerender } = use.libs
+    const { rerender } = use.modules
 
     useRafInterval(rerender, 60_000)
 
@@ -479,7 +480,7 @@ const Comp = {
   EndlessIcons: () => {
     const size = 100
     const sizes = _.range(size, 1_000 + size, size)
-    const { atom } = use.libs
+    const { atom } = use.modules
     const [state, setState] = useSetState({ icons: [], size })
 
     const fetchMoreIcons = () =>
@@ -583,7 +584,7 @@ const Comp = {
   },
   HoverCard: ({ align = 'center', children, listbox, tooltip }) => {
     const [state, setState] = useRafState()
-    const { ref, spring: x } = use.libs
+    const { ref, spring: x } = use.modules
     const setX = v => x.set(v / 4)
 
     return (
@@ -644,8 +645,8 @@ const Comp = {
       </Link>
     </Comp.HoverCard>
   ),
-  IconGrid: ({ footer, footerRight, icons, ...props }) => {
-    const { atom, bookmarkIcons } = use.libs
+  IconGrid: ({ footer, footerRight, icons, ...rest }) => {
+    const { atom, bookmarkIcons } = use.modules
     const [state, setState] = useRafState()
 
     if (icons.some(icon => typeof icon === 'string'))
@@ -742,7 +743,7 @@ const Comp = {
           }}
           listClassName='flex-center flex-wrap h-auto'
           scrollSeekConfiguration={{ enter: v => Math.abs(v) > 300, exit: v => v === 0 }}
-          {...props}
+          {...rest}
         />
         <CardFooter style={{ height: 'var(--footer-height)' }}>
           {footer ?? (
@@ -795,7 +796,7 @@ const Comp = {
     <Listbox aria-label={use.id} variant='light'>
       {Object.entries(sections).map(([title, items], index) => (
         <ListboxSection key={use.id} showDivider={index !== use.number(sections) - 1} title={title}>
-          {items.map(({ color = 'primary', descriptions = [], isActive, title, ...props }) => (
+          {items.map(({ color = 'primary', descriptions = [], isActive, title, ...rest }) => (
             <ListboxItem
               classNames={{ title: isActive && `text-${color}` }}
               color={isActive ? color : ''}
@@ -804,7 +805,7 @@ const Comp = {
               }
               key={use.id}
               textValue={use.id}
-              {...props}>
+              {...rest}>
               {title}
             </ListboxItem>
           ))}
@@ -844,7 +845,7 @@ const Comp = {
     </LazyMotion>
   ),
   RecentlyViewedIcons: () => {
-    const { recentlyViewedIcons, rerender } = use.libs
+    const { recentlyViewedIcons, rerender } = use.modules
     const [state, setState] = useRafState()
 
     useSingleEffect(rerender)
@@ -865,7 +866,7 @@ const Comp = {
   SearchIcons: () => {
     const placeholder = 'Search'
     const initialValue = { default: [], download: {} }
-    const { atom } = use.libs
+    const { atom } = use.modules
     const fuse = useCreation(() => new Fuse(atom.allIcons, { keys: ['name'], threshold: 0 }))
     const [state, setState] = useSetState({ filteredIcons: initialValue, icons: initialValue })
 
@@ -949,13 +950,13 @@ const Comp = {
     )
   },
   Stars: () => {
-    const { cursor, ref, spring: x, spring: y } = use.libs
+    const { ref, spring: x, spring: y, windowCursor } = use.modules
     const size = useSize(ref)
 
     useUpdateEffect(() => {
-      x.set(cursor.clientX / (size.width * 0.5))
-      y.set(cursor.clientY / (size.height * 0.5))
-    }, [cursor.clientX, cursor.clientY])
+      x.set(windowCursor.clientX / (size.width * 0.5))
+      y.set(windowCursor.clientY / (size.height * 0.5))
+    }, [windowCursor.clientX, windowCursor.clientY])
 
     return (
       <m.div className='fixed inset-0 -z-10 hidden dark:block' ref={ref} style={{ x, y }}>
@@ -969,10 +970,10 @@ const Comp = {
 }
 
 export default () => {
-  const { atom, bookmarkIcons, recentlyViewedIcons } = use.libs
+  const { atom, bookmarkIcons, iconSets, recentlyViewedIcons } = use.modules
   const [state, setState] = useRafState(0)
 
-  use.iconSets.default
+  iconSets.get
   useLockBodyScroll(true)
 
   return (
@@ -986,7 +987,7 @@ export default () => {
               render={({ resolvedTheme, setTheme }) => (
                 <Comp.Listbox
                   sections={{
-                    [use.async(use.iconSets.version.current)]: [
+                    [use.async(iconSets.version.current)]: [
                       [
                         use.pluralize(atom.allIconSets, 'icon set'),
                         use.pluralize(atom.allIcons, 'icon', true)
@@ -1041,7 +1042,7 @@ export default () => {
                         color: 'warning',
                         description: use.bytes(use.async(() => navigator.storage.estimate()).usage),
                         isActive: true,
-                        onPress: use.iconSets.clear,
+                        onPress: iconSets.clear,
                         title: 'Clear data'
                       }
                     ]
