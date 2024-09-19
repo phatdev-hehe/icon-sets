@@ -29,8 +29,8 @@
 import useUrlState from '@ahooksjs/use-url-state'
 import { Icon } from '@iconify/react'
 import {
-  getIconCSS,
   getIconContentCSS,
+  getIconCSS,
   iconToHTML,
   iconToSVG,
   parseIconSet,
@@ -42,6 +42,7 @@ import {
   Button,
   Card,
   CardFooter,
+  cn,
   Input,
   Link,
   Listbox,
@@ -49,8 +50,7 @@ import {
   ListboxSection,
   NextUIProvider,
   ScrollShadow,
-  Spinner,
-  cn
+  Spinner
 } from '@nextui-org/react'
 import * as HoverCard from '@radix-ui/react-hover-card'
 import { Stars } from '@react-three/drei'
@@ -77,7 +77,7 @@ import * as _ from 'es-toolkit'
 import { size } from 'es-toolkit/compat'
 import { sort } from 'fast-sort'
 import { saveAs } from 'file-saver'
-import { AnimatePresence, LazyMotion, domAnimation, m, useSpring } from 'framer-motion'
+import { AnimatePresence, domAnimation, LazyMotion, m, useSpring } from 'framer-motion'
 import Fuse from 'fuse.js'
 import * as idb from 'idb-keyval'
 import { formatNumber } from 'intl-number-helper'
@@ -110,7 +110,7 @@ import root from 'react-shadow'
 import { useAsync, useLockBodyScroll } from 'react-use'
 import { VirtuosoGrid } from 'react-virtuoso'
 import semver from 'semver'
-import { Toaster, toast } from 'sonner'
+import { toast, Toaster } from 'sonner'
 import sortKeys from 'sort-keys'
 
 import pkg from '../package.json'
