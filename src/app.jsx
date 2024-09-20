@@ -1,26 +1,29 @@
 // Code refactoring
 
-// xoa tham so ko can thiet (ko dat tham so nhu bien,...)
-// han che dung `es-toolkit` (con loi nhieu)
+// ko dat tham so nhu mot bien
+// han che dung es-toolkit (con loi nhieu)
 // neu ham goi di goi lai thi viet ra 1 bien duy nhat!
 // kt keyword thieu (new, async - await,...)
-// thay vi dung `&&, ||` thi dung dieu kien if cho de hieu `if (true) a = b`
+// thay vi dung &&, || thi dung dieu kien if cho de hieu `if (true) a = b`
 // cac dieu kien them khi xu ly icons (0 icons, 1 icon, 2 icons)
 
 // khi cap nhat state thi viet `setState(state => state)`, luc nay state luon la gia tri moi
 // https://react.dev/reference/react/useState#updating-state-based-on-the-previous-state
 
-// ten tham so
+// quy uoc dat ten tham so
 // icon => (currentIcon) => currentIcon.name === icon.name
 // neu nhu tham so ko biet dat ten thi (p1, p2,...)
 
-// han che dung `destructuring assignment`
-// vi `icon.name` de nhin hon `name`
+// han che dung (destructuring assignment)
+// vi (icon.name) de nhin hon (name)
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Destructuring_assignment
 
-// neu co the, nen tra ve mot object
+// API nen tra ve mot object
 // const { bookmarkIcons } = use.modules
 // bookmarkIcons.set, bookmarkIcons.get,...
+
+// Code chay nhu the nao?
+// ?? (ghi chu va giai thich)
 
 // Codebase
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/this
@@ -444,8 +447,8 @@ const use = {
       description: this.bytes(data.size)
     })
   },
-  toast: (message, data) => {
-    const parseData = ({ description, duration, listbox, ...rest } = {}) => ({
+  toast: (message, data = {}) => {
+    const parseData = ({ description, duration, listbox, ...rest }) => ({
       description: (
         <>
           {description}
@@ -507,24 +510,27 @@ const Comp = {
     )
   },
   FilterIcons: iconSet => {
-    const initialState = { category: false, theme: false }
+    const initialState = { category: null, variant: null }
     const [state, setState] = useSetState(initialState)
-    const isValid = key => typeof state[key] === 'string'
+    const isSelected = key => typeof state[key] === 'string'
 
     iconSet = structuredClone(iconSet)
-    iconSet.theme = iconSet.prefixes ?? iconSet.suffixes ?? {}
+    iconSet.variants = iconSet.prefixes ?? iconSet.suffixes ?? {}
+    iconSet.has = { categories: has(iconSet.categories), variants: has(iconSet.variants) }
 
     iconSet.icons = use.icons(
       iconSet.icons.filter(icon => {
-        const isMatch = (theme = state.theme) =>
+        const matchesVariant = (variant = state.variant) =>
           icon.name[iconSet.prefixes ? 'startsWith' : 'endsWith'](
-            iconSet.prefixes ? `${theme}-` : `-${theme}`
+            iconSet.prefixes ? `${variant}-` : `-${variant}`
           )
 
         return (
-          (!isValid('category') || iconSet.categories?.[state.category]?.includes(icon.name)) &&
-          (!isValid('theme') ||
-            (state.theme === '' ? !Object.keys(iconSet.theme).some(isMatch) : isMatch()))
+          (!isSelected('category') || iconSet.categories?.[state.category]?.includes(icon.name)) &&
+          (!isSelected('variant') ||
+            (state.variant === ''
+              ? !Object.keys(iconSet.variants).some(matchesVariant)
+              : matchesVariant()))
         )
       })
     )
@@ -537,20 +543,20 @@ const Comp = {
     return (
       <Comp.IconGrid
         footerRight={
-          (has(iconSet.theme) || has(iconSet.categories) || null) && (
+          (iconSet.has.variants || iconSet.has.categories || null) && (
             <Comp.IconButton
               icon={isEqual(state, initialState) ? 'line-md:filter' : 'line-md:filter-filled'}
               listbox={{
-                ...(iconSet.theme && {
-                  [use.pluralize(iconSet.theme, 'theme')]: Object.entries(iconSet.theme).map(
-                    ([theme, title, isActive = state.theme === theme]) => ({
-                      isActive,
-                      onPress: () => setState({ theme: !isActive && theme }),
-                      title
-                    })
-                  )
+                ...(iconSet.has.variants && {
+                  [use.pluralize(iconSet.variants, 'variant')]: Object.entries(
+                    iconSet.variants
+                  ).map(([variant, title, isActive = state.variant === variant]) => ({
+                    isActive,
+                    onPress: () => setState({ variant: !isActive && variant }),
+                    title
+                  }))
                 }),
-                ...(iconSet.categories && {
+                ...(iconSet.has.categories && {
                   [use.pluralize(iconSet.categories, 'category')]: Object.keys(
                     iconSet.categories
                   ).map(category => {
