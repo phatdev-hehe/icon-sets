@@ -41,7 +41,6 @@ import {
   replaceIDs
 } from '@iconify/utils'
 import {
-  Avatar,
   Button,
   Card,
   CardFooter,
@@ -678,8 +677,8 @@ const Comp = {
               const icon = icons.default[index]
 
               return (
-                <div className='flex-center' style={style}>
-                  <Avatar classNames={{ base: 'bg-background' }} name={icon.name} size='lg' />
+                <div className='flex-center text-foreground-500' style={style}>
+                  {icon.name.slice(0, 3)}
                 </div>
               )
             }
@@ -695,7 +694,7 @@ const Comp = {
                   [`#${index + 1}`]: [
                     {
                       description: icon.setName,
-                      onPress: () => use.copy(icon.id),
+                      onPress: () => use.copy(icon.name),
                       title: icon.name
                     }
                   ],
