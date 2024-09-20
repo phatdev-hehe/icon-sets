@@ -79,6 +79,7 @@ import { sort } from 'fast-sort'
 import { saveAs } from 'file-saver'
 import { AnimatePresence, domAnimation, LazyMotion, m, useSpring } from 'framer-motion'
 import Fuse from 'fuse.js'
+import has from 'has-values'
 import * as idb from 'idb-keyval'
 import { formatNumber } from 'intl-number-helper'
 import { useAtomValue, useSetAtom } from 'jotai'
@@ -174,7 +175,7 @@ const use = {
     const hasSamePrefix = icons.every(icon => icon.prefix === firstIcon.prefix)
 
     return {
-      count: this.number(icons),
+      count: size(icons),
       default: icons,
       download: {
         filename: `${hasSamePrefix && firstIcon ? firstIcon.setName : this.pluralize(icons, 'icon')}.zip`,
@@ -357,19 +358,14 @@ const use = {
           )
         }
 
-        const isOutdated = async () =>
-          (await current()) !== latest || use.number(await difference())
+        const isOutdated = async () => (await current()) !== latest || has(await difference())
 
         const check = async () =>
           use.toast('Version check', {
             duration: Number.POSITIVE_INFINITY,
             listbox: {
-              Actions: [
-                {
-                  description: latest,
-                  onPress: async () => this.clear(await isOutdated()),
-                  title: 'Update now'
-                }
+              [latest]: [
+                { onPress: async () => this.clear(await isOutdated()), title: 'Update now' }
               ],
               'Missing icon sets': Object.values(await difference()).map(iconSet => ({
                 description: iconSet.author.name,
@@ -411,7 +407,7 @@ const use = {
       return useWindowSize()
     }
   },
-  number: target => (typeof target === 'number' ? target : size(target)),
+  number: value => (typeof value === 'number' ? value : size(value)),
   openObjectURL: obj => {
     const url = URL.createObjectURL(obj)
 
@@ -541,7 +537,7 @@ const Comp = {
     return (
       <Comp.IconGrid
         footerRight={
-          (use.number(iconSet.theme) || use.number(iconSet.categories) || null) && (
+          (has(iconSet.theme) || has(iconSet.categories) || null) && (
             <Comp.IconButton
               icon={isEqual(state, initialState) ? 'line-md:filter' : 'line-md:filter-filled'}
               listbox={{
@@ -795,7 +791,7 @@ const Comp = {
   Listbox: ({ sections }) => (
     <Listbox aria-label={use.id} variant='light'>
       {Object.entries(sections).map(([title, items], index) => (
-        <ListboxSection key={use.id} showDivider={index !== use.number(sections) - 1} title={title}>
+        <ListboxSection key={use.id} showDivider={index !== size(sections) - 1} title={title}>
           {items.map(({ color = 'primary', descriptions = [], isActive, title, ...rest }) => (
             <ListboxItem
               classNames={{ title: isActive && `text-${color}` }}
@@ -881,9 +877,7 @@ const Comp = {
         state.icons.default.filter(icon => icon.prefix === iconSet.prefix)
       ])
 
-      return sortKeys(listbox, {
-        compare: (a, b) => use.number(listbox[b]) - use.number(listbox[a])
-      })
+      return sortKeys(listbox, { compare: (a, b) => size(listbox[b]) - size(listbox[a]) })
     }, [state.icons])
 
     useDebounceEffect(
@@ -1005,7 +999,7 @@ export default () => {
                       mapObject(
                         Object.groupBy(Object.values(atom.allIconSets), ({ category }) => category),
                         (category, iconSets) => [
-                          `${category} (${use.number(iconSets)})`,
+                          `${category} (${size(iconSets)})`,
                           sort(iconSets)
                             .asc('name')
                             .map(iconSet => ({
