@@ -32,7 +32,6 @@ import { sort } from 'fast-sort'
 import has from 'has-values'
 import * as idb from 'idb-keyval'
 import mapObject, { mapObjectSkip } from 'map-obj'
-import { useTheme } from 'next-themes'
 import {
   browserName,
   browserVersion,
@@ -70,6 +69,7 @@ import { Providers } from './providers'
 import { getRecentlyViewedIcons, RecentlyViewedIcons } from './recently-viewed-icons'
 import { SearchIcons } from './search-icons'
 import Stars from './stars'
+import { Theme } from './theme'
 import toast from './toast'
 
 import collections from '/node_modules/@iconify/json/collections.json'
@@ -253,10 +253,6 @@ const use = {
   }
 }
 
-const Comp = {
-  Theme: ({ render }) => render(useTheme())
-}
-
 const App = () => {
   const { iconSets } = use.modules
   const bookmarkIcons = getBookmarkIcons()
@@ -273,7 +269,7 @@ const App = () => {
           className='card !~w-[50rem]/[66rem] lg:~lg:!~h-[50rem]/[38rem]'
           direction='horizontal'>
           <Panel className='py-2' defaultSize={25} maxSize={25}>
-            <Comp.Theme
+            <Theme
               render={({ resolvedTheme, setTheme }) => (
                 <Listbox
                   sections={{
@@ -359,7 +355,7 @@ const App = () => {
         <Spinner label='Loading…' />
       )}
       <Stars />
-      <Comp.Theme
+      <Theme
         render={({ resolvedTheme }) => (
           <Toaster
             className='z-auto'

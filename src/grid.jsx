@@ -25,7 +25,7 @@ export const Grid = ({ footer, footerRight, icons, ...rest }) => {
   const [state, setState] = useRafState()
   const bookmarkIcons = getBookmarkIcons()
 
-  if (icons.some(icon => is.string(icon))) icons = all.icons.filter(icon => icons.includes(icon.id))
+  if (icons.some(is.string)) icons = all.icons.filter(icon => icons.includes(icon.id))
 
   if (state) icons = sort(icons).by(state)
 

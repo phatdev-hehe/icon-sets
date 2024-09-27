@@ -2,6 +2,7 @@ import is from '@sindresorhus/is'
 import { useDeepCompareEffect, useSetState } from 'ahooks'
 import has from 'has-values'
 import isEqual from 'react-fast-compare'
+import rfdc from 'rfdc/default'
 
 import { Grid } from './grid'
 import { IconButton } from './icon-button'
@@ -11,9 +12,8 @@ import { wrapIcons } from './wrap-icons'
 export const FilterIcons = iconSet => {
   const initialState = { category: null, variant: null }
   const [state, setState] = useSetState(initialState)
-  const isSelected = key => is.string(state[key])
 
-  iconSet = structuredClone(iconSet)
+  iconSet = rfdc(iconSet)
   iconSet.variants = iconSet.prefixes ?? iconSet.suffixes ?? {}
   iconSet.has = { categories: has(iconSet.categories), variants: has(iconSet.variants) }
 
@@ -25,8 +25,8 @@ export const FilterIcons = iconSet => {
         )
 
       return (
-        (!isSelected('category') || iconSet.categories?.[state.category]?.includes(icon.name)) &&
-        (!isSelected('variant') ||
+        (!is.string(state.category) || iconSet.categories?.[state.category]?.includes(icon.name)) &&
+        (!is.string(state.variant) ||
           (state.variant === ''
             ? !Object.keys(iconSet.variants).some(matchesVariant)
             : matchesVariant()))
