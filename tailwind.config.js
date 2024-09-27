@@ -1,10 +1,10 @@
-import * as fluid from 'fluid-tailwind'
+import fluid, { extract, fontSize, screens } from 'fluid-tailwind'
 
 module.exports = {
-  content: { extract: fluid.extract, files: ['src/*', 'node_modules/@nextui-org/theme/dist/*'] },
+  content: { extract, files: ['src/**', 'node_modules/@nextui-org/theme/dist/*'] },
   darkMode: 'class',
   plugins: [
-    fluid.default,
+    fluid,
     require('tailwind-scrollbar'),
     require('@nextui-org/react').nextui({
       themes: {
@@ -27,5 +27,5 @@ module.exports = {
       }
     })
   ],
-  theme: { fontSize: fluid.fontSize, screens: fluid.screens }
+  theme: { fontSize, screens }
 }
