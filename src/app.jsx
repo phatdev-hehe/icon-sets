@@ -51,24 +51,24 @@ import { Toaster } from 'sonner'
 import sortKeys from 'sort-keys'
 
 import pkg from '../package.json'
-import bytes from './js/bytes'
-import delay from './js/delay'
-import { EndlessIcons } from './js/endless-icons'
-import { FilterIcons } from './js/filter-icons'
-import { getAsyncValue } from './js/get-async-value'
-import { getAtom } from './js/get-atom'
-import { getBookmarkIcons } from './js/get-bookmark-icons'
-import { getRelativeTime } from './js/get-relative-time'
-import { Grid } from './js/grid'
-import { JSZip } from './js/jszip'
-import Listbox from './js/listbox'
-import { number } from './js/number'
-import pluralize from './js/pluralize'
-import { Providers } from './js/providers'
-import { getRecentlyViewedIcons, RecentlyViewedIcons } from './js/recently-viewed-icons'
-import { SearchIcons } from './js/search-icons'
-import Stars from './js/stars'
-import toast from './js/toast'
+import bytes from './bytes'
+import delay from './delay'
+import { EndlessIcons } from './endless-icons'
+import { FilterIcons } from './filter-icons'
+import { getAsyncValue } from './get-async-value'
+import { getAtom } from './get-atom'
+import { getBookmarkIcons } from './get-bookmark-icons'
+import { getRelativeTime } from './get-relative-time'
+import { Grid } from './grid'
+import { JSZip } from './jszip'
+import Listbox from './listbox'
+import { number } from './number'
+import pluralize from './pluralize'
+import { Providers } from './providers'
+import { getRecentlyViewedIcons, RecentlyViewedIcons } from './recently-viewed-icons'
+import { SearchIcons } from './search-icons'
+import Stars from './stars'
+import toast from './toast'
 
 import collections from '/node_modules/@iconify/json/collections.json'
 
@@ -255,7 +255,7 @@ const Comp = {
   Theme: ({ render }) => render(useTheme())
 }
 
-export default () => {
+const App = () => {
   const { iconSets } = use.modules
   const bookmarkIcons = getBookmarkIcons()
   const [state, setState] = useRafState(0)
@@ -379,3 +379,9 @@ export default () => {
     </Providers>
   )
 }
+
+import { createRoot } from 'react-dom/client'
+
+import './app.css'
+
+createRoot(document.getElementById('root')).render(<App />)
