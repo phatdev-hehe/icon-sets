@@ -9,7 +9,7 @@ import { VirtuosoGrid } from 'react-virtuoso'
 
 import bytes from './bytes'
 import copy from './copy'
-import { getAtom } from './get-atom'
+import { getAll } from './get-all'
 import { getBlob } from './get-blob'
 import { getBookmarkIcons } from './get-bookmark-icons'
 import HoverCard from './hover-card'
@@ -21,12 +21,11 @@ import { wrapIcon } from './wrap-icon'
 import { wrapIcons } from './wrap-icons'
 
 export const Grid = ({ footer, footerRight, icons, ...rest }) => {
-  const atom = getAtom()
+  const all = getAll()
   const [state, setState] = useRafState()
   const bookmarkIcons = getBookmarkIcons()
 
-  if (icons.some(icon => is.string(icon)))
-    icons = atom.allIcons.filter(icon => icons.includes(icon.id))
+  if (icons.some(icon => is.string(icon))) icons = all.icons.filter(icon => icons.includes(icon.id))
 
   if (state) icons = sort(icons).by(state)
 

@@ -8,7 +8,7 @@ import mapObject from 'map-obj'
 import isEqual from 'react-fast-compare'
 import sortKeys from 'sort-keys'
 
-import { getAtom } from './get-atom'
+import { getAll } from './get-all'
 import { Grid } from './grid'
 import { IconButton } from './icon-button'
 import { MotionPluralize } from './motion-pluralize'
@@ -18,8 +18,8 @@ import { wrapIcons } from './wrap-icons'
 export const SearchIcons = () => {
   const placeholder = 'Search'
   const initialValue = { current: [], download: {} }
-  const atom = getAtom()
-  const fuse = useCreation(() => new Fuse(atom.allIcons, { keys: ['name'], threshold: 0 }))
+  const all = getAll()
+  const fuse = useCreation(() => new Fuse(all.icons, { keys: ['name'], threshold: 0 }))
   const [state, setState] = useSetState({ filteredIcons: initialValue, icons: initialValue })
 
   const [{ search: searchPattern }, setSearchPattern] = useUrlState(
@@ -28,7 +28,7 @@ export const SearchIcons = () => {
   )
 
   const listbox = useCreation(() => {
-    const listbox = mapObject(atom.allIconSets, (key, iconSet) => [
+    const listbox = mapObject(all.iconSets, (key, iconSet) => [
       iconSet.name,
       state.icons.current.filter(icon => icon.prefix === iconSet.prefix)
     ])

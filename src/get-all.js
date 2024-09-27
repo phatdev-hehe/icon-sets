@@ -3,4 +3,4 @@ import { atomWithImmer } from 'jotai-immer'
 
 const atom = atomWithImmer({})
 
-export const getAtom = () => ({ ...useAtomValue(atom), set: useSetAtom(atom) })
+export const getAll = () => ({ ...useAtomValue(atom), set: useSetAtom(atom) })

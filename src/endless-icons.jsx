@@ -2,7 +2,7 @@ import { useSetState } from 'ahooks'
 import { range, sampleSize } from 'es-toolkit'
 import { useSingleEffect } from 'react-haiku'
 
-import { getAtom } from './get-atom'
+import { getAll } from './get-all'
 import { Grid } from './grid'
 import { IconButton } from './icon-button'
 import pluralize from './pluralize'
@@ -11,11 +11,11 @@ const size = 100
 const sizes = range(size, size + 1_000, size)
 
 export const EndlessIcons = () => {
-  const atom = getAtom()
+  const all = getAll()
   const [state, setState] = useSetState({ icons: [], size })
 
   const endReached = () =>
-    setState(state => ({ icons: [...state.icons, ...sampleSize(atom.allIcons, state.size)] }))
+    setState(state => ({ icons: [...state.icons, ...sampleSize(all.icons, state.size)] }))
 
   useSingleEffect(endReached)
 

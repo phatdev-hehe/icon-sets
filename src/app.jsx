@@ -43,6 +43,7 @@ import {
   osName,
   osVersion
 } from 'react-device-detect'
+import { createRoot } from 'react-dom/client'
 import { useFirstRender, useWindowSize } from 'react-haiku'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { useLockBodyScroll } from 'react-use'
@@ -51,12 +52,13 @@ import { Toaster } from 'sonner'
 import sortKeys from 'sort-keys'
 
 import pkg from '../package.json'
+import './app.css'
 import bytes from './bytes'
 import delay from './delay'
 import { EndlessIcons } from './endless-icons'
 import { FilterIcons } from './filter-icons'
+import { getAll } from './get-all'
 import { getAsyncValue } from './get-async-value'
-import { getAtom } from './get-atom'
 import { getBookmarkIcons } from './get-bookmark-icons'
 import { getRelativeTime } from './get-relative-time'
 import { Grid } from './grid'
@@ -88,7 +90,7 @@ const use = {
         const isFirstRender = useFirstRender()
         const windowSize = useWindowSize()
         const [state, setState] = useRafState(true)
-        const atom = getAtom()
+        const all = getAll()
 
         useAsyncEffect(async () => {
           if (
@@ -186,7 +188,7 @@ const use = {
         useAsyncEffect(async () => {
           if (state) return
 
-          const allIconSets = mapObject(Object.fromEntries(await idb.entries()), (key, iconSet) => {
+          const iconSets = mapObject(Object.fromEntries(await idb.entries()), (key, iconSet) => {
             if (key === 'version') return mapObjectSkip
 
             iconSet.icons = Object.entries(iconSet.icons).map(([name, data]) => ({
@@ -200,9 +202,9 @@ const use = {
             return [key, iconSet]
           })
 
-          atom.set(draft => {
-            draft.allIcons = Object.values(allIconSets).flatMap(iconSet => iconSet.icons)
-            draft.allIconSets = allIconSets
+          all.set(draft => {
+            draft.icons = Object.values(iconSets).flatMap(iconSet => iconSet.icons)
+            draft.iconSets = iconSets
             draft.state = !state
           })
         }, [state])
@@ -259,14 +261,14 @@ const App = () => {
   const { iconSets } = use.modules
   const bookmarkIcons = getBookmarkIcons()
   const [state, setState] = useRafState(0)
-  const atom = getAtom()
+  const all = getAll()
 
   iconSets.get
   useLockBodyScroll(true)
 
   return (
     <Providers>
-      {atom.state ? (
+      {all.state ? (
         <PanelGroup
           className='card !~w-[50rem]/[66rem] lg:~lg:!~h-[50rem]/[38rem]'
           direction='horizontal'>
@@ -276,10 +278,7 @@ const App = () => {
                 <Listbox
                   sections={{
                     [getAsyncValue(iconSets.version.current)]: [
-                      [
-                        pluralize(atom.allIconSets, 'icon set'),
-                        pluralize(atom.allIcons, 'icon', true)
-                      ],
+                      [pluralize(all.iconSets, 'icon set'), pluralize(all.icons, 'icon', true)],
                       ['Endless scrolling', 'Hehe'],
                       ['Bookmarks', pluralize(bookmarkIcons.state, 'icon', true)],
                       ['Recently viewed', pluralize(getRecentlyViewedIcons(), 'icon', true)]
@@ -291,7 +290,7 @@ const App = () => {
                     })),
                     ...sortKeys(
                       mapObject(
-                        Object.groupBy(Object.values(atom.allIconSets), ({ category }) => category),
+                        Object.groupBy(Object.values(all.iconSets), ({ category }) => category),
                         (category, iconSets) => [
                           `${category} (${number(iconSets)})`,
                           sort(iconSets)
@@ -343,11 +342,11 @@ const App = () => {
           <Panel>
             <PanelGroup direction='vertical'>
               <Panel>
-                {state === 0 && <Grid icons={atom.allIcons} />}
+                {state === 0 && <Grid icons={all.icons} />}
                 {state === 1 && <EndlessIcons />}
                 {state === 2 && <Grid icons={bookmarkIcons.state} />}
                 {state === 3 && <RecentlyViewedIcons />}
-                {atom.allIconSets[state] && <FilterIcons {...atom.allIconSets[state]} />}
+                {all.iconSets[state] && <FilterIcons {...all.iconSets[state]} />}
               </Panel>
               <PanelResizeHandle />
               <Panel>
@@ -379,9 +378,5 @@ const App = () => {
     </Providers>
   )
 }
-
-import { createRoot } from 'react-dom/client'
-
-import './app.css'
 
 createRoot(document.getElementById('root')).render(<App />)
