@@ -29,7 +29,6 @@ import { cn, Spinner } from '@nextui-org/react'
 import { useAsyncEffect, useRafState } from 'ahooks'
 import * as _ from 'es-toolkit'
 import { sort } from 'fast-sort'
-import has from 'has-values'
 import * as idb from 'idb-keyval'
 import mapObject, { mapObjectSkip } from 'map-obj'
 import {
@@ -47,30 +46,32 @@ import { useFirstRender, useWindowSize } from 'react-haiku'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { useLockBodyScroll } from 'react-use'
 import semver from 'semver'
-import { Toaster } from 'sonner'
 import sortKeys from 'sort-keys'
 
+import {
+  asyncValue,
+  bytes,
+  delay,
+  EndlessIcons,
+  FilterIcons,
+  getAll,
+  getBookmarkIcons,
+  getRecentlyViewedIcons,
+  Grid,
+  has,
+  JSZip,
+  Listbox,
+  Page,
+  pluralize,
+  RecentlyViewedIcons,
+  relativeTime,
+  SearchIcons,
+  Theme,
+  toast,
+  toNumber
+} from '../aliases'
 import pkg from '../package.json'
 import './app.css'
-import bytes from './bytes'
-import delay from './delay'
-import { EndlessIcons } from './endless-icons'
-import { FilterIcons } from './filter-icons'
-import { getAll } from './get-all'
-import { getAsyncValue } from './get-async-value'
-import { getBookmarkIcons } from './get-bookmark-icons'
-import { getRelativeTime } from './get-relative-time'
-import { Grid } from './grid'
-import { JSZip } from './jszip'
-import Listbox from './listbox'
-import { number } from './number'
-import pluralize from './pluralize'
-import { Providers } from './providers'
-import { getRecentlyViewedIcons, RecentlyViewedIcons } from './recently-viewed-icons'
-import { SearchIcons } from './search-icons'
-import Stars from './stars'
-import { Theme } from './theme'
-import toast from './toast'
 
 import collections from '/node_modules/@iconify/json/collections.json'
 
@@ -263,7 +264,7 @@ const App = () => {
   useLockBodyScroll(true)
 
   return (
-    <Providers>
+    <Page>
       {all.state ? (
         <PanelGroup
           className='card !~w-[50rem]/[66rem] lg:~lg:!~h-[50rem]/[38rem]'
@@ -273,7 +274,7 @@ const App = () => {
               render={({ resolvedTheme, setTheme }) => (
                 <Listbox
                   sections={{
-                    [getAsyncValue(iconSets.version.current)]: [
+                    [asyncValue(iconSets.version.current)]: [
                       [pluralize(all.iconSets, 'icon set'), pluralize(all.icons, 'icon', true)],
                       ['Endless scrolling', 'Hehe'],
                       ['Bookmarks', pluralize(bookmarkIcons.state, 'icon', true)],
@@ -288,7 +289,7 @@ const App = () => {
                       mapObject(
                         Object.groupBy(Object.values(all.iconSets), ({ category }) => category),
                         (category, iconSets) => [
-                          `${category} (${number(iconSets)})`,
+                          `${category} (${toNumber(iconSets)})`,
                           sort(iconSets)
                             .asc('name')
                             .map(iconSet => ({
@@ -296,7 +297,7 @@ const App = () => {
                                 iconSet.author,
                                 iconSet.license,
                                 pluralize(iconSet.icons, 'icon', true),
-                                getRelativeTime(iconSet.lastModified)
+                                relativeTime(iconSet.lastModified)
                               ],
                               isActive: state === iconSet.prefix,
                               onPress: () => setState(iconSet.prefix),
@@ -323,7 +324,7 @@ const App = () => {
                       },
                       {
                         color: 'warning',
-                        description: bytes(getAsyncValue(() => navigator.storage.estimate()).usage),
+                        description: bytes(asyncValue(() => navigator.storage.estimate()).usage),
                         isActive: true,
                         onPress: iconSets.clear,
                         title: 'Clear data'
@@ -354,24 +355,7 @@ const App = () => {
       ) : (
         <Spinner label='Loading…' />
       )}
-      <Stars />
-      <Theme
-        render={({ resolvedTheme }) => (
-          <Toaster
-            className='z-auto'
-            theme={resolvedTheme}
-            toastOptions={{
-              classNames: {
-                content: 'w-full',
-                default: 'card justify-between gap-4',
-                description: 'text-foreground-500',
-                title: 'line-clamp-1'
-              }
-            }}
-          />
-        )}
-      />
-    </Providers>
+    </Page>
   )
 }
 

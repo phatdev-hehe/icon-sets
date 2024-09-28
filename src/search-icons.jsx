@@ -1,25 +1,28 @@
 import useUrlState from '@ahooksjs/use-url-state'
 import { Icon } from '@iconify/react'
 import { Input } from '@nextui-org/react'
-import { useCreation, useDebounceEffect, useSetState } from 'ahooks'
+import { useDebounceEffect, useSetState } from 'ahooks'
 import { kebabCase } from 'change-case'
 import Fuse from 'fuse.js'
 import mapObject from 'map-obj'
 import isEqual from 'react-fast-compare'
 import sortKeys from 'sort-keys'
 
-import { getAll } from './get-all'
-import { Grid } from './grid'
-import { IconButton } from './icon-button'
-import { MotionPluralize } from './motion-pluralize'
-import { number } from './number'
-import { wrapIcons } from './wrap-icons'
+import {
+  createMemo,
+  getAll,
+  Grid,
+  IconButton,
+  MotionPluralize,
+  toNumber,
+  wrapIcons
+} from '../aliases'
 
-export const SearchIcons = () => {
+export default () => {
   const placeholder = 'Search'
   const initialValue = { current: [], download: {} }
   const all = getAll()
-  const fuse = useCreation(() => new Fuse(all.icons, { keys: ['name'], threshold: 0 }))
+  const fuse = createMemo(() => new Fuse(all.icons, { keys: ['name'], threshold: 0 }))
   const [state, setState] = useSetState({ filteredIcons: initialValue, icons: initialValue })
 
   const [{ search: searchPattern }, setSearchPattern] = useUrlState(
@@ -27,13 +30,13 @@ export const SearchIcons = () => {
     { navigateMode: 'replace' }
   )
 
-  const listbox = useCreation(() => {
+  const listbox = createMemo(() => {
     const listbox = mapObject(all.iconSets, (key, iconSet) => [
       iconSet.name,
       state.icons.current.filter(icon => icon.prefix === iconSet.prefix)
     ])
 
-    return sortKeys(listbox, { compare: (a, b) => number(listbox[b]) - number(listbox[a]) })
+    return sortKeys(listbox, { compare: (a, b) => toNumber(listbox[b]) - toNumber(listbox[a]) })
   }, [state.icons])
 
   useDebounceEffect(

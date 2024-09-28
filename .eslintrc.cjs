@@ -7,7 +7,8 @@ module.exports = {
   extends: [
     'plugin:perfectionist/recommended-natural-legacy',
     'plugin:promise/recommended',
-    'plugin:react/jsx-runtime'
+    'plugin:react/jsx-runtime',
+    'plugin:@eslint-react/recommended-legacy'
   ],
   parserOptions: { ecmaVersion: 'latest', sourceType: 'module' },
   rules: Object.fromEntries(

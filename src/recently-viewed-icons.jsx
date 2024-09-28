@@ -1,15 +1,13 @@
-import { useCreation, useRafState, useUpdate } from 'ahooks'
+import { useRafState } from 'ahooks'
 import { useSingleEffect } from 'react-haiku'
 
-import { cache } from './cache'
-import { Grid } from './grid'
-import { IconButton } from './icon-button'
+import { cache, createMemo, Grid, IconButton, rerender } from '../aliases'
 
 export const RecentlyViewedIcons = () => {
   const [state, setState] = useRafState()
-  const icons = useCreation(getRecentlyViewedIcons, [state])
+  const icons = createMemo(getRecentlyViewedIcons, [state])
 
-  useSingleEffect(useUpdate())
+  useSingleEffect(rerender())
 
   return (
     <Grid

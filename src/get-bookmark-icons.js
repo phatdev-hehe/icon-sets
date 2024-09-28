@@ -1,8 +1,8 @@
 import { useLocalStorage } from 'react-haiku'
 
-import toast from './toast'
+import { toast } from '../aliases'
 
-export const getBookmarkIcons = () => {
+export default () => {
   const [state, setState] = useLocalStorage('bookmark-icons', [])
 
   return {

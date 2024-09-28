@@ -2,15 +2,12 @@ import { useSetState } from 'ahooks'
 import { range, sampleSize } from 'es-toolkit'
 import { useSingleEffect } from 'react-haiku'
 
-import { getAll } from './get-all'
-import { Grid } from './grid'
-import { IconButton } from './icon-button'
-import pluralize from './pluralize'
+import { getAll, Grid, IconButton, pluralize } from '../aliases'
 
 const size = 100
 const sizes = range(size, size + 1_000, size)
 
-export const EndlessIcons = () => {
+export default () => {
   const all = getAll()
   const [state, setState] = useSetState({ icons: [], size })
 

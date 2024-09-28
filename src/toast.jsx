@@ -1,8 +1,7 @@
 import { ScrollShadow } from '@nextui-org/react'
-import has from 'has-values'
 import { toast } from 'sonner'
 
-import Listbox from './listbox'
+import { has, Listbox } from '../aliases'
 
 export default (message, data = {}) => {
   const id = toast(message, parseData(data))

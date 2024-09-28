@@ -1,5 +1,4 @@
 import { Button, Card, CardFooter } from '@nextui-org/react'
-import is from '@sindresorhus/is'
 import { useRafState } from 'ahooks'
 import { sort } from 'fast-sort'
 import mapObject from 'map-obj'
@@ -7,20 +6,37 @@ import isEqual from 'react-fast-compare'
 import root from 'react-shadow'
 import { VirtuosoGrid } from 'react-virtuoso'
 
-import bytes from './bytes'
-import copy from './copy'
-import { getAll } from './get-all'
-import { getBlob } from './get-blob'
-import { getBookmarkIcons } from './get-bookmark-icons'
-import HoverCard from './hover-card'
-import { IconButton } from './icon-button'
-import { MotionPluralize } from './motion-pluralize'
-import { openObjectURL } from './open-object-url'
-import saveAs from './save-as'
-import { wrapIcon } from './wrap-icon'
-import { wrapIcons } from './wrap-icons'
+import {
+  bytes,
+  copy,
+  createBlob,
+  getAll,
+  getBookmarkIcons,
+  HoverCard,
+  IconButton,
+  is,
+  MotionPluralize,
+  openObjectURL,
+  saveAs,
+  wrapIcon,
+  wrapIcons
+} from '../aliases'
 
-export const Grid = ({ footer, footerRight, icons, ...rest }) => {
+const getFooter = icons => () => {
+  if (icons.count) return <div style={{ height: 'var(--footer-height)' }} />
+
+  return <div className='flex-center text-foreground-500'>No icons</div>
+}
+
+const getScrollSeekPlaceholder =
+  icons =>
+  ({ index, ...style }) => (
+    <div className='flex-center text-foreground-500' style={style}>
+      {icons.current[index].name.slice(0, 3)}
+    </div>
+  )
+
+export default ({ footer, footerRight, icons, ...rest }) => {
   const all = getAll()
   const [state, setState] = useRafState()
   const bookmarkIcons = getBookmarkIcons()
@@ -41,21 +57,8 @@ export const Grid = ({ footer, footerRight, icons, ...rest }) => {
       style={{ '--footer-height': '4rem' }}>
       <VirtuosoGrid
         components={{
-          Footer: () =>
-            icons.count ? (
-              <div style={{ height: 'var(--footer-height)' }} />
-            ) : (
-              <div className='flex-center text-foreground-500'>No icons</div>
-            ),
-          ScrollSeekPlaceholder: ({ index, ...style }) => {
-            const icon = icons.current[index]
-
-            return (
-              <div className='flex-center text-foreground-500' style={style}>
-                {icon.name.slice(0, 3)}
-              </div>
-            )
-          }
+          Footer: getFooter(icons),
+          ScrollSeekPlaceholder: getScrollSeekPlaceholder(icons)
         }}
         data={icons.current}
         itemClassName='p-6'
@@ -89,7 +92,7 @@ export const Grid = ({ footer, footerRight, icons, ...rest }) => {
                     txt: icon.to.dataUrl
                   }[fileType]
 
-                  const blob = getBlob([text], filename)
+                  const blob = createBlob([text], filename)
 
                   return [
                     `${fileType.toUpperCase()} (${bytes(blob.size)})`,

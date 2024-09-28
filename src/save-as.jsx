@@ -1,8 +1,6 @@
 import { saveAs } from 'file-saver'
 
-import bytes from './bytes'
-import { IconButton } from './icon-button'
-import toast from './toast'
+import { bytes, IconButton, toast } from '../aliases'
 
 export default async (data, filename) => {
   const currentToast = toast(filename, {

@@ -1,19 +1,13 @@
-import is from '@sindresorhus/is'
 import { useDeepCompareEffect, useSetState } from 'ahooks'
-import has from 'has-values'
 import isEqual from 'react-fast-compare'
-import rfdc from 'rfdc/default'
 
-import { Grid } from './grid'
-import { IconButton } from './icon-button'
-import pluralize from './pluralize'
-import { wrapIcons } from './wrap-icons'
+import { clone, Grid, has, IconButton, is, pluralize, wrapIcons } from '../aliases'
 
-export const FilterIcons = iconSet => {
+export default iconSet => {
   const initialState = { category: null, variant: null }
   const [state, setState] = useSetState(initialState)
 
-  iconSet = rfdc(iconSet)
+  iconSet = clone(iconSet)
   iconSet.variants = iconSet.prefixes ?? iconSet.suffixes ?? {}
   iconSet.has = { categories: has(iconSet.categories), variants: has(iconSet.variants) }
 

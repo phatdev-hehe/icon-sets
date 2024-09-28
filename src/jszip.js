@@ -7,4 +7,4 @@ JSZip.support = mapObject(JSZip.support, (key, value) => {
   return [key, value]
 })
 
-export { JSZip }
+export default JSZip

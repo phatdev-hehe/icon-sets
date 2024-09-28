@@ -1,9 +1,9 @@
 import { Icon } from '@iconify/react'
 import { Link } from '@nextui-org/react'
 
-import HoverCard from './hover-card'
+import { HoverCard } from '../aliases'
 
-export const IconButton = ({ listbox, onPress, tooltip, ...rest }) => (
+export default ({ listbox, onPress, tooltip, ...rest }) => (
   <HoverCard {...{ listbox, tooltip }}>
     <Link className='size-8' onPress={onPress}>
       <Icon className='size-full cursor-pointer' {...rest} />

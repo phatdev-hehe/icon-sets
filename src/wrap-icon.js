@@ -2,9 +2,9 @@ import { getIconContentCSS, getIconCSS, iconToHTML, iconToSVG, replaceIDs } from
 import mapObject from 'map-obj'
 import { nanoid } from 'nanoid'
 
-import { cache } from './cache'
+import { cache } from '../aliases'
 
-export const wrapIcon = icon => {
+export default icon => {
   const k = icon.id
 
   if (cache.has(k)) return cache.get(k)

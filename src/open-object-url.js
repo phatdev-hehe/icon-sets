@@ -1,10 +1,10 @@
-import delay from './delay'
+import { delay } from '../aliases'
 
-export const openObjectURL = async obj => {
+export default async obj => {
   const url = URL.createObjectURL(obj)
 
   if (open(url)) {
-    await delay('1h')
+    await delay('1m')
 
     URL.revokeObjectURL(url)
   }

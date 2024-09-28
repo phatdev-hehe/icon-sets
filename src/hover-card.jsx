@@ -4,7 +4,7 @@ import { useRafState } from 'ahooks'
 import { AnimatePresence, m, useSpring } from 'framer-motion'
 import { useRef } from 'react'
 
-import Listbox from './listbox'
+import { Listbox } from '../aliases'
 
 export default ({ align = 'center', children, listbox, tooltip }) => {
   const [state, setState] = useRafState()
