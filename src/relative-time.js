@@ -1,9 +1,8 @@
 import { useRafInterval } from 'ahooks'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
-import ms from 'ms'
 
-import { rerender } from '../aliases'
+import { ms, rerender } from '../aliases'
 
 dayjs.extend(relativeTime)
 

@@ -1,7 +1,6 @@
 import { useDeepCompareEffect, useSetState } from 'ahooks'
-import isEqual from 'react-fast-compare'
 
-import { clone, Grid, has, Icon, is, pluralize, wrapIcons } from '../aliases'
+import { clone, equal, Grid, has, Icon, is, pluralize, wrapIcons } from '../aliases'
 
 export default iconSet => {
   const initialState = { category: null, variant: null }
@@ -69,7 +68,7 @@ export default iconSet => {
                 }
               ]
             }}
-            name={isEqual(state, initialState) ? 'filter' : 'filter-filled'}
+            name={equal(state, initialState) ? 'filter' : 'filter-filled'}
           />
         )
       }

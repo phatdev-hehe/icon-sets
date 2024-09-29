@@ -1,28 +1,22 @@
 // Code refactoring
 
-// ko dat tham so nhu mot bien
 // han che dung es-toolkit (con loi nhieu)
-// neu ham goi di goi lai thi viet ra 1 bien duy nhat
 // kt keyword thua thieu (new, async/await,...)
 // cac dieu kien them khi xu ly icons (0 icons, 1 icon, 2 icons)
 
-// thay vi dung &&, ||, ?:
-// thi dung dieu kien if cho de hieu [if (true) a = b]
-
-// khi cap nhat state thi viet [setState(state => state)]
-// luc nay state luon la gia tri moi
+// cap nhat state
+// setState(state => state), luc nay state luon la gia tri moi
 // https://react.dev/reference/react/useState#updating-state-based-on-the-previous-state
 
 // quy uoc dat ten tham so
-// icon => (currentIcon) => currentIcon.name === icon.name
-// neu nhu tham so ko biet dat ten thi (p1, p2,...)
+// icon => currentIcon => currentIcon.name === icon.name
 
 // han che dung (destructuring assignment)
 // vi (icon.name) de nhin hon (name)
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Destructuring_assignment
 
-// khi can biet 1 object co gia tri hay ko
-// thi dung 'has-values' (ko phan biet kieu boolean)
+// tim hieu them
+// https://github.com/sindresorhus/promise-fun
 
 import { parseIconSet, quicklyValidateIconSet } from '@iconify/utils'
 import { cn, Spinner } from '@nextui-org/react'

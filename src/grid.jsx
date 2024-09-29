@@ -2,7 +2,6 @@ import { Button, Card, CardFooter } from '@nextui-org/react'
 import { useRafState } from 'ahooks'
 import { sort } from 'fast-sort'
 import mapObject from 'map-obj'
-import isEqual from 'react-fast-compare'
 import root from 'react-shadow'
 import { VirtuosoGrid } from 'react-virtuoso'
 
@@ -10,6 +9,7 @@ import {
   bytes,
   copy,
   createBlob,
+  equal,
   getAll,
   getBookmarkIcons,
   HoverCard,
@@ -144,7 +144,7 @@ export default ({ footer, footerRight, icons, ...rest }) => {
                       title,
                       ['asc', 'desc'].map(order => {
                         const value = keys.map(key => ({ [order]: key }))
-                        const isActive = isEqual(value, state)
+                        const isActive = equal(value, state)
 
                         return {
                           isActive,

@@ -4,10 +4,18 @@ import { useDebounceEffect, useSetState } from 'ahooks'
 import { kebabCase } from 'change-case'
 import Fuse from 'fuse.js'
 import mapObject from 'map-obj'
-import isEqual from 'react-fast-compare'
 import sortKeys from 'sort-keys'
 
-import { createMemo, getAll, Grid, Icon, MotionPluralize, number, wrapIcons } from '../aliases'
+import {
+  createMemo,
+  equal,
+  getAll,
+  Grid,
+  Icon,
+  MotionPluralize,
+  number,
+  wrapIcons
+} from '../aliases'
 
 export default () => {
   const placeholder = 'Search'
@@ -51,7 +59,7 @@ export default () => {
               listbox={{
                 [`All results (${state.icons.count})`]: [
                   {
-                    isDisabled: isEqual(...Object.values(state)),
+                    isDisabled: equal(...Object.values(state)),
                     onPress: () => setState(state => ({ filteredIcons: state.icons })),
                     title: 'View'
                   },
@@ -69,7 +77,7 @@ export default () => {
                     [
                       {
                         isDisabled:
-                          isEqual(icons.current, state.filteredIcons.current) || !icons.count,
+                          equal(icons.current, state.filteredIcons.current) || !icons.count,
                         onPress: () => setState({ filteredIcons: icons }),
                         title: 'View'
                       },
