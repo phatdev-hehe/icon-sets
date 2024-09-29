@@ -1,5 +1,4 @@
 import useUrlState from '@ahooksjs/use-url-state'
-import { Icon } from '@iconify/react'
 import { Input } from '@nextui-org/react'
 import { useDebounceEffect, useSetState } from 'ahooks'
 import { kebabCase } from 'change-case'
@@ -8,15 +7,7 @@ import mapObject from 'map-obj'
 import isEqual from 'react-fast-compare'
 import sortKeys from 'sort-keys'
 
-import {
-  createMemo,
-  getAll,
-  Grid,
-  IconButton,
-  MotionPluralize,
-  toNumber,
-  wrapIcons
-} from '../aliases'
+import { createMemo, getAll, Grid, Icon, MotionPluralize, number, wrapIcons } from '../aliases'
 
 export default () => {
   const placeholder = 'Search'
@@ -36,7 +27,7 @@ export default () => {
       state.icons.current.filter(icon => icon.prefix === iconSet.prefix)
     ])
 
-    return sortKeys(listbox, { compare: (a, b) => toNumber(listbox[b]) - toNumber(listbox[a]) })
+    return sortKeys(listbox, { compare: (a, b) => number(listbox[b]) - number(listbox[a]) })
   }, [state.icons])
 
   useDebounceEffect(
@@ -56,8 +47,7 @@ export default () => {
           autoFocus
           classNames={{ inputWrapper: 'border-none', label: '!text-foreground-500' }}
           endContent={
-            <IconButton
-              icon='line-md:watch'
+            <Icon
               listbox={{
                 [`All results (${state.icons.count})`]: [
                   {
@@ -88,12 +78,13 @@ export default () => {
                   ]
                 })
               }}
+              name='watch'
             />
           }
           label={<MotionPluralize value={state.filteredIcons.count} word='icon' />}
           onValueChange={search => setSearchPattern({ search })}
           placeholder={placeholder}
-          startContent={<Icon className='size-5' icon='line-md:search' />}
+          startContent={<Icon className='size-5' name='search' />}
           value={searchPattern}
           variant='bordered'
         />

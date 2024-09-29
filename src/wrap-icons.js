@@ -1,11 +1,11 @@
-import { JSZip, pluralize, saveAs, toNumber, wrapIcon } from '../aliases'
+import { JSZip, number, pluralize, saveAs, wrapIcon } from '../aliases'
 
 export default icons => {
   const [firstIcon] = icons
   const hasSamePrefix = icons.every(icon => icon.prefix === firstIcon.prefix)
 
   return {
-    count: toNumber(icons),
+    count: number(icons),
     current: icons,
     download: {
       filename: `${hasSamePrefix && firstIcon ? firstIcon.setName : pluralize(icons, 'icon')}.zip`,

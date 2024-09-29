@@ -1,7 +1,7 @@
 import { useDeepCompareEffect, useSetState } from 'ahooks'
 import isEqual from 'react-fast-compare'
 
-import { clone, Grid, has, IconButton, is, pluralize, wrapIcons } from '../aliases'
+import { clone, Grid, has, Icon, is, pluralize, wrapIcons } from '../aliases'
 
 export default iconSet => {
   const initialState = { category: null, variant: null }
@@ -37,8 +37,7 @@ export default iconSet => {
     <Grid
       footerRight={
         (iconSet.has.variants || iconSet.has.categories || null) && (
-          <IconButton
-            icon={isEqual(state, initialState) ? 'line-md:filter' : 'line-md:filter-filled'}
+          <Icon
             listbox={{
               ...(iconSet.has.variants && {
                 [pluralize(iconSet.variants, 'variant')]: Object.entries(iconSet.variants).map(
@@ -70,6 +69,7 @@ export default iconSet => {
                 }
               ]
             }}
+            name={isEqual(state, initialState) ? 'filter' : 'filter-filled'}
           />
         )
       }

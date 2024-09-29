@@ -13,7 +13,7 @@ import {
   getAll,
   getBookmarkIcons,
   HoverCard,
-  IconButton,
+  Icon,
   is,
   MotionPluralize,
   openObjectURL,
@@ -130,8 +130,7 @@ export default ({ footer, footerRight, icons, ...rest }) => {
           <div className='flex-center justify-between px-3'>
             <MotionPluralize value={icons.count} word='icon' />
             {footerRight ?? (
-              <IconButton
-                icon='line-md:arrows-vertical'
+              <Icon
                 listbox={{
                   ...mapObject(
                     {
@@ -164,6 +163,7 @@ export default ({ footer, footerRight, icons, ...rest }) => {
                     }
                   ]
                 }}
+                name='arrows-vertical'
               />
             )}
           </div>

@@ -1,10 +1,10 @@
 import { formatNumber } from 'intl-number-helper'
 import pluralize from 'pluralize'
 
-import { locale, toNumber } from '../aliases'
+import { locale, number } from '../aliases'
 
 export default (target, word, format) => {
-  target = toNumber(target)
+  target = number(target)
 
   if (format === 'default') return pluralize(word, target)
 

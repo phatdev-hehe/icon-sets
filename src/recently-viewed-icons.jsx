@@ -1,7 +1,7 @@
 import { useRafState } from 'ahooks'
 import { useSingleEffect } from 'react-haiku'
 
-import { cache, createMemo, Grid, IconButton, rerender } from '../aliases'
+import { cache, createMemo, Grid, Icon, rerender } from '../aliases'
 
 export const RecentlyViewedIcons = () => {
   const [state, setState] = useRafState()
@@ -12,11 +12,7 @@ export const RecentlyViewedIcons = () => {
   return (
     <Grid
       footerRight={
-        <IconButton
-          icon='line-md:round-360'
-          onPress={() => setState(state => !state)}
-          tooltip='Reload'
-        />
+        <Icon name='round-360' onPress={() => setState(state => !state)} tooltip='Reload' />
       }
       icons={icons}
     />

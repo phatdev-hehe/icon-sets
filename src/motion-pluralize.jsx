@@ -1,12 +1,12 @@
 import { useDeepCompareEffect, useRafState } from 'ahooks'
 import MotionNumber from 'motion-number/lazy'
 
-import { HoverCard, locale, pluralize, toNumber } from '../aliases'
+import { HoverCard, locale, number, pluralize } from '../aliases'
 
 export default ({ value, word }) => {
   const [state, setState] = useRafState(0)
 
-  useDeepCompareEffect(() => setState(toNumber(value)), [value])
+  useDeepCompareEffect(() => setState(number(value)), [value])
 
   return (
     <HoverCard tooltip={pluralize(state, word)}>

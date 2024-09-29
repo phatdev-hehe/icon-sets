@@ -61,14 +61,14 @@ import {
   has,
   JSZip,
   Listbox,
+  number,
   Page,
   pluralize,
   RecentlyViewedIcons,
   relativeTime,
   SearchIcons,
   Theme,
-  toast,
-  toNumber
+  toast
 } from '../aliases'
 import pkg from '../package.json'
 import './app.css'
@@ -269,7 +269,7 @@ const App = () => {
         <PanelGroup
           className='card !~w-[50rem]/[66rem] lg:~lg:!~h-[50rem]/[38rem]'
           direction='horizontal'>
-          <Panel className='py-2' defaultSize={25} maxSize={25}>
+          <Panel className='py-1' defaultSize={25} maxSize={25}>
             <Theme
               render={({ resolvedTheme, setTheme }) => (
                 <Listbox
@@ -289,7 +289,7 @@ const App = () => {
                       mapObject(
                         Object.groupBy(Object.values(all.iconSets), ({ category }) => category),
                         (category, iconSets) => [
-                          `${category} (${toNumber(iconSets)})`,
+                          `${category} (${number(iconSets)})`,
                           sort(iconSets)
                             .asc('name')
                             .map(iconSet => ({
