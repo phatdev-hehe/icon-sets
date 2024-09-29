@@ -12,10 +12,12 @@ import {
   equal,
   getAll,
   getBookmarkIcons,
+  has,
   HoverCard,
   Icon,
   is,
   MotionPluralize,
+  number,
   openObjectURL,
   saveAs,
   wrapIcon,
@@ -23,7 +25,7 @@ import {
 } from '../aliases'
 
 const getFooter = icons => () => {
-  if (icons.count) return <div style={{ height: 'var(--footer-height)' }} />
+  if (has(icons.current)) return <div style={{ height: 'var(--footer-height)' }} />
 
   return <div className='flex-center text-foreground-500'>No icons</div>
 }
@@ -128,7 +130,7 @@ export default ({ footer, footerRight, icons, ...rest }) => {
       <CardFooter style={{ height: 'var(--footer-height)' }}>
         {footer ?? (
           <div className='flex-center justify-between px-3'>
-            <MotionPluralize value={icons.count} word='icon' />
+            <MotionPluralize value={icons.current} word='icon' />
             {footerRight ?? (
               <Icon
                 listbox={{
@@ -148,7 +150,7 @@ export default ({ footer, footerRight, icons, ...rest }) => {
 
                         return {
                           isActive,
-                          isDisabled: icons.count < 2,
+                          isDisabled: number(icons.current) < 2,
                           onPress: () => setState(!isActive && value),
                           title: { asc: 'Ascending', desc: 'Descending' }[order]
                         }
@@ -157,7 +159,7 @@ export default ({ footer, footerRight, icons, ...rest }) => {
                   ),
                   Download: [
                     {
-                      isDisabled: !icons.count,
+                      isDisabled: !has(icons.current),
                       onPress: icons.download.fn,
                       title: icons.download.filename
                     }

@@ -4,6 +4,17 @@
 // kt keyword thua thieu (new, async/await,...)
 // cac dieu kien them khi xu ly icons (0 icons, 1 icon, 2 icons)
 
+// du lieu ko co thi ko can cap nhat lai state
+// vd: clear fn (get-bookmark-icons.js)
+
+// can tach bien neu co the
+// https://eslint-react.xyz/docs/rules/no-unstable-context-value
+// https://eslint-react.xyz/docs/rules/no-unstable-default-props
+// https://ahooks.js.org/hooks/use-creation/ (neu nhu tach bien ko dc)
+
+// neu ham goi di goi lai
+// thi viet ra 1 bien duy nhat
+
 // cap nhat state
 // setState(state => state), luc nay state luon la gia tri moi
 // https://react.dev/reference/react/useState#updating-state-based-on-the-previous-state
@@ -53,6 +64,8 @@ import {
   getRecentlyViewedIcons,
   Grid,
   has,
+  Icon,
+  is,
   JSZip,
   Listbox,
   number,
@@ -321,7 +334,7 @@ const App = () => {
                         description: bytes(asyncValue(() => navigator.storage.estimate()).usage),
                         isActive: true,
                         onPress: iconSets.clear,
-                        title: 'Clear data'
+                        title: 'Clear cache'
                       }
                     ]
                   }}
@@ -335,9 +348,20 @@ const App = () => {
               <Panel>
                 {state === 0 && <Grid icons={all.icons} />}
                 {state === 1 && <EndlessIcons />}
-                {state === 2 && <Grid icons={bookmarkIcons.state} />}
+                {state === 2 && (
+                  <Grid
+                    footerRight={
+                      <Icon
+                        name='folder-remove'
+                        onPress={bookmarkIcons.clear}
+                        tooltip='Clear all'
+                      />
+                    }
+                    icons={bookmarkIcons.state}
+                  />
+                )}
                 {state === 3 && <RecentlyViewedIcons />}
-                {all.iconSets[state] && <FilterIcons {...all.iconSets[state]} />}
+                {is.string(state) && <FilterIcons {...all.iconSets[state]} />}
               </Panel>
               <PanelResizeHandle />
               <Panel>

@@ -1,11 +1,18 @@
 import { useLocalStorage } from 'react-haiku'
 
-import { toast } from '../aliases'
+import { has, toast } from '../aliases'
+
+const initialValue = []
 
 export default () => {
-  const [state, setState] = useLocalStorage('bookmark-icons', [])
+  const [state, setState] = useLocalStorage('bookmark-icons', initialValue)
 
   return {
+    clear: () => {
+      if (!has(state)) return
+
+      setState(initialValue)
+    },
     has: icon => state.some(currentIcon => currentIcon === icon.id),
     state,
     toggle(icon) {

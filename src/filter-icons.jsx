@@ -62,7 +62,7 @@ export default iconSet => {
               }),
               Download: [
                 {
-                  isDisabled: !iconSet.icons.count,
+                  isDisabled: !has(iconSet.icons.current),
                   onPress: iconSet.icons.download.fn,
                   title: iconSet.icons.download.filename
                 }

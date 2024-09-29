@@ -11,6 +11,7 @@ import {
   equal,
   getAll,
   Grid,
+  has,
   Icon,
   MotionPluralize,
   number,
@@ -57,14 +58,14 @@ export default () => {
           endContent={
             <Icon
               listbox={{
-                [`All results (${state.icons.count})`]: [
+                [`All results (${number(state.icons.current)})`]: [
                   {
                     isDisabled: equal(...Object.values(state)),
                     onPress: () => setState(state => ({ filteredIcons: state.icons })),
                     title: 'View'
                   },
                   {
-                    isDisabled: !state.icons.count,
+                    isDisabled: !has(state.icons.current),
                     onPress: state.icons.download.fn,
                     title: 'Download'
                   }
@@ -73,15 +74,19 @@ export default () => {
                   icons = wrapIcons(icons)
 
                   return [
-                    `${iconSetName} (${icons.count})`,
+                    `${iconSetName} (${number(icons.current)})`,
                     [
                       {
                         isDisabled:
-                          equal(icons.current, state.filteredIcons.current) || !icons.count,
+                          equal(icons.current, state.filteredIcons.current) || !has(icons.current),
                         onPress: () => setState({ filteredIcons: icons }),
                         title: 'View'
                       },
-                      { isDisabled: !icons.count, onPress: icons.download.fn, title: 'Download' }
+                      {
+                        isDisabled: !has(icons.current),
+                        onPress: icons.download.fn,
+                        title: 'Download'
+                      }
                     ]
                   ]
                 })
@@ -89,7 +94,7 @@ export default () => {
               name='watch'
             />
           }
-          label={<MotionPluralize value={state.filteredIcons.count} word='icon' />}
+          label={<MotionPluralize value={state.filteredIcons.current} word='icon' />}
           onValueChange={search => setSearchPattern({ search })}
           placeholder={placeholder}
           startContent={<Icon className='size-5' name='search' />}
