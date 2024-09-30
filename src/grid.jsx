@@ -77,13 +77,13 @@ export default ({ footer, footerRight, icons, ...rest }) => {
                     title: icon.name
                   }
                 ],
-                [bookmarkIcons.has(icon) ? 'Bookmarked' : 'Bookmark']: ['Add', 'Remove'].map(
-                  title => ({
-                    isDisabled: (title === 'Add') === bookmarkIcons.has(icon),
+                Bookmark: [
+                  {
                     onPress: () => bookmarkIcons.toggle(icon),
-                    title
-                  })
-                ),
+                    title: bookmarkIcons.has(icon) ? 'Remove' : 'Add'
+                  },
+                  { onPress: bookmarkIcons.clear, title: 'Clear all' }
+                ],
                 ...mapObject(icon.filenames, (fileType, filename) => {
                   filename = filename.detail
 
@@ -146,12 +146,12 @@ export default ({ footer, footerRight, icons, ...rest }) => {
                       title,
                       ['asc', 'desc'].map(order => {
                         const value = keys.map(key => ({ [order]: key }))
-                        const isActive = equal(value, state)
+                        const isSelected = equal(value, state)
 
                         return {
-                          isActive,
+                          isSelected,
                           isDisabled: number(icons.current) < 2,
-                          onPress: () => setState(!isActive && value),
+                          onPress: () => setState(!isSelected && value),
                           title: { asc: 'Ascending', desc: 'Descending' }[order]
                         }
                       })

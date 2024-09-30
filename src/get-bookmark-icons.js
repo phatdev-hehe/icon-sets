@@ -9,9 +9,10 @@ export default () => {
 
   return {
     clear: () => {
-      if (!has(state)) return
-
-      setState(initialValue)
+      if (has(state)) {
+        setState(initialValue)
+        toast('Cleared all')
+      }
     },
     has: icon => state.some(currentIcon => currentIcon === icon.id),
     state,

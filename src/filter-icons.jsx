@@ -40,9 +40,9 @@ export default iconSet => {
             listbox={{
               ...(iconSet.has.variants && {
                 [pluralize(iconSet.variants, 'variant')]: Object.entries(iconSet.variants).map(
-                  ([variant, title, isActive = state.variant === variant]) => ({
-                    isActive,
-                    onPress: () => setState({ variant: !isActive && variant }),
+                  ([variant, title, isSelected = state.variant === variant]) => ({
+                    isSelected,
+                    onPress: () => setState({ variant: !isSelected && variant }),
                     title
                   })
                 )
@@ -50,11 +50,11 @@ export default iconSet => {
               ...(iconSet.has.categories && {
                 [pluralize(iconSet.categories, 'category')]: Object.keys(iconSet.categories).map(
                   category => {
-                    const isActive = state.category === category
+                    const isSelected = state.category === category
 
                     return {
-                      isActive,
-                      onPress: () => setState({ category: !isActive && category }),
+                      isSelected,
+                      onPress: () => setState({ category: !isSelected && category }),
                       title: category
                     }
                   }

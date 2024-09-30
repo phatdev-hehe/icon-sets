@@ -24,7 +24,7 @@ export default () => {
           listbox={{
             [pluralize(sizes, 'size')]: sizes.map(size => ({
               description: 'icons',
-              isActive: size === state.size,
+              isSelected: size === state.size,
               onPress: () => setState({ size }),
               title: size
             }))

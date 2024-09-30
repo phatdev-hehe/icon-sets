@@ -1,7 +1,10 @@
 import { useAsync } from 'react-use'
 
 export default fn => {
-  const state = useAsync(fn)
+  const { error, loading, value } = useAsync(fn)
 
-  return state.loading ? 'Loading…' : state.error ? 'Loading error' : state.value
+  if (loading) return 'Loading…'
+  if (error) return 'Loading error'
+
+  return value
 }
