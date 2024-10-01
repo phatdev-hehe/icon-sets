@@ -8,19 +8,24 @@ export default iconSet => {
 
   iconSet = clone(iconSet)
   iconSet.variants = iconSet.prefixes ?? iconSet.suffixes ?? {}
-  iconSet.has = { categories: has(iconSet.categories), variants: has(iconSet.variants) }
+
+  iconSet.has = {
+    categories: has(iconSet.categories),
+    prefixes: has(iconSet.prefixes),
+    variants: has(iconSet.variants)
+  }
 
   iconSet.icons = wrapIcons(
     iconSet.icons.filter(icon => {
       const matchesVariant = (variant = state.variant) =>
-        icon.name[iconSet.prefixes ? 'startsWith' : 'endsWith'](
-          iconSet.prefixes ? `${variant}-` : `-${variant}`
+        icon.name[iconSet.has.prefixes ? 'startsWith' : 'endsWith'](
+          iconSet.has.prefixes ? `${variant}-` : `-${variant}`
         )
 
       return (
         (!is.string(state.category) || iconSet.categories?.[state.category]?.includes(icon.name)) &&
         (!is.string(state.variant) ||
-          (state.variant === ''
+          (is.emptyString(state.variant)
             ? !Object.keys(iconSet.variants).some(matchesVariant)
             : matchesVariant()))
       )

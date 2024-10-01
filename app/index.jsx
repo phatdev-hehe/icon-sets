@@ -82,7 +82,7 @@ import './index.css'
 import collections from '/node_modules/@iconify/json/collections.json'
 
 const iconSets = {
-  async clear(clear = true) {
+  clear: async (clear = true) => {
     if (clear) await idb.clear()
 
     toast('The page will be reloaded in 5 seconds')
@@ -91,7 +91,7 @@ const iconSets = {
 
     location.reload()
   },
-  load() {
+  load: () => {
     const isFirstRender = useIsFirstRender()
     const windowSize = useWindowSize()
     const [state, setState] = useRafState(true)

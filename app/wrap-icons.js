@@ -9,7 +9,7 @@ export default icons => {
     current: icons,
     download: {
       filename,
-      fn() {
+      fn: () => {
         const zip = new JSZip()
 
         for (let icon of icons) {

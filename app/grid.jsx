@@ -165,7 +165,7 @@ export default ({ footer, footerRight, icons, ...rest }) => {
                     }
                   ]
                 }}
-                name='arrows-vertical'
+                name='folder-arrow-down'
               />
             )}
           </div>

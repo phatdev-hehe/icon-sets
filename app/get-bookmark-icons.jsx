@@ -1,6 +1,6 @@
 import { useLocalStorage } from 'react-haiku'
 
-import { has, toast } from '../aliases'
+import { has, Icon, pluralize, toast } from '../aliases'
 
 const initialValue = []
 
@@ -11,12 +11,25 @@ export default () => {
     clear: () => {
       if (has(state)) {
         setState(initialValue)
-        toast('Cleared all')
+
+        const currentToast = toast('Cleared all', {
+          action: (
+            <Icon
+              name='rotate-180'
+              onPress={() => {
+                currentToast.dismiss()
+                setState(state)
+              }}
+              tooltip='Undo'
+            />
+          ),
+          description: pluralize(state, 'icon')
+        })
       }
     },
     has: icon => state.some(currentIcon => currentIcon === icon.id),
     state,
-    toggle(icon) {
+    toggle: icon => {
       setState(state => {
         const hasIcon = this.has(icon)
 
