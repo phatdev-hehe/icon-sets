@@ -91,7 +91,7 @@ const iconSets = {
 
     location.reload()
   },
-  load: () => {
+  load() {
     const isFirstRender = useIsFirstRender()
     const windowSize = useWindowSize()
     const [state, setState] = useRafState(true)

@@ -27,16 +27,16 @@ export default () => {
         })
       }
     },
-    has: icon => state.some(currentIcon => currentIcon === icon.id),
+    has: icon => state.includes(icon.id),
     state,
-    toggle: icon => {
-      setState(state => {
-        const hasIcon = this.has(icon)
+    toggle(icon) {
+      const isBookmarked = this.has(icon)
 
-        toast(hasIcon ? 'Bookmark removed' : 'Bookmark added')
+      toast(isBookmarked ? 'Bookmark removed' : 'Bookmark added')
 
-        return hasIcon ? state.filter(currentIcon => currentIcon !== icon.id) : [...state, icon.id]
-      })
+      setState(state =>
+        isBookmarked ? state.filter(iconId => iconId !== icon.id) : [...state, icon.id]
+      )
     }
   }
 }
