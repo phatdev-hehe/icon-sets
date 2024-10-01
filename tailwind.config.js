@@ -1,7 +1,7 @@
 import fluid, { extract, fontSize, screens } from 'fluid-tailwind'
 
 module.exports = {
-  content: { extract, files: ['src/**', 'node_modules/@nextui-org/theme/dist/*'] },
+  content: { extract, files: ['app/**', 'node_modules/@nextui-org/theme/dist/*'] },
   darkMode: 'class',
   plugins: [
     fluid,
