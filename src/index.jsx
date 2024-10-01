@@ -46,7 +46,7 @@ import {
   osName,
   osVersion
 } from 'react-device-detect'
-import { useFirstRender, useWindowSize } from 'react-haiku'
+import { useWindowSize } from 'react-haiku'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { useLockBodyScroll } from 'react-use'
 import semver from 'semver'
@@ -73,7 +73,8 @@ import {
   relativeTime,
   SearchIcons,
   Theme,
-  toast
+  toast,
+  useIsFirstRender
 } from '../aliases'
 import pkg from '../package.json'
 import './index.css'
@@ -91,21 +92,21 @@ const iconSets = {
     location.reload()
   },
   load() {
-    const isFirstRender = useFirstRender()
+    const isFirstRender = useIsFirstRender()
     const windowSize = useWindowSize()
     const [state, setState] = useRafState(true)
     const all = getAll()
 
-    const wrapAsyncEffect = effect => {
+    const wrapAsyncEffect = fn => {
       if (all.state) return () => Promise
 
-      return effect
+      return fn
     }
 
     useAsyncEffect(
       wrapAsyncEffect(async () => {
         if ([isFirstRender, isBrowser, isDesktop, ...Object.values(JSZip.support)].some(is.falsy)) {
-          const section = (title, items) => ({
+          const createSection = (title, items) => ({
             [title]: items.map(([title, isSupported]) => ({
               description: isSupported ? 'Yes' : 'No',
               isDisabled: !isSupported,
@@ -122,12 +123,12 @@ const iconSets = {
                 { description: engineVersion, title: engineName },
                 { description: `${windowSize.width} x ${windowSize.height}`, title: 'Size' }
               ],
-              ...section('Default', [
+              ...createSection('Default', [
                 ['First render', isFirstRender],
                 ['Browser', isBrowser],
                 ['Desktop', isDesktop]
               ]),
-              ...section(`JSZip ${JSZip.version}`, Object.entries(JSZip.support))
+              ...createSection(`JSZip ${JSZip.version}`, Object.entries(JSZip.support))
             }
           })
         }
@@ -189,7 +190,7 @@ const iconSets = {
           } catch {
             await this.version.check()
           } finally {
-            currentToast.dismiss
+            currentToast.dismiss()
           }
         }
       }),

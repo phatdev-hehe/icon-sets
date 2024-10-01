@@ -84,7 +84,7 @@ export default ({ footer, footerRight, icons, ...rest }) => {
                   },
                   { onPress: bookmarkIcons.clear, title: 'Clear all' }
                 ],
-                ...mapObject(icon.filenames, (fileType, filename) => {
+                ...mapObject(icon.fileList, (fileType, filename) => {
                   filename = filename.detail
 
                   const text = {
@@ -149,8 +149,8 @@ export default ({ footer, footerRight, icons, ...rest }) => {
                         const isSelected = equal(value, state)
 
                         return {
-                          isSelected,
                           isDisabled: number(icons.current) < 2,
+                          isSelected,
                           onPress: () => setState(!isSelected && value),
                           title: { asc: 'Ascending', desc: 'Descending' }[order]
                         }

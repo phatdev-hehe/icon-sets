@@ -12,7 +12,7 @@ export default icon => {
   const svg = iconToSVG(icon.data)
 
   const v = {
-    filenames: mapObject({ css: null, json: null, svg: null, txt: null }, fileType => [
+    fileList: mapObject({ css: null, json: null, svg: null, txt: null }, fileType => [
       fileType,
       { default: `${icon.name}.${fileType}`, detail: `[${icon.setName}] ${icon.name}.${fileType}` }
     ]),

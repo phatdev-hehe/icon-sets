@@ -7,9 +7,7 @@ export default (message, data = {}) => {
   const id = toast(message, parseData(data))
 
   return {
-    get dismiss() {
-      return toast.dismiss(id)
-    },
+    dismiss: () => toast.dismiss(id),
     update: data => toast(message, { ...parseData(data), id })
   }
 }
