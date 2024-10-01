@@ -3,8 +3,6 @@ import { Input } from '@nextui-org/react'
 import { useDebounceEffect, useSetState } from 'ahooks'
 import { kebabCase } from 'change-case'
 import Fuse from 'fuse.js'
-import mapObject from 'map-obj'
-import sortKeys from 'sort-keys'
 
 import {
   createMemo,
@@ -13,8 +11,10 @@ import {
   Grid,
   has,
   Icon,
+  mapObject,
   MotionPluralize,
   number,
+  sortKeys,
   wrapIcons
 } from '../aliases'
 

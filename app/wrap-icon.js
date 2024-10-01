@@ -1,8 +1,7 @@
 import { getIconContentCSS, getIconCSS, iconToHTML, iconToSVG, replaceIDs } from '@iconify/utils'
-import mapObject from 'map-obj'
 import { nanoid } from 'nanoid'
 
-import { cache } from '../aliases'
+import { cache, mapObject } from '../aliases'
 
 export default icon => {
   const k = icon.id

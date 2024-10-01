@@ -1,7 +1,6 @@
 import { Button, Card, CardFooter } from '@nextui-org/react'
 import { useRafState } from 'ahooks'
 import { sort } from 'fast-sort'
-import mapObject from 'map-obj'
 import root from 'react-shadow'
 import { VirtuosoGrid } from 'react-virtuoso'
 
@@ -16,6 +15,7 @@ import {
   HoverCard,
   Icon,
   is,
+  mapObject,
   MotionPluralize,
   number,
   openObjectURL,
@@ -82,7 +82,11 @@ export default ({ footer, footerRight, icons, ...rest }) => {
                     onPress: () => bookmarkIcons.toggle(icon),
                     title: bookmarkIcons.has(icon) ? 'Remove' : 'Add'
                   },
-                  { onPress: bookmarkIcons.clear, title: 'Clear all' }
+                  {
+                    isDisabled: !has(bookmarkIcons.current),
+                    onPress: bookmarkIcons.clear,
+                    title: 'Clear all'
+                  }
                 ],
                 ...mapObject(icon.fileList, (fileType, filename) => {
                   filename = filename.detail

@@ -1,6 +1,7 @@
+import { without } from 'es-toolkit'
 import { useLocalStorage } from 'react-haiku'
 
-import { has, Icon, pluralize, toast } from '../aliases'
+import { Icon, pluralize, toast } from '../aliases'
 
 const initialValue = []
 
@@ -9,34 +10,29 @@ export default () => {
 
   return {
     clear: () => {
-      if (has(state)) {
-        setState(initialValue)
+      setState(initialValue)
 
-        const currentToast = toast('Cleared all', {
-          action: (
-            <Icon
-              name='rotate-180'
-              onPress={() => {
-                currentToast.dismiss()
-                setState(state)
-              }}
-              tooltip='Undo'
-            />
-          ),
-          description: pluralize(state, 'icon')
-        })
-      }
+      const currentToast = toast('Cleared all', {
+        action: (
+          <Icon
+            name='rotate-180'
+            onPress={() => {
+              currentToast.dismiss()
+              setState(state)
+            }}
+            tooltip='Undo'
+          />
+        ),
+        description: pluralize(state, 'icon')
+      })
     },
+    current: state,
     has: icon => state.includes(icon.id),
-    state,
     toggle(icon) {
       const isBookmarked = this.has(icon)
 
       toast(isBookmarked ? 'Bookmark removed' : 'Bookmark added')
-
-      setState(state =>
-        isBookmarked ? state.filter(iconId => iconId !== icon.id) : [...state, icon.id]
-      )
+      setState(state => (isBookmarked ? without(state, icon.id) : [...state, icon.id]))
     }
   }
 }
