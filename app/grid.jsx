@@ -89,7 +89,7 @@ export default ({ footer, footerRight, icons, ...rest }) => {
                   }
                 ],
                 ...mapObject(icon.fileList, (fileType, filename) => {
-                  filename = filename.detail
+                  filename = filename.full
 
                   const text = {
                     css: icon.to.css,
@@ -169,7 +169,7 @@ export default ({ footer, footerRight, icons, ...rest }) => {
                     }
                   ]
                 }}
-                name='folder-arrow-down'
+                name='round-ramp-right'
               />
             )}
           </div>

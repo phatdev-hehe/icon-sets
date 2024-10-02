@@ -15,7 +15,7 @@ export default icon => {
   const v = {
     fileList: mapObject(fileList, fileType => [
       fileType,
-      { default: `${icon.name}.${fileType}`, detail: `[${icon.setName}] ${icon.name}.${fileType}` }
+      { default: `${icon.name}.${fileType}`, full: `[${icon.setName}] ${icon.name}.${fileType}` }
     ]),
     to: {
       css: getIconCSS(icon.data),

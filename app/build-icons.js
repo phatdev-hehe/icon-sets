@@ -15,7 +15,7 @@ export default icons => {
         for (let icon of icons) {
           icon = buildIcon(icon)
 
-          zip.file(icon.fileList.svg[isSamePrefix ? 'default' : 'detail'], icon.to.html)
+          zip.file(icon.fileList.svg[isSamePrefix ? 'default' : 'full'], icon.to.html)
         }
 
         saveAs(zip.generateAsync({ type: 'blob' }), filename)
