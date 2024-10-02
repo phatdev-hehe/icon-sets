@@ -101,7 +101,7 @@ export default ({ footer, footerRight, icons, ...rest }) => {
                   const blob = createBlob([text], filename)
 
                   return [
-                    `${fileType.toUpperCase()} (${bytes(blob.size)})`,
+                    `${fileType.toUpperCase()} (${bytes(blob)})`,
                     [
                       ['View', () => openObjectURL(blob)],
                       ['Copy', () => copy(text)],

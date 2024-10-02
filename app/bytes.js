@@ -1,3 +1,9 @@
 import bytes from 'bytes'
 
-export default value => bytes(value, { decimalPlaces: 1, unitSeparator: ' ' })
+import { is } from '../aliases'
+
+export default value => {
+  if (is.blob(value)) value = value.size
+
+  return bytes(value, { decimalPlaces: 1, unitSeparator: ' ' })
+}

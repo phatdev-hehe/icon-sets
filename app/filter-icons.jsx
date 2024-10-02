@@ -2,8 +2,9 @@ import { useDeepCompareEffect, useSetState } from 'ahooks'
 
 import { clone, equal, Grid, has, Icon, is, pluralize, wrapIcons } from '../aliases'
 
+const initialState = { category: null, variant: null }
+
 export default iconSet => {
-  const initialState = { category: null, variant: null }
   const [state, setState] = useSetState(initialState)
 
   iconSet = clone(iconSet)
@@ -17,7 +18,7 @@ export default iconSet => {
 
   iconSet.icons = wrapIcons(
     iconSet.icons.filter(icon => {
-      const matchesVariant = (variant = state.variant) =>
+      const matchesVariant = variant =>
         icon.name[iconSet.has.prefixes ? 'startsWith' : 'endsWith'](
           iconSet.has.prefixes ? `${variant}-` : `-${variant}`
         )
@@ -27,7 +28,7 @@ export default iconSet => {
         (!is.string(state.variant) ||
           (is.emptyString(state.variant)
             ? !Object.keys(iconSet.variants).some(matchesVariant)
-            : matchesVariant()))
+            : matchesVariant(state.variant)))
       )
     })
   )

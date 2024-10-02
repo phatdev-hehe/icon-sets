@@ -16,6 +16,6 @@ export default async (data, filename) => {
 
   currentToast.update({
     action: <Icon name='arrow-small-down' onPress={download} tooltip='Download' />,
-    description: bytes(data.size)
+    description: bytes(data)
   })
 }
