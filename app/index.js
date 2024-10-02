@@ -47,14 +47,14 @@ export default {
     const [state, setState] = useRafState(true)
     const all = getAll()
 
-    const wrapAsyncEffect = fn => {
+    const createEffect = fn => {
       if (all.state) return () => Promise
 
       return fn
     }
 
     useAsyncEffect(
-      wrapAsyncEffect(async () => {
+      createEffect(async () => {
         if ([isFirstRender, isBrowser, isDesktop, ...Object.values(JSZip.support)].some(is.falsy)) {
           const createSection = (title, items) => ({
             [title]: items.map(([title, isSupported]) => ({
@@ -148,7 +148,7 @@ export default {
     )
 
     useAsyncEffect(
-      wrapAsyncEffect(async () => {
+      createEffect(async () => {
         if (state) return
 
         const iconSets = mapObject(Object.fromEntries(await idb.entries()), (key, iconSet) => {

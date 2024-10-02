@@ -5,6 +5,7 @@ import { kebabCase } from 'change-case'
 import Fuse from 'fuse.js'
 
 import {
+  buildIcons,
   createMemo,
   equal,
   getAll,
@@ -14,8 +15,7 @@ import {
   mapObject,
   MotionPluralize,
   number,
-  sortKeys,
-  wrapIcons
+  sortKeys
 } from '../aliases'
 
 export default () => {
@@ -41,7 +41,7 @@ export default () => {
 
   useDebounceEffect(
     () => {
-      const icons = wrapIcons(fuse.search(kebabCase(searchPattern)).map(({ item }) => item))
+      const icons = buildIcons(fuse.search(kebabCase(searchPattern)).map(({ item }) => item))
 
       setState({ filteredIcons: icons, icons })
     },
@@ -71,7 +71,7 @@ export default () => {
                   }
                 ],
                 ...mapObject(listbox, (iconSetName, icons) => {
-                  icons = wrapIcons(icons)
+                  icons = buildIcons(icons)
 
                   return [
                     `${iconSetName} (${number(icons.current)})`,

@@ -1,7 +1,9 @@
 import { getIconContentCSS, getIconCSS, iconToHTML, iconToSVG, replaceIDs } from '@iconify/utils'
 import { nanoid } from 'nanoid'
 
-import { cache, mapObject } from '../aliases'
+import { cache, has, mapObject } from '../aliases'
+
+const fileList = { css: null, json: null, svg: null, txt: null }
 
 export default icon => {
   const k = icon.id
@@ -11,7 +13,7 @@ export default icon => {
   const svg = iconToSVG(icon.data)
 
   const v = {
-    fileList: mapObject({ css: null, json: null, svg: null, txt: null }, fileType => [
+    fileList: mapObject(fileList, fileType => [
       fileType,
       { default: `${icon.name}.${fileType}`, detail: `[${icon.setName}] ${icon.name}.${fileType}` }
     ]),
@@ -23,7 +25,5 @@ export default icon => {
     ...icon
   }
 
-  cache.set(k, v)
-
-  return v
+  if (has(cache.set(k, v))) return v
 }

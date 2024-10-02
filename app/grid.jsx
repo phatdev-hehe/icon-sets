@@ -5,6 +5,8 @@ import root from 'react-shadow'
 import { VirtuosoGrid } from 'react-virtuoso'
 
 import {
+  buildIcon,
+  buildIcons,
   bytes,
   copy,
   createBlob,
@@ -19,9 +21,7 @@ import {
   MotionPluralize,
   number,
   openObjectURL,
-  saveAs,
-  wrapIcon,
-  wrapIcons
+  saveAs
 } from '../aliases'
 
 const getFooter = icons => () => {
@@ -47,7 +47,7 @@ export default ({ footer, footerRight, icons, ...rest }) => {
 
   if (state) icons = sort(icons).by(state)
 
-  icons = wrapIcons(icons)
+  icons = buildIcons(icons)
 
   return (
     <Card
@@ -65,7 +65,7 @@ export default ({ footer, footerRight, icons, ...rest }) => {
         data={icons.current}
         itemClassName='p-6'
         itemContent={(index, icon) => {
-          icon = wrapIcon(icon)
+          icon = buildIcon(icon)
 
           return (
             <HoverCard

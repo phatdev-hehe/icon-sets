@@ -1,4 +1,4 @@
-import { JSZip, pluralize, saveAs, wrapIcon } from '../aliases'
+import { buildIcon, JSZip, pluralize, saveAs } from '../aliases'
 
 export default icons => {
   const [firstIcon] = icons
@@ -13,7 +13,7 @@ export default icons => {
         const zip = new JSZip()
 
         for (let icon of icons) {
-          icon = wrapIcon(icon)
+          icon = buildIcon(icon)
 
           zip.file(icon.fileList.svg[isSamePrefix ? 'default' : 'detail'], icon.to.html)
         }

@@ -1,6 +1,6 @@
 import { useDeepCompareEffect, useSetState } from 'ahooks'
 
-import { clone, equal, Grid, has, Icon, is, pluralize, wrapIcons } from '../aliases'
+import { buildIcons, clone, equal, Grid, has, Icon, is, pluralize } from '../aliases'
 
 const initialState = { category: null, variant: null }
 
@@ -16,7 +16,7 @@ export default iconSet => {
     variants: has(iconSet.variants)
   }
 
-  iconSet.icons = wrapIcons(
+  iconSet.icons = buildIcons(
     iconSet.icons.filter(icon => {
       const matchesVariant = variant =>
         icon.name[iconSet.has.prefixes ? 'startsWith' : 'endsWith'](
