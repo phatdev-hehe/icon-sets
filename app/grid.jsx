@@ -7,7 +7,6 @@ import { VirtuosoGrid } from 'react-virtuoso'
 import {
   buildIcon,
   buildIcons,
-  bytes,
   copy,
   createBlob,
   equal,
@@ -21,7 +20,8 @@ import {
   MotionPluralize,
   number,
   openObjectURL,
-  saveAs
+  saveAs,
+  title
 } from '../aliases'
 
 const getFooter = icons => () => {
@@ -101,7 +101,7 @@ export default ({ footer, footerRight, icons, ...rest }) => {
                   const blob = createBlob([text], filename)
 
                   return [
-                    `${fileType.toUpperCase()} (${bytes(blob)})`,
+                    title(fileType.toUpperCase(), blob),
                     [
                       ['View', () => openObjectURL(blob)],
                       ['Copy', () => copy(text)],

@@ -15,7 +15,8 @@ import {
   mapObject,
   MotionPluralize,
   number,
-  sortKeys
+  sortKeys,
+  title
 } from '../aliases'
 
 export default () => {
@@ -58,7 +59,7 @@ export default () => {
           endContent={
             <Icon
               listbox={{
-                [`All results (${number(state.icons.current)})`]: [
+                [title('All results', state.icons.current)]: [
                   {
                     isDisabled: equal(...Object.values(state)),
                     onPress: () => setState(state => ({ filteredIcons: state.icons })),
@@ -74,7 +75,7 @@ export default () => {
                   icons = buildIcons(icons)
 
                   return [
-                    `${iconSetName} (${number(icons.current)})`,
+                    title(iconSetName, icons.current),
                     [
                       {
                         isDisabled:

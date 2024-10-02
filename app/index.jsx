@@ -36,7 +36,7 @@ import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { useLockBodyScroll } from 'react-use'
 
 import {
-  asyncValue,
+  asyncContent,
   bytes,
   EndlessIcons,
   FilterIcons,
@@ -47,14 +47,14 @@ import {
   is,
   Listbox,
   mapObject,
-  number,
   Page,
   pluralize,
   RecentlyViewedIcons,
   relativeTime,
   SearchIcons,
   sortKeys,
-  Theme
+  Theme,
+  title
 } from '../aliases'
 import './index.css'
 import app from './index.js'
@@ -79,7 +79,7 @@ export const App = () => {
               render={({ resolvedTheme, setTheme }) => (
                 <Listbox
                   sections={{
-                    [asyncValue(app.version.current)]: [
+                    [asyncContent(app.version.current)]: [
                       [pluralize(all.iconSets, 'icon set'), all.icons],
                       ['Endless scrolling', 'Hehe'],
                       ['Bookmarks', bookmarkIcons.current],
@@ -96,7 +96,7 @@ export const App = () => {
                       mapObject(
                         Object.groupBy(Object.values(all.iconSets), ({ category }) => category),
                         (category, iconSets) => [
-                          `${category} (${number(iconSets)})`,
+                          title(category, iconSets),
                           sort(iconSets)
                             .asc('name')
                             .map(iconSet => ({
@@ -131,7 +131,7 @@ export const App = () => {
                       },
                       {
                         color: 'warning',
-                        description: bytes(asyncValue(() => navigator.storage.estimate()).usage),
+                        description: bytes(asyncContent(() => navigator.storage.estimate()).usage),
                         isSelected: true,
                         onPress: app.clear,
                         title: 'Clear cache'
