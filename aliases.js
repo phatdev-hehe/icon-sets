@@ -1,7 +1,20 @@
+/* eslint-disable */
+
 import { LRUCache } from 'lru-cache'
 
 export const cache = new LRUCache({ max: 1_000 })
 export const locale = 'en-US'
+
+export { default as is } from '@sindresorhus/is'
+export { useCreation as createMemo, useUpdate as rerender } from 'ahooks'
+export { default as has } from 'has-values'
+export { default as mapObject, mapObjectSkip } from 'map-obj'
+export { default as mime } from 'mime/lite'
+export { default as ms } from 'ms'
+export { default as equal } from 'react-fast-compare'
+export { useFirstRender as useIsFirstRender } from 'react-haiku'
+export { default as clone } from 'rfdc/default'
+export { default as sortKeys } from 'sort-keys'
 
 export { default as asyncValue } from './app/async-value'
 export { default as bytes } from './app/bytes'
@@ -30,14 +43,3 @@ export { default as Theme } from './app/theme'
 export { default as toast } from './app/toast'
 export { default as wrapIcon } from './app/wrap-icon'
 export { default as wrapIcons } from './app/wrap-icons'
-
-export { default as is } from '@sindresorhus/is'
-export { useCreation as createMemo, useUpdate as rerender } from 'ahooks'
-export { default as has } from 'has-values'
-export { default as mapObject, mapObjectSkip } from 'map-obj'
-export { default as mime } from 'mime/lite'
-export { default as ms } from 'ms'
-export { default as equal } from 'react-fast-compare'
-export { useFirstRender as useIsFirstRender } from 'react-haiku'
-export { default as clone } from 'rfdc/default'
-export { default as sortKeys } from 'sort-keys'
