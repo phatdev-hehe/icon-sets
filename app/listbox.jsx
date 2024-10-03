@@ -12,6 +12,8 @@ export default ({ sections }) => (
           ({ color = 'primary', descriptions = [], isDisabled, isSelected, title, ...rest }) => {
             isSelected &&= !isDisabled
 
+            const key = nanoid()
+
             return (
               <ListboxItem
                 classNames={{ title: isSelected && `text-${color}` }}
@@ -20,8 +22,8 @@ export default ({ sections }) => (
                   <For each={descriptions} render={description => <div>{description}</div>} />
                 }
                 isDisabled={isDisabled}
-                key={nanoid()}
-                textValue={nanoid()}
+                key={key}
+                textValue={key}
                 {...rest}>
                 {title}
               </ListboxItem>

@@ -1,6 +1,10 @@
-import { useAtomValue, useSetAtom } from 'jotai'
+import { useAtom } from 'jotai'
 import { atomWithImmer } from 'jotai-immer'
 
 const atom = atomWithImmer({})
 
-export default () => ({ ...useAtomValue(atom), set: useSetAtom(atom) })
+export default () => {
+  const [value, set] = useAtom(atom)
+
+  return { ...value, set }
+}
