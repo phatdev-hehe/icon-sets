@@ -1,5 +1,6 @@
 import { parseIconSet, quicklyValidateIconSet } from '@iconify/utils'
 import { useAsyncEffect, useRafState } from 'ahooks'
+import { sentenceCase } from 'change-case'
 import * as _ from 'es-toolkit'
 import * as idb from 'idb-keyval'
 import {
@@ -161,6 +162,11 @@ export default {
             prefix: iconSet.prefix,
             setName: iconSet.name
           }))
+
+          iconSet.suffixes = mapObject(iconSet.suffixes ?? {}, (key, value) => [
+            key,
+            sentenceCase(value)
+          ])
 
           return [key, iconSet]
         })

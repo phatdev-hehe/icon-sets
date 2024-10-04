@@ -88,7 +88,7 @@ export default ({ footer, footerRight, icons, ...rest }) => {
                     title: 'Clear all'
                   }
                 ],
-                ...mapObject(icon.fileList, (fileType, filename) => {
+                ...mapObject(icon.paths, (fileType, filename) => {
                   filename = filename.full
 
                   const text = {
@@ -119,7 +119,12 @@ export default ({ footer, footerRight, icons, ...rest }) => {
                 <root.div mode='closed'>
                   <span
                     className='icon'
-                    style={{ color: 'hsl(var(--nextui-foreground))', scale: '2' }}
+                    style={{
+                      '--size': '2rem',
+                      color: 'hsl(var(--nextui-foreground))',
+                      height: 'var(--size)',
+                      width: 'var(--size)'
+                    }}
                   />
                   <style>{icon.to.css}</style>
                 </root.div>

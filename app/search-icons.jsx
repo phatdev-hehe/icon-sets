@@ -23,7 +23,7 @@ export default () => {
   const placeholder = 'Search'
   const initialValue = { current: [], download: {} }
   const all = getAll()
-  const fuse = createMemo(() => new Fuse(all.icons, { keys: ['name'], threshold: 0 }))
+  const fuse = createMemo(() => new Fuse(all.icons, { keys: ['name'], threshold: 0.2 }))
   const [state, setState] = useSetState({ filteredIcons: initialValue, icons: initialValue })
 
   const [{ search: searchPattern }, setSearchPattern] = useUrlState(
@@ -61,7 +61,7 @@ export default () => {
               listbox={{
                 [title('All results', state.icons.current)]: [
                   {
-                    isDisabled: equal(...Object.values(state)),
+                    isSelected: equal(...Object.values(state)),
                     onPress: () => setState(state => ({ filteredIcons: state.icons })),
                     title: 'View'
                   },
@@ -78,7 +78,7 @@ export default () => {
                     title(iconSetName, icons.current),
                     [
                       {
-                        isDisabled:
+                        isSelected:
                           equal(icons.current, state.filteredIcons.current) || !has(icons.current),
                         onPress: () => setState({ filteredIcons: icons }),
                         title: 'View'

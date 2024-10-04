@@ -2,4 +2,4 @@ import delay from 'delay'
 
 import { ms } from '../aliases'
 
-export default async value => await delay(ms(value))
+export default async val => await delay(ms(val))

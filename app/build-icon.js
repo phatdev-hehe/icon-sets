@@ -3,7 +3,7 @@ import { nanoid } from 'nanoid'
 
 import { cache, has, mapObject } from '../aliases'
 
-const fileList = { css: null, json: null, svg: null, txt: null }
+const paths = { css: null, json: null, svg: null, txt: null }
 
 export default icon => {
   const k = icon.id
@@ -13,7 +13,7 @@ export default icon => {
   const svg = iconToSVG(icon.data)
 
   const v = {
-    fileList: mapObject(fileList, fileType => [
+    paths: mapObject(paths, fileType => [
       fileType,
       { default: `${icon.name}.${fileType}`, full: `[${icon.setName}] ${icon.name}.${fileType}` }
     ]),

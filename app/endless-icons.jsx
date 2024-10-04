@@ -11,14 +11,14 @@ export default () => {
   const all = getAll()
   const [state, setState] = useSetState({ icons: [], size })
 
-  const endReached = () =>
+  const effect = () =>
     setState(state => ({ icons: [...state.icons, ...sampleSize(all.icons, state.size)] }))
 
-  useSingleEffect(endReached)
+  useSingleEffect(effect)
 
   return (
     <Grid
-      endReached={endReached}
+      endReached={effect}
       footerRight={
         <Icon
           listbox={{
@@ -29,7 +29,7 @@ export default () => {
               title: size
             }))
           }}
-          name='arrow-align-right'
+          name='chevron-small-triple-right'
         />
       }
       icons={state.icons}

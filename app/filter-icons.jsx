@@ -6,6 +6,17 @@ const initialState = { category: null, variant: null }
 
 export default iconSet => {
   const [state, setState] = useSetState(initialState)
+  const isDefaultState = equal(state, initialState)
+
+  const createListboxItem = (key, value, title = value) => {
+    const isSelected = state[key] === value
+
+    return {
+      isSelected,
+      onPress: () => setState({ [key]: isSelected ? initialState[key] : value }),
+      title
+    }
+  }
 
   iconSet = clone(iconSet)
   iconSet.variants = iconSet.prefixes ?? iconSet.suffixes ?? {}
@@ -33,10 +44,11 @@ export default iconSet => {
     })
   )
 
-  useDeepCompareEffect(
-    () => setState(initialState),
-    [iconSet.categories, iconSet.prefixes, iconSet.suffixes]
-  )
+  useDeepCompareEffect(() => {
+    if (isDefaultState) return
+
+    setState(initialState)
+  }, [iconSet.prefix])
 
   return (
     <Grid
@@ -46,24 +58,12 @@ export default iconSet => {
             listbox={{
               ...(iconSet.has.variants && {
                 [pluralize(iconSet.variants, 'variant')]: Object.entries(iconSet.variants).map(
-                  ([variant, title, isSelected = state.variant === variant]) => ({
-                    isSelected,
-                    onPress: () => setState({ variant: !isSelected && variant }),
-                    title
-                  })
+                  value => createListboxItem('variant', ...value)
                 )
               }),
               ...(iconSet.has.categories && {
                 [pluralize(iconSet.categories, 'category')]: Object.keys(iconSet.categories).map(
-                  category => {
-                    const isSelected = state.category === category
-
-                    return {
-                      isSelected,
-                      onPress: () => setState({ category: !isSelected && category }),
-                      title: category
-                    }
-                  }
+                  category => createListboxItem('category', category)
                 )
               }),
               Download: [
@@ -74,7 +74,7 @@ export default iconSet => {
                 }
               ]
             }}
-            name={equal(state, initialState) ? 'filter' : 'filter-filled'}
+            name={isDefaultState ? 'filter' : 'filter-filled'}
           />
         )
       }
