@@ -118,14 +118,14 @@ export const App = () => {
                         ]
                       )
                     ),
-                    [pluralize(all.iconGroups, 'group')]: Object.entries(all.iconGroups).map(
-                      ([title, names]) => ({
+                    [pluralize(all.iconGroups, 'group')]: sort(
+                      Object.entries(all.iconGroups).map(([title, names]) => ({
                         description: pluralize(names, 'name', true),
                         isSelected: title === state,
                         onPress: () => setState(title),
                         title
-                      })
-                    ),
+                      }))
+                    ).asc('title'),
                     Settings: [
                       {
                         description: 'Toggle theme',
