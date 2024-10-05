@@ -44,6 +44,7 @@ import {
   getBookmarkIcons,
   getRecentlyViewedIcons,
   Grid,
+  has,
   is,
   Listbox,
   mapObject,
@@ -117,6 +118,14 @@ export const App = () => {
                         ]
                       )
                     ),
+                    [pluralize(all.iconGroups, 'group')]: Object.entries(all.iconGroups).map(
+                      ([title, names]) => ({
+                        description: pluralize(names, 'name', true),
+                        isSelected: title === state,
+                        onPress: () => setState(title),
+                        title
+                      })
+                    ),
                     Settings: [
                       {
                         description: 'Toggle theme',
@@ -150,7 +159,12 @@ export const App = () => {
                 {state === 1 && <EndlessIcons />}
                 {state === 2 && <Grid icons={bookmarkIcons.current} />}
                 {state === 3 && <RecentlyViewedIcons />}
-                {is.string(state) && <FilterIcons {...all.iconSets[state]} />}
+                {has(all.iconSets[state]) && <FilterIcons {...all.iconSets[state]} />}
+                {has(all.iconGroups[state]) && (
+                  <Grid
+                    icons={all.icons.filter(icon => all.iconGroups[state].includes(icon.name))}
+                  />
+                )}
               </Panel>
               <PanelResizeHandle />
               <Panel>
