@@ -5,7 +5,7 @@ import { useSingleEffect } from 'react-haiku'
 import { getAll, Grid, Icon, pluralize } from '../aliases'
 
 const size = 100
-const sizes = range(size, size + 1_000, size)
+const sizes = range(size, size + 1000, size)
 
 export default () => {
   const all = getAll()

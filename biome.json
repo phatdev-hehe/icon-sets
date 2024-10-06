@@ -1,1 +1,5 @@
-{ "formatter": { "enabled": false }, "organizeImports": { "enabled": false } }
+{
+  "formatter": { "enabled": false },
+  "organizeImports": { "enabled": false },
+  "linter": { "rules": { "style": { "noParameterAssign": "off" } } }
+}

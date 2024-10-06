@@ -94,7 +94,7 @@ export default ({ footer, footerRight, icons, ...rest }) => {
 
                   const text = {
                     css: icon.to.css,
-                    json: JSON.stringify(icon.data, null, 2),
+                    json: JSON.stringify(icon.data, undefined, 2),
                     svg: icon.to.html,
                     txt: icon.to.dataUrl
                   }[fileType]

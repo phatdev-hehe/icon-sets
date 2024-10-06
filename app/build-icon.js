@@ -3,7 +3,7 @@ import { nanoid } from 'nanoid'
 
 import { cache, has, mapObject } from '../aliases'
 
-const paths = { css: null, json: null, svg: null, txt: null }
+const paths = { css: undefined, json: undefined, svg: undefined, txt: undefined }
 
 export default icon => {
   const k = icon.id

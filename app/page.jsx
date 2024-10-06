@@ -40,7 +40,7 @@ const MotionStars = () => {
   return (
     <m.div className='fixed inset-0 -z-10 hidden dark:block' {...{ ref, style }}>
       <Canvas>
-        <Stars count={1_000} depth={800} fade />
+        <Stars count={1000} depth={800} fade />
       </Canvas>
     </m.div>
   )

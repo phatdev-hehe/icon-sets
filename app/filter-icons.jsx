@@ -2,7 +2,7 @@ import { useDeepCompareEffect, useSetState } from 'ahooks'
 
 import { buildIcons, clone, equal, Grid, has, Icon, is, pluralize } from '../aliases'
 
-const initialState = { category: null, variant: null }
+const initialState = { category: undefined, variant: undefined }
 
 export default iconSet => {
   const [state, setState] = useSetState(initialState)
@@ -53,7 +53,7 @@ export default iconSet => {
   return (
     <Grid
       footerRight={
-        (iconSet.has.variants || iconSet.has.categories || null) && (
+        (iconSet.has.variants || iconSet.has.categories || undefined) && (
           <Icon
             listbox={{
               ...(iconSet.has.variants && {
