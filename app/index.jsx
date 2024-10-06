@@ -44,7 +44,7 @@ import {
   getBookmarkIcons,
   getRecentlyViewedIcons,
   Grid,
-  has,
+  IconGroups,
   is,
   Listbox,
   mapObject,
@@ -82,10 +82,11 @@ export const App = () => {
                   sections={{
                     [asyncContent(app.version.current)]: [
                       [pluralize(all.iconSets, 'icon set'), all.icons],
-                      ['Endless scrolling', 'Hehe'],
+                      ['Endless scrolling'],
                       ['Bookmarks', bookmarkIcons.current],
-                      ['Recently viewed', recentlyViewedIcons]
-                    ].map(([title, description], index) => ({
+                      ['Recently viewed', recentlyViewedIcons],
+                      ['Groups']
+                    ].map(([title, description = 'No description'], index) => ({
                       description: is.string(description)
                         ? description
                         : pluralize(description, 'icon', true),
@@ -118,14 +119,6 @@ export const App = () => {
                         ]
                       )
                     ),
-                    [pluralize(all.iconGroups, 'group')]: sort(
-                      Object.entries(all.iconGroups).map(([title, names]) => ({
-                        description: pluralize(names, 'name', true),
-                        isSelected: title === state,
-                        onPress: () => setState(title),
-                        title
-                      }))
-                    ).asc('title'),
                     Settings: [
                       {
                         description: 'Toggle theme',
@@ -159,12 +152,8 @@ export const App = () => {
                 {state === 1 && <EndlessIcons />}
                 {state === 2 && <Grid icons={bookmarkIcons.current} />}
                 {state === 3 && <RecentlyViewedIcons />}
-                {has(all.iconSets[state]) && <FilterIcons {...all.iconSets[state]} />}
-                {has(all.iconGroups[state]) && (
-                  <Grid
-                    icons={all.icons.filter(icon => all.iconGroups[state].includes(icon.name))}
-                  />
-                )}
+                {state === 4 && <IconGroups />}
+                {is.string(state) && <FilterIcons {...all.iconSets[state]} />}
               </Panel>
               <PanelResizeHandle />
               <Panel>

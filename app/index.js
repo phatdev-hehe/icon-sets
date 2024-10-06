@@ -175,16 +175,6 @@ export default {
           draft.icons = Object.values(iconSets).flatMap(iconSet => iconSet.icons)
           draft.iconSets = iconSets
           draft.state = !state
-          draft.iconGroups = Object.values(iconSets)
-            .map(iconSet => iconSet.categories)
-            .reduce((categories, currentCategories) => {
-              if (!has(currentCategories)) return categories
-              if (Object.keys(currentCategories).includes('')) return categories
-
-              return _.mergeWith(categories, currentCategories, (arr1, arr2) => {
-                if (has(arr1)) return _.union(arr1, arr2)
-              })
-            }, {})
         })
       }),
       [state]
