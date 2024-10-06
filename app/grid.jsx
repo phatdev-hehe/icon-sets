@@ -24,13 +24,15 @@ import {
   title
 } from '../aliases'
 
-const getFooter = icons => () => {
-  if (has(icons.current)) return <div style={{ height: 'var(--footer-height)' }} />
+const CardFooterProps = { style: { height: '4rem' } }
+
+const renderFooter = icons => () => {
+  if (has(icons.current)) return <div {...CardFooterProps} />
 
   return <div className='flex-center text-foreground-500'>No icons</div>
 }
 
-const getScrollSeekPlaceholder =
+const renderScrollSeekPlaceholder =
   icons =>
   ({ index, ...style }) => (
     <div className='flex-center text-foreground-500' style={style}>
@@ -39,8 +41,8 @@ const getScrollSeekPlaceholder =
   )
 
 export default ({ footer, footerRight, icons, ...rest }) => {
-  const all = getAll()
   const [state, setState] = useRafState()
+  const all = getAll()
   const bookmarkIcons = getBookmarkIcons()
 
   if (icons.some(is.string)) icons = all.icons.filter(icon => icons.includes(icon.id))
@@ -55,12 +57,11 @@ export default ({ footer, footerRight, icons, ...rest }) => {
         base: 'h-full rounded-none bg-background text-sm',
         footer: 'absolute inset-x-0 bottom-0 rounded-none'
       }}
-      isFooterBlurred
-      style={{ '--footer-height': '4rem' }}>
+      isFooterBlurred>
       <VirtuosoGrid
         components={{
-          Footer: getFooter(icons),
-          ScrollSeekPlaceholder: getScrollSeekPlaceholder(icons)
+          Footer: renderFooter(icons),
+          ScrollSeekPlaceholder: renderScrollSeekPlaceholder(icons)
         }}
         data={icons.current}
         itemClassName='p-6'
@@ -136,7 +137,7 @@ export default ({ footer, footerRight, icons, ...rest }) => {
         scrollSeekConfiguration={{ enter: v => Math.abs(v) > 300, exit: v => v === 0 }}
         {...rest}
       />
-      <CardFooter style={{ height: 'var(--footer-height)' }}>
+      <CardFooter {...CardFooterProps}>
         {footer ?? (
           <div className='flex-center justify-between px-3'>
             <MotionPluralize value={icons.current} word='icon' />

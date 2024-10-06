@@ -8,14 +8,12 @@ export default async (data, filename) => {
     duration: Number.POSITIVE_INFINITY
   })
 
-  data = await data
+  data = [await data, filename]
 
-  const download = () => saveAs(data, filename)
-
-  download()
+  saveAs(...data)
 
   currentToast.update({
-    action: <Icon name='arrow-small-down' onPress={download} tooltip='Download' />,
-    description: bytes(data)
+    action: <Icon name='arrow-small-down' onPress={() => saveAs(...data)} tooltip='Download' />,
+    description: bytes(data[0])
   })
 }

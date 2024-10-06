@@ -2,7 +2,6 @@ import { parseIconSet, quicklyValidateIconSet } from '@iconify/utils'
 import { useAsyncEffect, useRafState } from 'ahooks'
 import { sentenceCase } from 'change-case'
 import * as _ from 'es-toolkit'
-import * as idb from 'idb-keyval'
 import {
   browserName,
   browserVersion,
@@ -20,6 +19,7 @@ import {
   delay,
   getAll,
   has,
+  idb,
   is,
   JSZip,
   mapObject,

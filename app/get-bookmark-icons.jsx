@@ -7,6 +7,7 @@ const initialValue = []
 
 export default () => {
   const [state, setState] = useLocalStorage('bookmark-icons', initialValue)
+  const has = icon => state.includes(icon.id)
 
   return {
     clear: () => {
@@ -17,8 +18,8 @@ export default () => {
           <Icon
             name='rotate-180'
             onPress={() => {
-              currentToast.dismiss()
               setState(state)
+              currentToast.dismiss()
             }}
             tooltip='Undo'
           />
@@ -27,12 +28,12 @@ export default () => {
       })
     },
     current: state,
-    has: icon => state.includes(icon.id),
-    toggle(icon) {
-      const isBookmarked = this.has(icon)
+    has,
+    toggle: icon => {
+      const hasIcon = has(icon)
 
-      toast(isBookmarked ? 'Bookmark removed' : 'Bookmark added')
-      setState(state => (isBookmarked ? without(state, icon.id) : [...state, icon.id]))
+      setState(state => (hasIcon ? without(state, icon.id) : [...state, icon.id]))
+      toast(hasIcon ? 'Bookmark removed' : 'Bookmark added')
     }
   }
 }
