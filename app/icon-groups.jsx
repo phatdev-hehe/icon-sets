@@ -1,18 +1,7 @@
 import { useRafState } from 'ahooks'
-import { mergeWith, union } from 'es-toolkit'
 import { sort } from 'fast-sort'
 
-import {
-  buildIcons,
-  createMemo,
-  getAll,
-  Grid,
-  has,
-  Icon,
-  is,
-  mapObject,
-  pluralize
-} from '../aliases'
+import { buildIcons, createMemo, getAll, Grid, has, Icon, mapObject, pluralize } from '../aliases'
 
 export default () => {
   const [state, setState] = useRafState()
@@ -28,34 +17,25 @@ export default () => {
 
   const createListboxSection = (title, groupedIcons) => ({
     [pluralize(groupedIcons, title)]: sort(
-      Object.keys(groupedIcons).map(title => {
+      Object.entries(groupedIcons).map(([title, icons]) => {
         const isSelected = title === state
 
-        return { isSelected, onPress: () => setState(!isSelected && title), title }
+        return {
+          description: pluralize(icons, 'icon'),
+          isSelected,
+          onPress: () => setState(!isSelected && title),
+          title
+        }
       })
     ).asc('title')
   })
 
+  const groupedByCategory = createGroup('category')
   const groupedByLicense = createGroup('license')
   const groupedByAuthor = createGroup('author')
 
-  const groupedByCategory = createMemo(() =>
-    Object.values(all.iconSets)
-      .map(iconSet => iconSet.categories)
-      .reduce((categories, currentCategories) => {
-        if (!currentCategories) return categories
-        if (Object.keys(currentCategories).some(is.emptyString)) return categories
-
-        return mergeWith(categories, currentCategories, (arr1, arr2) => {
-          if (arr1) return union(arr1, arr2)
-        })
-      }, {})
-  )
-
   const icons = buildIcons(
-    groupedByCategory[state]
-      ? all.icons.filter(icon => groupedByCategory[state].includes(icon.name))
-      : groupedByLicense[state] || groupedByAuthor[state] || []
+    groupedByCategory[state] ?? groupedByLicense[state] ?? groupedByAuthor[state] ?? []
   )
 
   return (
@@ -70,9 +50,9 @@ export default () => {
                 title: icons.download.filename
               }
             ],
-            ...createListboxSection('author', groupedByAuthor),
+            ...createListboxSection('category', groupedByCategory),
             ...createListboxSection('license', groupedByLicense),
-            ...createListboxSection('category', groupedByCategory)
+            ...createListboxSection('author', groupedByAuthor)
           }}
           name='folder-zip'
         />
