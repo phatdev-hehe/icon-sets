@@ -5,14 +5,14 @@
 
 module.exports = {
   extends: [
+    'plugin:@eslint-react/recommended-legacy',
     'plugin:perfectionist/recommended-natural-legacy',
     'plugin:promise/recommended',
     'plugin:react/jsx-runtime',
-    'plugin:@eslint-react/recommended-legacy'
+    'plugin:unicorn/recommended'
   ],
   parserOptions: { ecmaVersion: 'latest', sourceType: 'module' },
   rules: Object.fromEntries(
-    // (automatically fixable)
     [
       'dot-notation',
       'eqeqeq',
