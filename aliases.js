@@ -14,6 +14,7 @@ export { default as mime } from 'mime/lite'
 export { default as ms } from 'ms'
 export { default as equal } from 'react-fast-compare'
 export { useFirstRender as useIsFirstRender } from 'react-haiku'
+export { default as root } from 'react-shadow'
 export { default as clone } from 'rfdc/default'
 export { default as sortKeys } from 'sort-keys'
 

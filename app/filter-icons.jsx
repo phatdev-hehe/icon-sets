@@ -6,17 +6,6 @@ const initialState = { category: undefined, variant: undefined }
 
 export default iconSet => {
   const [state, setState] = useSetState(initialState)
-  const isDefaultState = equal(state, initialState)
-
-  const createListboxItem = (key, value, title = value) => {
-    const isSelected = state[key] === value
-
-    return {
-      isSelected,
-      onPress: () => setState({ [key]: isSelected ? initialState[key] : value }),
-      title
-    }
-  }
 
   iconSet = clone(iconSet)
   iconSet.variants = iconSet.prefixes ?? iconSet.suffixes ?? {}
@@ -44,8 +33,26 @@ export default iconSet => {
     })
   )
 
+  const createListboxSection = key => {
+    if (!iconSet.has[key]) return
+
+    const KEY = { categories: 'category', variants: 'variant' }[key]
+
+    return {
+      [pluralize(iconSet[key], key)]: Object.entries(iconSet[key]).map(([key, value]) => {
+        const isSelected = state[KEY] === key
+
+        return {
+          isSelected,
+          onPress: () => setState({ [KEY]: isSelected ? initialState[KEY] : key }),
+          title: KEY === 'category' ? key : value
+        }
+      })
+    }
+  }
+
   useDeepCompareEffect(() => {
-    if (isDefaultState) return
+    if (equal(state, initialState)) return
 
     setState(initialState)
   }, [iconSet.prefix])
@@ -56,16 +63,8 @@ export default iconSet => {
         (iconSet.has.variants || iconSet.has.categories || undefined) && (
           <Icon
             listbox={{
-              ...(iconSet.has.variants && {
-                [pluralize(iconSet.variants, 'variant')]: Object.entries(iconSet.variants).map(
-                  value => createListboxItem('variant', ...value)
-                )
-              }),
-              ...(iconSet.has.categories && {
-                [pluralize(iconSet.categories, 'category')]: Object.keys(iconSet.categories).map(
-                  category => createListboxItem('category', category)
-                )
-              }),
+              ...createListboxSection('variants'),
+              ...createListboxSection('categories'),
               Download: [
                 {
                   isDisabled: !has(iconSet.icons.current),
@@ -74,7 +73,7 @@ export default iconSet => {
                 }
               ]
             }}
-            name={isDefaultState ? 'filter' : 'filter-filled'}
+            name='filter'
           />
         )
       }

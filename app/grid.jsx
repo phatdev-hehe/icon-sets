@@ -1,7 +1,6 @@
 import { Button, Card, CardFooter } from '@nextui-org/react'
 import { useRafState } from 'ahooks'
 import { sort } from 'fast-sort'
-import root from 'react-shadow'
 import { VirtuosoGrid } from 'react-virtuoso'
 
 import {
@@ -20,6 +19,7 @@ import {
   MotionPluralize,
   number,
   openObjectURL,
+  root,
   saveAs,
   title
 } from '../aliases'
@@ -47,9 +47,7 @@ export default ({ footer, footerRight, icons, ...rest }) => {
 
   if (icons.some(is.string)) icons = all.icons.filter(icon => icons.includes(icon.id))
 
-  if (state) icons = sort(icons).by(state)
-
-  icons = buildIcons(icons)
+  icons = buildIcons(state ? sort(icons).by(state) : icons)
 
   return (
     <Card
@@ -72,11 +70,7 @@ export default ({ footer, footerRight, icons, ...rest }) => {
             <HoverCard
               listbox={{
                 [`#${index + 1}`]: [
-                  {
-                    description: icon.setName,
-                    onPress: () => copy(icon.name),
-                    title: icon.name
-                  }
+                  { description: icon.setName, onPress: () => copy(icon.name), title: icon.name }
                 ],
                 Bookmark: [
                   {
@@ -92,12 +86,12 @@ export default ({ footer, footerRight, icons, ...rest }) => {
                 ...mapObject(icon.paths, (fileType, filename) => {
                   filename = filename.full
 
-                  const text = {
-                    css: icon.to.css,
-                    json: JSON.stringify(icon.data, undefined, 2),
-                    svg: icon.to.html,
-                    txt: icon.to.dataUrl
-                  }[fileType]
+                  let text
+
+                  if (fileType === 'css') text = icon.to.css
+                  if (fileType === 'json') text = JSON.stringify(icon.data, undefined, 2)
+                  if (fileType === 'svg') text = icon.to.html
+                  if (fileType === 'txt') text = icon.to.dataUrl
 
                   const blob = createBlob([text], filename)
 
@@ -147,21 +141,21 @@ export default ({ footer, footerRight, icons, ...rest }) => {
                   ...mapObject(
                     {
                       Default: ['id', 'name', 'setName', 'prefix'],
-                      Id: ['id'],
-                      Name: ['name'],
-                      'Set name': ['setName'],
-                      'Set prefix': ['prefix']
+                      'Icon id': ['id'],
+                      'Icon name': ['name'],
+                      'Icon set id': ['prefix'],
+                      'Icon set name': ['setName']
                     },
-                    (title, keys) => [
+                    (title, props) => [
                       title,
                       ['asc', 'desc'].map(order => {
-                        const value = keys.map(key => ({ [order]: key }))
-                        const isSelected = equal(value, state)
+                        const currentState = props.map(prop => ({ [order]: prop }))
+                        const isSelected = equal(state, currentState)
 
                         return {
                           isDisabled: number(icons.current) < 2,
                           isSelected,
-                          onPress: () => setState(!isSelected && value),
+                          onPress: () => setState(!isSelected && currentState),
                           title: { asc: 'Ascending', desc: 'Descending' }[order]
                         }
                       })
