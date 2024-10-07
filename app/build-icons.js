@@ -1,8 +1,8 @@
-import { buildIcon, has, JSZip, pluralize, saveAs } from '../aliases'
+import { buildIcon, JSZip, pluralize, saveAs } from '../aliases'
 
 export default icons => {
   const [firstIcon] = icons
-  const isSamePrefix = has(firstIcon) && icons.every(icon => icon.prefix === firstIcon.prefix)
+  const isSamePrefix = firstIcon && icons.every(icon => icon.prefix === firstIcon.prefix)
   const filename = `${isSamePrefix ? firstIcon.setName : pluralize(icons, 'icon')}.zip`
 
   return {

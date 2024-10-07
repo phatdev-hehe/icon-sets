@@ -8,7 +8,7 @@ const separator = ' '
 
 export default ({ value, word }) => {
   const [state, setState] = useRafState(0)
-  const tooltip = pluralize(state, word)
+  const tooltip = pluralize(state, word, false)
 
   useDeepCompareEffect(() => setState(number(value)), [value])
 

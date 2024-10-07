@@ -89,7 +89,7 @@ export const App = () => {
                     ].map(([title, description = 'No description'], index) => ({
                       description: is.string(description)
                         ? description
-                        : pluralize(description, 'icon', true),
+                        : pluralize(description, 'icon'),
                       isSelected: state === index,
                       onPress: () => setState(index),
                       title
@@ -105,7 +105,7 @@ export const App = () => {
                               descriptions: [
                                 iconSet.author,
                                 iconSet.license,
-                                pluralize(iconSet.icons, 'icon', true),
+                                pluralize(iconSet.icons, 'icon'),
                                 relativeTime(iconSet.lastModified)
                               ],
                               isSelected: state === iconSet.prefix,

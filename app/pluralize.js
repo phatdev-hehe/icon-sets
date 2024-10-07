@@ -3,7 +3,7 @@ import pluralize from 'pluralize'
 
 import { locale, number } from '../aliases'
 
-export default (target, word, format) => {
+export default (target, word, format = true) => {
   target = number(target)
 
   return `${format ? `${formatNumber(target, locale, 's')} ` : ''}${pluralize(word, target, !format)}`

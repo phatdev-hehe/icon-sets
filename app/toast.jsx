@@ -1,7 +1,7 @@
 import { ScrollShadow } from '@nextui-org/react'
 import { toast } from 'sonner'
 
-import { has, is, Listbox, ms } from '../aliases'
+import { is, Listbox, ms } from '../aliases'
 
 export default (message, data) => {
   const id = toast(message, parseData(data))
@@ -13,14 +13,14 @@ export default (message, data) => {
 }
 
 const parseData = ({ action, description, duration, listbox, ...rest } = {}) => {
-  duration ??= ms(has(action) ? '6s' : '4s')
+  duration ??= ms(action ? '6s' : '4s')
 
   return {
     action,
     description: (
       <>
         {description}
-        {has(listbox) && (
+        {listbox && (
           <ScrollShadow className='max-h-96' style={{ color: 'initial' }}>
             <Listbox sections={listbox} />
           </ScrollShadow>
