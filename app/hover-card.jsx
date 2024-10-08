@@ -1,41 +1,47 @@
 import { cn } from '@nextui-org/react'
-import * as HoverCard from '@radix-ui/react-hover-card'
+import { Content, Portal, Root, Trigger } from '@radix-ui/react-hover-card'
 import { useRafState } from 'ahooks'
 import { AnimatePresence, m, useSpring } from 'framer-motion'
 import { useRef } from 'react'
 
 import { Listbox } from '../aliases'
 
-export default ({ align = 'center', children, listbox, tooltip }) => {
+const align = 'center'
+
+export default ({ children, listbox, tooltip }) => {
   const [state, setState] = useRafState()
   const ref = useRef()
-  const x = useSpring(0)
-  const setX = v => x.set(v / 4)
+
+  const style = {
+    transformOrigin: 'var(--radix-hover-card-content-transform-origin)',
+    updateX(v) {
+      this.x.set(v / 4)
+    },
+    x: useSpring(0)
+  }
 
   return (
-    <HoverCard.Root closeDelay={200} onOpenChange={setState} openDelay={0}>
-      <HoverCard.Trigger
+    <Root closeDelay={200} onOpenChange={setState} openDelay={0}>
+      <Trigger
         asChild
         className='!scale-100'
-        onMouseMove={({ clientX, target }) => {
-          if (ref.current) {
-            const rect = target.getBoundingClientRect()
+        onMouseMove={event => {
+          const rect = event.target.getBoundingClientRect()
 
-            if (align === 'center') return setX(clientX - rect.left - rect.width / 2)
+          if (align === 'center') return style.updateX(event.clientX - rect.left - rect.width / 2)
 
-            const w = ref.current.getBoundingClientRect().width
-            const x = clientX - rect[{ end: 'right', start: 'left' }[align]]
-            const v = { end: x + w, start: x - w }[align]
+          const w = ref.current.getBoundingClientRect().width
+          const x = event.clientX - rect[{ end: 'right', start: 'left' }[align]]
+          const v = { end: x + w, start: x - w }[align]
 
-            setX({ end: v < 0, start: v > 0 }[align] ? v : x)
-          }
+          style.updateX({ end: v < 0, start: v > 0 }[align] ? v : x)
         }}>
         {children}
-      </HoverCard.Trigger>
+      </Trigger>
       <AnimatePresence>
         {state && (
-          <HoverCard.Portal forceMount>
-            <HoverCard.Content
+          <Portal forceMount>
+            <Content
               align={listbox ? 'start' : align}
               ref={ref}
               side={tooltip && 'top'}
@@ -48,13 +54,13 @@ export default ({ align = 'center', children, listbox, tooltip }) => {
                   'px-2.5 py-1': tooltip
                 })}
                 exit={{ opacity: 0, scale: 0.7 }}
-                style={{ transformOrigin: 'var(--radix-hover-card-content-transform-origin)', x }}>
+                style={style}>
                 {tooltip ?? <Listbox sections={listbox} />}
               </m.div>
-            </HoverCard.Content>
-          </HoverCard.Portal>
+            </Content>
+          </Portal>
         )}
       </AnimatePresence>
-    </HoverCard.Root>
+    </Root>
   )
 }

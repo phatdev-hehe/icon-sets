@@ -84,8 +84,7 @@ export const App = () => {
                       [pluralize(all.iconSets, 'icon set'), all.icons],
                       ['Endless scrolling'],
                       ['Bookmarks', bookmarkIcons.current],
-                      ['Recently viewed', recentlyViewedIcons],
-                      ['Groups']
+                      ['Recently viewed', recentlyViewedIcons]
                     ].map(([title, description = 'No description'], index) => ({
                       description: is.string(description)
                         ? description
@@ -148,11 +147,10 @@ export const App = () => {
           <Panel>
             <PanelGroup direction='vertical'>
               <Panel>
-                {state === 0 && <Grid icons={all.icons} />}
+                {state === 0 && <IconGroups />}
                 {state === 1 && <EndlessIcons />}
                 {state === 2 && <Grid icons={bookmarkIcons.current} />}
                 {state === 3 && <RecentlyViewedIcons />}
-                {state === 4 && <IconGroups />}
                 {is.string(state) && <FilterIcons {...all.iconSets[state]} />}
               </Panel>
               <PanelResizeHandle />

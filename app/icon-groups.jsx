@@ -34,8 +34,16 @@ export default () => {
   const groupedByLicense = createGroup('license')
   const groupedByAuthor = createGroup('author')
 
+  const groupedByFirstLetter = createMemo(() =>
+    Object.groupBy(all.icons, icon => icon.name[0].toUpperCase())
+  )
+
   const icons = buildIcons(
-    groupedByCategory[state] ?? groupedByLicense[state] ?? groupedByAuthor[state] ?? []
+    groupedByCategory[state] ??
+      groupedByLicense[state] ??
+      groupedByAuthor[state] ??
+      groupedByFirstLetter[state] ??
+      all.icons
   )
 
   return (
@@ -50,8 +58,9 @@ export default () => {
                 title: icons.download.filename
               }
             ],
-            ...createListboxSection('category', groupedByCategory),
             ...createListboxSection('license', groupedByLicense),
+            ...createListboxSection('category', groupedByCategory),
+            ...createListboxSection('first letter', groupedByFirstLetter),
             ...createListboxSection('author', groupedByAuthor)
           }}
           name='folder-zip'
