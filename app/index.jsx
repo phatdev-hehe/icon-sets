@@ -57,8 +57,8 @@ import {
   Theme,
   title
 } from '../aliases'
-import './index.css'
 import app from './index.js'
+import './tailwind.css'
 
 export const App = () => {
   const bookmarkIcons = getBookmarkIcons()

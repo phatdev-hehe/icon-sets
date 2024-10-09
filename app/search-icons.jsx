@@ -1,13 +1,12 @@
-import useUrlState from '@ahooksjs/use-url-state'
 import { Input } from '@nextui-org/react'
 import { useDebounceEffect, useSetState } from 'ahooks'
 import { kebabCase } from 'change-case'
-import Fuse from 'fuse.js'
 
 import {
   buildIcons,
   createMemo,
   equal,
+  Fuse,
   getAll,
   Grid,
   has,
@@ -16,35 +15,28 @@ import {
   MotionPluralize,
   number,
   sortKeys,
-  title
+  title,
+  useUrlState
 } from '../aliases'
 
+const placeholder = 'Search'
+const defaultState = { current: [], download: {} }
+
 export default () => {
-  const placeholder = 'Search'
-  const initialValue = { current: [], download: {} }
   const all = getAll()
   const fuse = createMemo(() => new Fuse(all.icons, { keys: ['name'], threshold: 0.2 }))
-  const [state, setState] = useSetState({ filteredIcons: initialValue, icons: initialValue })
+  const [state, setState] = useSetState({ displayedIcons: defaultState, icons: defaultState })
 
   const [{ search: searchPattern }, setSearchPattern] = useUrlState(
     { search: placeholder },
     { navigateMode: 'replace' }
   )
 
-  const listbox = createMemo(() => {
-    const listbox = mapObject(all.iconSets, (key, iconSet) => [
-      iconSet.name,
-      state.icons.current.filter(icon => icon.prefix === iconSet.prefix)
-    ])
-
-    return sortKeys(listbox, { compare: (a, b) => number(listbox[b]) - number(listbox[a]) })
-  }, [state.icons])
-
   useDebounceEffect(
     () => {
       const icons = buildIcons(fuse.search(kebabCase(searchPattern)).map(({ item }) => item))
 
-      setState({ filteredIcons: icons, icons })
+      setState({ displayedIcons: icons, icons })
     },
     [searchPattern],
     { wait: 300 }
@@ -61,8 +53,9 @@ export default () => {
               listbox={{
                 [title('All results', state.icons.current)]: [
                   {
+                    isDisabled: !has(state.icons.current),
                     isSelected: equal(...Object.values(state)),
-                    onPress: () => setState(state => ({ filteredIcons: state.icons })),
+                    onPress: () => setState(state => ({ displayedIcons: state.icons })),
                     title: 'View'
                   },
                   {
@@ -71,31 +64,41 @@ export default () => {
                     title: 'Download'
                   }
                 ],
-                ...mapObject(listbox, (iconSetName, icons) => {
-                  icons = buildIcons(icons)
+                ...mapObject(
+                  createMemo(() => {
+                    const iconSets = mapObject(all.iconSets, (key, iconSet) => [
+                      iconSet.name,
+                      state.icons.current.filter(icon => icon.prefix === iconSet.prefix)
+                    ])
 
-                  return [
-                    title(iconSetName, icons.current),
-                    [
-                      {
-                        isSelected:
-                          equal(icons.current, state.filteredIcons.current) || !has(icons.current),
-                        onPress: () => setState({ filteredIcons: icons }),
-                        title: 'View'
-                      },
-                      {
-                        isDisabled: !has(icons.current),
-                        onPress: icons.download.fn,
-                        title: 'Download'
-                      }
+                    return sortKeys(iconSets, {
+                      compare: (a, b) => number(iconSets[b]) - number(iconSets[a])
+                    })
+                  }, [state.icons]),
+                  (iconSetName, icons) => {
+                    const isDisabled = !has(icons) || equal(icons, state.icons.current)
+
+                    icons = isDisabled ? defaultState : buildIcons(icons)
+
+                    return [
+                      title(iconSetName, icons.current),
+                      [
+                        {
+                          isDisabled,
+                          isSelected: equal(icons.current, state.displayedIcons.current),
+                          onPress: () => setState({ displayedIcons: icons }),
+                          title: 'View'
+                        },
+                        { isDisabled, onPress: icons.download.fn, title: 'Download' }
+                      ]
                     ]
-                  ]
-                })
+                  }
+                )
               }}
               name='watch'
             />
           }
-          label={<MotionPluralize value={state.filteredIcons.current} word='icon' />}
+          label={<MotionPluralize value={state.displayedIcons.current} word='icon' />}
           onValueChange={search => setSearchPattern({ search })}
           placeholder={placeholder}
           startContent={<Icon className='size-5' name='search' />}
@@ -103,7 +106,7 @@ export default () => {
           variant='bordered'
         />
       }
-      icons={state.filteredIcons.current}
+      icons={state.displayedIcons.current}
     />
   )
 }

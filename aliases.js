@@ -5,8 +5,10 @@ import { LRUCache } from 'lru-cache'
 export const cache = new LRUCache({ max: 1_000 })
 export const locale = 'en-US'
 
+export { default as useUrlState } from '@ahooksjs/use-url-state'
 export { default as is } from '@sindresorhus/is'
 export { useCreation as createMemo, useUpdate as rerender } from 'ahooks'
+export { default as Fuse } from 'fuse.js'
 export { default as has } from 'has-values'
 export * as idb from 'idb-keyval'
 export { default as mapObject, mapObjectSkip } from 'map-obj'
