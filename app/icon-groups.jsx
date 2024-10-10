@@ -1,7 +1,19 @@
 import { useRafState } from 'ahooks'
+import { uniq } from 'es-toolkit'
 import { sort } from 'fast-sort'
 
-import { buildIcons, createMemo, getAll, Grid, has, Icon, mapObject, pluralize } from '../aliases'
+import {
+  buildIcons,
+  createMemo,
+  getAll,
+  Grid,
+  has,
+  Icon,
+  mapObject,
+  pluralize,
+  relativeTime,
+  sortKeys
+} from '../aliases'
 
 export default () => {
   const [state, setState] = useRafState()
@@ -10,25 +22,31 @@ export default () => {
   const createGroup = key =>
     createMemo(() =>
       mapObject(
-        Object.groupBy(Object.values(all.iconSets), iconSet => iconSet[key]),
+        Object.groupBy(Object.values(all.iconSets), iconSet => {
+          if (key === 'lastModified') return relativeTime(iconSet[key])
+
+          return iconSet[key]
+        }),
         (key, iconSets) => [key, iconSets.flatMap(iconSet => iconSet.icons)]
       )
     )
 
-  const createListboxSection = (title, groupedIcons) => ({
-    [pluralize(groupedIcons, title)]: sort(
-      Object.entries(groupedIcons).map(([title, icons]) => {
-        const isSelected = title === state
+  const createListboxSection = (title, groupedIcons, shouldSort = true) => {
+    let arrayToSort = Object.entries(groupedIcons).map(([title, icons]) => {
+      const isSelected = title === state
 
-        return {
-          description: pluralize(icons, 'icon'),
-          isSelected,
-          onPress: () => setState(!isSelected && title),
-          title
-        }
-      })
-    ).asc('title')
-  })
+      return {
+        description: pluralize(icons, 'icon'),
+        isSelected,
+        onPress: () => setState(!isSelected && title),
+        title
+      }
+    })
+
+    if (shouldSort) arrayToSort = sort(arrayToSort).asc('title')
+
+    return { [pluralize(groupedIcons, title)]: arrayToSort }
+  }
 
   const groupedByCategory = createGroup('category')
   const groupedByLicense = createGroup('license')
@@ -38,11 +56,22 @@ export default () => {
     Object.groupBy(all.icons, icon => icon.name[0].toUpperCase())
   )
 
+  const updates = uniq(
+    sort(Object.values(all.iconSets).map(iconSet => iconSet.lastModified))
+      .desc()
+      .map(relativeTime)
+  )
+
+  const groupedByUpdate = sortKeys(createGroup('lastModified'), {
+    compare: (a, b) => updates.indexOf(a) - updates.indexOf(b)
+  })
+
   const icons = buildIcons(
-    groupedByCategory[state] ??
-      groupedByLicense[state] ??
-      groupedByAuthor[state] ??
+    groupedByAuthor[state] ??
       groupedByFirstLetter[state] ??
+      groupedByLicense[state] ??
+      groupedByUpdate[state] ??
+      groupedByCategory[state] ??
       all.icons
   )
 
@@ -58,10 +87,11 @@ export default () => {
                 title: icons.download.filename
               }
             ],
+            ...createListboxSection('update', groupedByUpdate, false),
             ...createListboxSection('license', groupedByLicense),
             ...createListboxSection('category', groupedByCategory),
-            ...createListboxSection('first letter', groupedByFirstLetter),
-            ...createListboxSection('author', groupedByAuthor)
+            ...createListboxSection('author', groupedByAuthor),
+            ...createListboxSection('first letter', groupedByFirstLetter)
           }}
           name='folder-zip'
         />

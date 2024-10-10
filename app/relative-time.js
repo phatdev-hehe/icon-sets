@@ -6,8 +6,8 @@ import { ms, rerender } from '../aliases'
 
 dayjs.extend(relativeTime)
 
-export default t => {
-  useRafInterval(rerender(), ms('1m'))
+export default (t, shouldUpdate) => {
+  if (shouldUpdate) useRafInterval(rerender(), ms('1m'))
 
   return dayjs.unix(t).fromNow()
 }

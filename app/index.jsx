@@ -98,7 +98,7 @@ export const App = () => {
                               iconSet.author,
                               iconSet.license,
                               pluralize(iconSet.icons, 'icon'),
-                              relativeTime(iconSet.lastModified)
+                              relativeTime(iconSet.lastModified, true)
                             ],
                             isSelected: iconSet.prefix === state,
                             onPress: () => setState(iconSet.prefix),
