@@ -1,4 +1,4 @@
-import { Listbox, ListboxItem, ListboxSection } from '@nextui-org/react'
+import { cn, Listbox, ListboxItem, ListboxSection } from '@nextui-org/react'
 import { nanoid } from 'nanoid'
 import { For } from 'react-haiku'
 
@@ -16,7 +16,7 @@ export default ({ sections }) => (
 
             return (
               <ListboxItem
-                classNames={{ title: isSelected && `text-${color}` }}
+                classNames={{ title: cn({ [`text-${color}`]: isSelected }) }}
                 color={isSelected ? color : ''}
                 description={
                   <For each={descriptions} render={description => <div>{description}</div>} />

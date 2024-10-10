@@ -49,7 +49,7 @@ export default {
     const all = getAll()
 
     const createEffect = fn => {
-      if (all.state) return () => Promise
+      if (all.hasData) return () => Promise
 
       return fn
     }
@@ -130,7 +130,8 @@ export default {
                     palette: iconSet.info.palette,
                     prefix: iconSet.prefix,
                     prefixes: iconSet.prefixes,
-                    suffixes: iconSet.suffixes
+                    suffixes: iconSet.suffixes,
+                    version: iconSet.info.version
                   })
                 }
               )
@@ -174,7 +175,7 @@ export default {
         all.set(draft => {
           draft.icons = Object.values(iconSets).flatMap(iconSet => iconSet.icons)
           draft.iconSets = iconSets
-          draft.state = !state
+          draft.hasData = !state
         })
       }),
       [state]
