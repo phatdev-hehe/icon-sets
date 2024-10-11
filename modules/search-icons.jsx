@@ -95,7 +95,7 @@ export default () => {
                   }
                 )
               }}
-              name='watch'
+              name='reddit'
             />
           }
           label={<MotionPluralize value={state.displayedIcons.current} word='icon' />}

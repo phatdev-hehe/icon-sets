@@ -45,7 +45,7 @@ import {
   Theme,
   title
 } from '../aliases'
-import app from './index.js'
+import app from './app.js'
 import './tailwind.css'
 
 export const App = () => {

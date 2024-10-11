@@ -1,5 +1,5 @@
 import { createRoot } from 'react-dom/client'
 
-import { App } from './app/index.jsx'
+import { App } from './modules/app.jsx'
 
 createRoot(document.querySelector('#root')).render(<App />)
