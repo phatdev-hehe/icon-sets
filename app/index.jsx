@@ -18,6 +18,7 @@
 import { cn, Spinner } from '@nextui-org/react'
 import { useRafState } from 'ahooks'
 import { sentenceCase } from 'change-case'
+import { groupBy } from 'es-toolkit'
 import { sort } from 'fast-sort'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { useLockBodyScroll } from 'react-use'
@@ -88,7 +89,7 @@ export const App = () => {
                   })),
                   ...sortKeys(
                     mapObject(
-                      Object.groupBy(Object.values(all.iconSets), iconSet => iconSet.category),
+                      groupBy(Object.values(all.iconSets), iconSet => iconSet.category),
                       (iconSetCategory, iconSets) => [
                         title(iconSetCategory, iconSets),
                         sort(iconSets)

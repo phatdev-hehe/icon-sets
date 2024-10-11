@@ -1,5 +1,5 @@
 import { useRafState } from 'ahooks'
-import { uniq } from 'es-toolkit'
+import { groupBy, uniq } from 'es-toolkit'
 import { sort } from 'fast-sort'
 
 import {
@@ -22,7 +22,7 @@ export default () => {
   const createGroup = key =>
     createMemo(() =>
       mapObject(
-        Object.groupBy(Object.values(all.iconSets), iconSet => {
+        groupBy(Object.values(all.iconSets), iconSet => {
           if (key === 'lastModified') return relativeTime(iconSet[key])
 
           return iconSet[key]
@@ -53,7 +53,7 @@ export default () => {
   const groupedByAuthor = createGroup('author')
 
   const groupedByFirstLetter = createMemo(() =>
-    Object.groupBy(all.icons, icon => icon.name[0].toUpperCase())
+    groupBy(all.icons, icon => icon.name[0].toUpperCase())
   )
 
   const updates = uniq(
