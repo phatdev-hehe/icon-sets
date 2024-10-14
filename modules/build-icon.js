@@ -6,17 +6,16 @@ import { cache, has, mapObject } from '../aliases'
 const paths = { css: undefined, json: undefined, svg: undefined, txt: undefined }
 
 export default icon => {
-  const k = icon.id
-
-  if (cache.has(k)) return cache.get(k)
+  if (cache.has(icon.id)) return cache.get(icon.id)
 
   const svg = iconToSVG(icon.data)
 
-  const v = {
-    paths: mapObject(paths, fileType => [
-      fileType,
-      { default: `${icon.name}.${fileType}`, full: `[${icon.setName}] ${icon.name}.${fileType}` }
-    ]),
+  icon = {
+    paths: mapObject(paths, fileType => {
+      const fileName = `${icon.name}.${fileType}`
+
+      return [fileType, { default: fileName, full: `[${icon.iconSetName}] ${fileName}` }]
+    }),
     to: {
       css: getIconCSS(icon.data),
       dataUrl: getIconContentCSS(icon.data, svg.attributes).slice(31, -6),
@@ -25,5 +24,5 @@ export default icon => {
     ...icon
   }
 
-  if (has(cache.set(k, v))) return v
+  if (has(cache.set(icon.id, icon))) return icon
 }

@@ -5,7 +5,6 @@ export default async obj => {
 
   if (open(url)) {
     await delay('1m')
-
     URL.revokeObjectURL(url)
   }
 }

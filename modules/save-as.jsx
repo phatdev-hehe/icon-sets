@@ -2,13 +2,13 @@ import { saveAs } from 'file-saver'
 
 import { bytes, Icon, toast } from '../aliases'
 
-export default async (data, filename) => {
-  const currentToast = toast(filename, {
+export default async (data, fileName) => {
+  const currentToast = toast(fileName, {
     description: 'Preparing to download',
     duration: Number.POSITIVE_INFINITY
   })
 
-  data = [await data, filename]
+  data = [await data, fileName]
 
   saveAs(...data)
 

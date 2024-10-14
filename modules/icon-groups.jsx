@@ -84,7 +84,7 @@ export default () => {
               {
                 isDisabled: !has(icons.current),
                 onPress: icons.download.fn,
-                title: icons.download.filename
+                title: icons.download.fileName
               }
             ],
             ...createListboxSection('update', groupedByUpdate, false),

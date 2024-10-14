@@ -1,8 +1,8 @@
-/* eslint-disable */
+/* eslint-disable perfectionist/sort-exports */
 
 import { LRUCache } from 'lru-cache'
 
-export const cache = new LRUCache({ max: 1_000 })
+export const cache = new LRUCache({ max: 1000 })
 export const locale = 'en-US'
 
 export { default as useUrlState } from '@ahooksjs/use-url-state'

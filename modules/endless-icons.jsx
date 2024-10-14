@@ -29,7 +29,7 @@ export default () => {
               title: size
             }))
           }}
-          name='chevron-small-triple-right'
+          name='double-arrow-horizontal'
         />
       }
       icons={state.icons}

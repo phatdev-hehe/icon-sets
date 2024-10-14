@@ -26,19 +26,25 @@ import {
 
 const CardFooterProps = { style: { height: '4rem' } }
 
-const renderFooter = icons => () => {
-  if (has(icons.current)) return <div {...CardFooterProps} />
+const createVirtuosoGridProps = icons => ({
+  components: {
+    Footer: () => {
+      if (has(icons.current)) return <div {...CardFooterProps} />
 
-  return <div className='flex-center text-foreground-500'>No icons</div>
-}
+      return <div className='flex-center text-foreground-500'>No icons</div>
+    },
+    ScrollSeekPlaceholder: ({ index, ...style }) => {
+      const icon = icons.current[index]
 
-const renderScrollSeekPlaceholder =
-  icons =>
-  ({ index, ...style }) => (
-    <div className='flex-center text-foreground-500' style={style}>
-      {icons.current[index].name.slice(0, 3)}
-    </div>
-  )
+      return (
+        <div className='flex-center text-foreground-500' style={style}>
+          {icon.name.slice(0, 3)}
+        </div>
+      )
+    }
+  },
+  data: icons.current
+})
 
 export default ({ footer, footerRight, icons, ...rest }) => {
   const [state, setState] = useRafState()
@@ -47,7 +53,7 @@ export default ({ footer, footerRight, icons, ...rest }) => {
 
   if (icons.some(is.string)) icons = all.icons.filter(icon => icons.includes(icon.id))
 
-  icons = buildIcons(state ? sort(icons).by(state) : icons)
+  icons = buildIcons(has(state) ? sort(icons).by(state) : icons)
 
   return (
     <Card
@@ -57,11 +63,6 @@ export default ({ footer, footerRight, icons, ...rest }) => {
       }}
       isFooterBlurred>
       <VirtuosoGrid
-        components={{
-          Footer: renderFooter(icons),
-          ScrollSeekPlaceholder: renderScrollSeekPlaceholder(icons)
-        }}
-        data={icons.current}
         itemClassName='p-6'
         itemContent={(index, icon) => {
           icon = buildIcon(icon)
@@ -70,7 +71,11 @@ export default ({ footer, footerRight, icons, ...rest }) => {
             <HoverCard
               listbox={{
                 [`#${index + 1}`]: [
-                  { description: icon.setName, onPress: () => copy(icon.name), title: icon.name }
+                  {
+                    description: icon.iconSetName,
+                    onPress: () => copy(icon.name),
+                    title: icon.name
+                  }
                 ],
                 Bookmark: [
                   {
@@ -83,8 +88,8 @@ export default ({ footer, footerRight, icons, ...rest }) => {
                     title: 'Clear all'
                   }
                 ],
-                ...mapObject(icon.paths, (fileType, filename) => {
-                  filename = filename.full
+                ...mapObject(icon.paths, (fileType, fileName) => {
+                  fileName = fileName.full
 
                   let text
 
@@ -93,14 +98,14 @@ export default ({ footer, footerRight, icons, ...rest }) => {
                   if (fileType === 'svg') text = icon.to.html
                   if (fileType === 'txt') text = icon.to.dataUrl
 
-                  const blob = createBlob([text], filename)
+                  const blob = createBlob([text], fileName)
 
                   return [
                     title(fileType.toUpperCase(), blob),
                     [
                       ['View', () => openObjectURL(blob)],
                       ['Copy', () => copy(text)],
-                      ['Download', () => saveAs(blob, filename)]
+                      ['Download', () => saveAs(blob, fileName)]
                     ].map(([title, onPress]) => ({ onPress, title }))
                   ]
                 })
@@ -129,6 +134,7 @@ export default ({ footer, footerRight, icons, ...rest }) => {
         }}
         listClassName='flex-center flex-wrap h-auto'
         scrollSeekConfiguration={{ enter: v => Math.abs(v) > 300, exit: v => v === 0 }}
+        {...createVirtuosoGridProps(icons)}
         {...rest}
       />
       <CardFooter {...CardFooterProps}>
@@ -140,11 +146,11 @@ export default ({ footer, footerRight, icons, ...rest }) => {
                 listbox={{
                   ...mapObject(
                     {
-                      Default: ['id', 'name', 'setName', 'prefix'],
+                      Default: ['id', 'name', 'iconSetName', 'prefix'],
                       'Icon id': ['id'],
                       'Icon name': ['name'],
                       'Icon set id': ['prefix'],
-                      'Icon set name': ['setName']
+                      'Icon set name': ['iconSetName']
                     },
                     (title, props) => [
                       title,
@@ -165,11 +171,11 @@ export default ({ footer, footerRight, icons, ...rest }) => {
                     {
                       isDisabled: !has(icons.current),
                       onPress: icons.download.fn,
-                      title: icons.download.filename
+                      title: icons.download.fileName
                     }
                   ]
                 }}
-                name='round-ramp-right'
+                name='arrows-vertical'
               />
             )}
           </div>

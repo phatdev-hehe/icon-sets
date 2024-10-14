@@ -40,7 +40,7 @@ export default iconSet => {
 
     return {
       [pluralize(iconSet[key], key)]: Object.entries(iconSet[key]).map(([key, value]) => {
-        const isSelected = state[KEY] === key
+        const isSelected = key === state[KEY]
 
         return {
           isSelected,
@@ -69,7 +69,7 @@ export default iconSet => {
                 {
                   isDisabled: !has(iconSet.icons.current),
                   onPress: iconSet.icons.download.fn,
-                  title: iconSet.icons.download.filename
+                  title: iconSet.icons.download.fileName
                 }
               ]
             }}

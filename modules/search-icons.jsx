@@ -95,7 +95,7 @@ export default () => {
                   }
                 )
               }}
-              name='reddit'
+              name='round-ramp-right'
             />
           }
           label={<MotionPluralize value={state.displayedIcons.current} word='icon' />}
