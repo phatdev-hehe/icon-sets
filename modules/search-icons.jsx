@@ -102,7 +102,7 @@ export default () => {
               name='round-ramp-right'
             />
           }
-          label={<MotionPluralize value={state.displayedIcons.current} word='icon' />}
+          label={<MotionPluralize count={state.displayedIcons.current} word='icon' />}
           onValueChange={setSearchPattern}
           placeholder={placeholder}
           startContent={<Icon className='size-5' name='search' />}

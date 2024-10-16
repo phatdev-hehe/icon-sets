@@ -1,5 +1,6 @@
 import { Button, Card, CardFooter } from '@nextui-org/react'
 import { useRafState } from 'ahooks'
+import { noCase } from 'change-case'
 import { sort } from 'fast-sort'
 import { VirtuosoGrid } from 'react-virtuoso'
 
@@ -75,7 +76,7 @@ export default ({ footer, footerRight, icons, ...rest }) => {
                 [`#${index + 1}`]: [
                   {
                     description: icon.iconSetName,
-                    onPress: () => setSearchPattern(icon.name),
+                    onPress: () => setSearchPattern(noCase(icon.name)),
                     title: icon.name
                   }
                 ],
@@ -142,7 +143,7 @@ export default ({ footer, footerRight, icons, ...rest }) => {
       <CardFooter {...CardFooterProps}>
         {footer ?? (
           <div className='flex-center justify-between px-3'>
-            <MotionPluralize value={icons.current} word='icon' />
+            <MotionPluralize count={icons.current} word='icon' />
             {footerRight ?? (
               <Icon
                 listbox={{

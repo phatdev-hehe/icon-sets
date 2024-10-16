@@ -42,7 +42,7 @@ export default ({ align = 'center', children, listbox, tooltip }) => {
               align={listbox ? 'start' : align}
               ref={ref}
               side={tooltip && 'top'}
-              sideOffset={10}>
+              sideOffset={5}>
               <m.div
                 animate={{ scale: [0.7, 1] }}
                 className={cn({
