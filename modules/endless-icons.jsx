@@ -29,7 +29,7 @@ export default () => {
               title: size
             }))
           }}
-          name='double-arrow-horizontal'
+          name='double-arrow-vertical'
         />
       }
       icons={state.icons}

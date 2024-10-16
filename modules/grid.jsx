@@ -17,7 +17,6 @@ import {
   is,
   mapObject,
   MotionPluralize,
-  number,
   openObjectURL,
   root,
   saveAs,
@@ -167,13 +166,7 @@ export default ({ footer, footerRight, icons, ...rest }) => {
                       })
                     ]
                   ),
-                  Download: [
-                    {
-                      isDisabled: !has(icons.current),
-                      onPress: icons.download.fn,
-                      title: icons.download.fileName
-                    }
-                  ]
+                  ...icons.download.createListboxSection()
                 }}
                 name='arrows-vertical'
               />

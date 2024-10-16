@@ -7,7 +7,6 @@ import {
   createMemo,
   getAll,
   Grid,
-  has,
   Icon,
   mapObject,
   pluralize,
@@ -19,7 +18,7 @@ export default () => {
   const [state, setState] = useRafState()
   const all = getAll()
 
-  const createGroup = key =>
+  const createGroupBy = key =>
     createMemo(() =>
       mapObject(
         groupBy(Object.values(all.iconSets), iconSet => {
@@ -31,8 +30,8 @@ export default () => {
       )
     )
 
-  const createListboxSection = (title, groupedIcons, shouldSort = true) => {
-    let arrayToSort = Object.entries(groupedIcons).map(([title, icons]) => {
+  const createListboxSection = (title, iconGroups, shouldSort = true) => {
+    let arrayToSort = Object.entries(iconGroups).map(([title, icons]) => {
       const isSelected = title === state
 
       return {
@@ -45,33 +44,33 @@ export default () => {
 
     if (shouldSort) arrayToSort = sort(arrayToSort).asc('title')
 
-    return { [pluralize(groupedIcons, title)]: arrayToSort }
+    return { [pluralize(iconGroups, title)]: arrayToSort }
   }
 
-  const groupedByCategory = createGroup('category')
-  const groupedByLicense = createGroup('license')
-  const groupedByAuthor = createGroup('author')
+  const groupedByCategory = createGroupBy('category')
+  const groupedByLicense = createGroupBy('license')
+  const groupedByAuthor = createGroupBy('author')
 
   const groupedByFirstLetter = createMemo(() =>
     groupBy(all.icons, icon => icon.name[0].toUpperCase())
   )
 
-  const updates = uniq(
+  const modifiedDates = uniq(
     sort(Object.values(all.iconSets).map(iconSet => iconSet.lastModified))
       .desc()
       .map(relativeTime)
   )
 
-  const groupedByUpdate = sortKeys(createGroup('lastModified'), {
-    compare: (a, b) => updates.indexOf(a) - updates.indexOf(b)
+  const groupedByModifiedDate = sortKeys(createGroupBy('lastModified'), {
+    compare: (a, b) => modifiedDates.indexOf(a) - modifiedDates.indexOf(b)
   })
 
   const icons = buildIcons(
-    groupedByAuthor[state] ??
+    groupedByCategory[state] ??
       groupedByFirstLetter[state] ??
       groupedByLicense[state] ??
-      groupedByUpdate[state] ??
-      groupedByCategory[state] ??
+      groupedByModifiedDate[state] ??
+      groupedByAuthor[state] ??
       all.icons
   )
 
@@ -80,18 +79,12 @@ export default () => {
       footerRight={
         <Icon
           listbox={{
-            Download: [
-              {
-                isDisabled: !has(icons.current),
-                onPress: icons.download.fn,
-                title: icons.download.fileName
-              }
-            ],
-            ...createListboxSection('update', groupedByUpdate, false),
+            ...createListboxSection('date', groupedByModifiedDate, false),
             ...createListboxSection('license', groupedByLicense),
             ...createListboxSection('category', groupedByCategory),
             ...createListboxSection('author', groupedByAuthor),
-            ...createListboxSection('first letter', groupedByFirstLetter)
+            ...createListboxSection('first letter', groupedByFirstLetter),
+            ...icons.download.createListboxSection()
           }}
           name='folder-zip'
         />

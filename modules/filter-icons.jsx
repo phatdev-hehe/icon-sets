@@ -65,13 +65,7 @@ export default iconSet => {
             listbox={{
               ...createListboxSection('variants'),
               ...createListboxSection('categories'),
-              Download: [
-                {
-                  isDisabled: !has(iconSet.icons.current),
-                  onPress: iconSet.icons.download.fn,
-                  title: iconSet.icons.download.fileName
-                }
-              ]
+              ...iconSet.icons.download.createListboxSection()
             }}
             name='filter'
           />

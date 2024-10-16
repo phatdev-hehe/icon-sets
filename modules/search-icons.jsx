@@ -20,7 +20,13 @@ import {
 } from '../aliases'
 
 const placeholder = 'Search'
-const defaultState = { current: [], download: {} }
+const defaultState = { current: [] }
+
+const createDownloadListboxItem = ({ icons, ...rest }) => ({
+  ...icons.download?.createListboxSection().Download[0],
+  ...rest,
+  title: 'Download'
+})
 
 export default () => {
   const all = getAll()
@@ -58,11 +64,7 @@ export default () => {
                     onPress: () => setState(state => ({ displayedIcons: state.icons })),
                     title: 'View'
                   },
-                  {
-                    isDisabled: !has(state.icons.current),
-                    onPress: state.icons.download.fn,
-                    title: 'Download'
-                  }
+                  createDownloadListboxItem({ icons: state.icons })
                 ],
                 ...mapObject(
                   createMemo(() => {
@@ -89,7 +91,7 @@ export default () => {
                           onPress: () => setState({ displayedIcons: icons }),
                           title: 'View'
                         },
-                        { isDisabled, onPress: icons.download.fn, title: 'Download' }
+                        createDownloadListboxItem({ icons, isDisabled })
                       ]
                     ]
                   }

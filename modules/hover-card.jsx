@@ -6,17 +6,12 @@ import { useRef } from 'react'
 
 import { Listbox } from '../aliases'
 
-const align = 'center'
-
-export default ({ children, listbox, tooltip }) => {
+export default ({ align = 'center', children, listbox, tooltip }) => {
   const [state, setState] = useRafState()
   const ref = useRef()
 
   const style = {
     transformOrigin: 'var(--radix-hover-card-content-transform-origin)',
-    updateX(v) {
-      this.x.set(v / 4)
-    },
     x: useSpring(0)
   }
 
@@ -28,13 +23,15 @@ export default ({ children, listbox, tooltip }) => {
         onMouseMove={event => {
           const rect = event.target.getBoundingClientRect()
 
-          if (align === 'center') return style.updateX(event.clientX - rect.left - rect.width / 2)
+          if (align === 'center')
+            return style.x.set((event.clientX - rect.left - rect.width / 2) / 4)
 
+          const isStartAligned = align === 'start'
           const w = ref.current.getBoundingClientRect().width
-          const x = event.clientX - rect[{ end: 'right', start: 'left' }[align]]
-          const v = { end: x + w, start: x - w }[align]
+          const x = event.clientX - rect[isStartAligned ? 'left' : 'right']
+          const v = isStartAligned ? x - w : x + w
 
-          style.updateX({ end: v < 0, start: v > 0 }[align] ? v : x)
+          style.x.set(((isStartAligned ? v > 0 : v < 0) ? v : x) / 4)
         }}>
         {children}
       </Trigger>
