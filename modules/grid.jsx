@@ -17,10 +17,12 @@ import {
   is,
   mapObject,
   MotionPluralize,
+  number,
   openObjectURL,
   root,
   saveAs,
-  title
+  title,
+  useSearchPattern
 } from '../aliases'
 
 const CardFooterProps = { style: { height: '4rem' } }
@@ -47,6 +49,7 @@ const createVirtuosoGridProps = icons => ({
 
 export default ({ footer, footerRight, icons, ...rest }) => {
   const [state, setState] = useRafState()
+  const { setSearchPattern } = useSearchPattern()
   const all = getAll()
   const bookmarkIcons = getBookmarkIcons()
 
@@ -72,7 +75,7 @@ export default ({ footer, footerRight, icons, ...rest }) => {
                 [`#${index + 1}`]: [
                   {
                     description: icon.iconSetName,
-                    onPress: () => copy(icon.name),
+                    onPress: () => setSearchPattern(icon.name),
                     title: icon.name
                   }
                 ],

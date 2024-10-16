@@ -28,15 +28,17 @@ const createDownloadListboxItem = ({ icons, ...rest }) => ({
   title: 'Download'
 })
 
+export const useSearchPattern = () => {
+  const [state, setState] = useUrlState({ search: placeholder }, { navigateMode: 'replace' })
+
+  return { searchPattern: state.search, setSearchPattern: search => setState({ search }) }
+}
+
 export default () => {
   const all = getAll()
   const fuse = createMemo(() => new Fuse(all.icons, { keys: ['name'], threshold: 0.2 }))
   const [state, setState] = useSetState({ displayedIcons: defaultState, icons: defaultState })
-
-  const [{ search: searchPattern }, setSearchPattern] = useUrlState(
-    { search: placeholder },
-    { navigateMode: 'replace' }
-  )
+  const { searchPattern, setSearchPattern } = useSearchPattern()
 
   useDebounceEffect(
     () => {
@@ -101,7 +103,7 @@ export default () => {
             />
           }
           label={<MotionPluralize value={state.displayedIcons.current} word='icon' />}
-          onValueChange={search => setSearchPattern({ search })}
+          onValueChange={setSearchPattern}
           placeholder={placeholder}
           startContent={<Icon className='size-5' name='search' />}
           value={searchPattern}
