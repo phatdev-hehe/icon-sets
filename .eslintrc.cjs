@@ -11,6 +11,8 @@ module.exports = {
     'plugin:perfectionist/recommended-natural-legacy',
     'plugin:promise/recommended',
     'plugin:react/jsx-runtime',
+    'plugin:regexp/recommended',
+    'plugin:tailwindcss/recommended',
     'plugin:unicorn/recommended'
   ],
   parserOptions: { ecmaVersion: 'latest', sourceType: 'module' },
