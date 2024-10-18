@@ -20,7 +20,13 @@
 
   [data-panel-group] {
     [data-panel] {
-      @apply !overflow-auto;
+      --background: hsl(var(--nextui-background));
+
+      @apply !overflow-auto bg-[--background];
+
+      > [class*='bg'] {
+        @apply bg-[--background];
+      }
     }
 
     [data-resize-handle] {
@@ -30,6 +36,14 @@
       &[aria-valuenow='100'] {
         @apply basis-0;
       }
+    }
+  }
+
+  #root > :last-child {
+    @apply flex-center p-6;
+
+    & > [data-panel-group] {
+      @apply card !~w-[50rem]/[66rem] lg:~lg:!~h-[50rem]/[38rem];
     }
   }
 

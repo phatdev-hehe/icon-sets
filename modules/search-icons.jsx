@@ -99,7 +99,7 @@ export default () => {
                   }
                 )
               }}
-              name='round-ramp-right'
+              name='round-ramp-left'
             />
           }
           label={<MotionPluralize count={state.displayedIcons.current} word='icon' />}

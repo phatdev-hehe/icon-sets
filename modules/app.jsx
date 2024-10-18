@@ -271,9 +271,7 @@ export const App = () => {
 
   if (all.hasData)
     content = (
-      <PanelGroup
-        className='card !~w-[50rem]/[66rem] lg:~lg:!~h-[50rem]/[38rem]'
-        direction='horizontal'>
+      <PanelGroup direction='horizontal'>
         <Panel className='py-1' defaultSize={25} maxSize={25}>
           <Theme
             render={({ resolvedTheme, setTheme }) => (

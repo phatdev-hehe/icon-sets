@@ -13,7 +13,7 @@ import { locale, Theme } from '../aliases'
 const Providers = ({ children }) => (
   <LazyMotion features={domAnimation} strict>
     <ThemeProvider attribute='class' disableTransitionOnChange>
-      <NextUIProvider className='flex-center p-6' locale={locale}>
+      <NextUIProvider locale={locale}>
         <BrowserRouter>
           <Routes>
             <Route element={children} path='/' />

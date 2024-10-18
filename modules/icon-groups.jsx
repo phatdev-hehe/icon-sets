@@ -86,7 +86,7 @@ export default () => {
             ...createListboxSection('first letter', groupedByFirstLetter),
             ...icons.download.createListboxSection()
           }}
-          name='folder-zip'
+          name='turn-slight-right'
         />
       }
       icons={icons.current}

@@ -1,7 +1,10 @@
 import { useRafState } from 'ahooks'
+import { sort } from 'fast-sort'
 import { useSingleEffect } from 'react-haiku'
 
 import { cache, createMemo, Grid, Icon, rerender } from '../aliases'
+
+export const getRecentlyViewedIcons = () => sort([...cache.values()]).asc('id')
 
 export const RecentlyViewedIcons = () => {
   const [state, setState] = useRafState()
@@ -17,5 +20,3 @@ export const RecentlyViewedIcons = () => {
     />
   )
 }
-
-export const getRecentlyViewedIcons = () => [...cache.values()]

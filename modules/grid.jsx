@@ -28,25 +28,25 @@ import {
 
 const CardFooterProps = { style: { height: '4rem' } }
 
-const createVirtuosoGridProps = icons => ({
-  components: {
-    Footer: () => {
-      if (has(icons.current)) return <div {...CardFooterProps} />
+const createVirtuosoGridProps = icons => {
+  const className = 'flex-center text-foreground-500'
 
-      return <div className='flex-center text-foreground-500'>No icons</div>
+  return {
+    components: {
+      Footer: () => {
+        if (has(icons)) return <div {...CardFooterProps} />
+
+        return <div className={className}>No icons</div>
+      },
+      ScrollSeekPlaceholder: ({ index, ...style }) => {
+        const icon = icons[index]
+
+        return <div {...{ className, style }}>{icon.name.slice(0, 3)}</div>
+      }
     },
-    ScrollSeekPlaceholder: ({ index, ...style }) => {
-      const icon = icons.current[index]
-
-      return (
-        <div className='flex-center text-foreground-500' style={style}>
-          {icon.name.slice(0, 3)}
-        </div>
-      )
-    }
-  },
-  data: icons.current
-})
+    data: icons
+  }
+}
 
 export default ({ footer, footerRight, icons, ...rest }) => {
   const [state, setState] = useRafState()
@@ -61,7 +61,7 @@ export default ({ footer, footerRight, icons, ...rest }) => {
   return (
     <Card
       classNames={{
-        base: 'h-full rounded-none bg-background text-sm',
+        base: 'h-full rounded-none text-sm',
         footer: 'absolute inset-x-0 bottom-0 rounded-none'
       }}
       isFooterBlurred>
@@ -137,7 +137,7 @@ export default ({ footer, footerRight, icons, ...rest }) => {
         }}
         listClassName='flex-center flex-wrap h-auto'
         scrollSeekConfiguration={{ enter: v => Math.abs(v) > 300, exit: v => v === 0 }}
-        {...createVirtuosoGridProps(icons)}
+        {...createVirtuosoGridProps(icons.current)}
         {...rest}
       />
       <CardFooter {...CardFooterProps}>
