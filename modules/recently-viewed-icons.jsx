@@ -1,21 +1,16 @@
-import { useRafState } from 'ahooks'
+import { useToggle } from 'ahooks'
 import { sort } from 'fast-sort'
-import { useSingleEffect } from 'react-haiku'
 
-import { cache, createMemo, Grid, Icon, rerender } from '../aliases'
+import { cache, createMemo, Grid, Icon } from '../aliases'
 
 export const getRecentlyViewedIcons = () => sort([...cache.values()]).asc('id')
 
 export const RecentlyViewedIcons = () => {
-  const [state, setState] = useRafState()
-
-  useSingleEffect(rerender())
+  const [state, { toggle }] = useToggle()
 
   return (
     <Grid
-      footerRight={
-        <Icon name='round-360' onPress={() => setState(state => !state)} tooltip='Reload' />
-      }
+      footerRight={<Icon name='round-360' onPress={toggle} tooltip='Reload' />}
       icons={createMemo(getRecentlyViewedIcons, [state])}
     />
   )

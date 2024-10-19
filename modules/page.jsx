@@ -8,7 +8,7 @@ import { useRef } from 'react'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { Toaster } from 'sonner'
 
-import { locale, Theme } from '../aliases'
+import { has, locale, Theme } from '../aliases'
 
 const Providers = ({ children }) => (
   <LazyMotion features={domAnimation} strict>
@@ -31,7 +31,7 @@ const MotionStars = () => {
   const style = { x: useSpring(0), y: useSpring(0) }
 
   useDeepCompareEffect(() => {
-    if (size) {
+    if (has(size)) {
       style.x.set(mouse.clientX / (size.width * 0.5))
       style.y.set(mouse.clientY / (size.height * 0.5))
     }
@@ -50,21 +50,6 @@ export default ({ children }) => (
   <Providers>
     {children}
     <MotionStars />
-    <Theme
-      render={({ resolvedTheme }) => (
-        <Toaster
-          className='z-auto'
-          theme={resolvedTheme}
-          toastOptions={{
-            classNames: {
-              content: 'w-full',
-              default: 'card justify-between gap-4',
-              description: 'text-foreground-500',
-              title: 'line-clamp-1'
-            }
-          }}
-        />
-      )}
-    />
+    <Theme render={({ resolvedTheme }) => <Toaster theme={resolvedTheme} />} />
   </Providers>
 )
