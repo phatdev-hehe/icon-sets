@@ -39,6 +39,7 @@ import {
   asyncContent,
   bytes,
   collections,
+  createCountLabel,
   delay,
   EndlessIcons,
   FilterIcons,
@@ -56,14 +57,12 @@ import {
   mapObjectSkip,
   Page,
   pkg,
-  pluralize,
   RecentlyViewedIcons,
   relativeTime,
   SearchIcons,
   semver,
   sortKeys,
   Theme,
-  title,
   toast,
   useIsFirstRender
 } from '../aliases'
@@ -125,7 +124,7 @@ const app = {
         }
 
         const currentToast = toast('Working on updates', {
-          description: pluralize(collections, 'icon set'),
+          description: createCountLabel(collections, 'icon set'),
           duration: Number.POSITIVE_INFINITY,
           listbox: {
             '': Object.values(collections).map(iconSet => ({
@@ -278,30 +277,32 @@ export const App = () => {
               <Listbox
                 sections={{
                   [asyncContent(app.version.current)]: [
-                    [pluralize(all.iconSets, 'icon set'), all.icons],
+                    [createCountLabel(all.iconSets, 'icon set'), all.icons],
                     ['Endless scrolling'],
                     ['Bookmarks', bookmarkIcons.current],
                     ['Recently viewed', recentlyViewedIcons]
-                  ].map(([title, description = 'No description'], index) => ({
-                    description: is.string(description)
-                      ? description
-                      : pluralize(description, 'icon'),
-                    isSelected: index === state,
-                    onPress: () => setState(index),
-                    title
-                  })),
+                  ].map(([title, description = 'No description'], index) => {
+                    if (!is.string(description)) description = createCountLabel(description, 'icon')
+
+                    return {
+                      description,
+                      isSelected: index === state,
+                      onPress: () => setState(index),
+                      title
+                    }
+                  }),
                   ...sortKeys(
                     mapObject(
                       groupBy(Object.values(all.iconSets), iconSet => iconSet.category),
                       (iconSetCategory, iconSets) => [
-                        title(iconSetCategory, iconSets),
+                        createCountLabel(iconSets, iconSetCategory, false),
                         sort(iconSets)
                           .asc('name')
                           .map(iconSet => ({
                             descriptions: [
                               iconSet.author,
                               iconSet.license,
-                              pluralize(iconSet.icons, 'icon'),
+                              createCountLabel(iconSet.icons, 'icon'),
                               relativeTime(iconSet.lastModified, true)
                             ],
                             isSelected: iconSet.prefix === state,

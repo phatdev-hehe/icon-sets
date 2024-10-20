@@ -1,6 +1,6 @@
 import { useDeepCompareEffect, useSetState } from 'ahooks'
 
-import { buildIcons, clone, equal, Grid, has, Icon, is, pluralize } from '../aliases'
+import { buildIcons, clone, createCountLabel, equal, Grid, has, Icon, is } from '../aliases'
 
 const initialState = { category: undefined, variant: undefined }
 
@@ -39,7 +39,7 @@ export default iconSet => {
     const KEY = { categories: 'category', variants: 'variant' }[key]
 
     return {
-      [pluralize(iconSet[key], key)]: Object.entries(iconSet[key]).map(([key, value]) => {
+      [createCountLabel(iconSet[key], key)]: Object.entries(iconSet[key]).map(([key, value]) => {
         const isSelected = key === state[KEY]
 
         return {

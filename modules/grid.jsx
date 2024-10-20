@@ -9,6 +9,7 @@ import {
   buildIcons,
   copy,
   createBlob,
+  createCountLabel,
   equal,
   getAll,
   getBookmarkIcons,
@@ -22,7 +23,6 @@ import {
   openObjectURL,
   root,
   saveAs,
-  title,
   useSearchPattern
 } from '../aliases'
 
@@ -104,7 +104,7 @@ export default ({ footer, footerRight, icons, ...rest }) => {
                   const blob = createBlob([text], fileName)
 
                   return [
-                    title(fileType.toUpperCase(), blob),
+                    createCountLabel(blob, fileType.toUpperCase(), false),
                     [
                       ['View', () => openObjectURL(blob)],
                       ['Copy', () => copy(text)],

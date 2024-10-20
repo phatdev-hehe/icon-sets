@@ -1,7 +1,7 @@
 import { without } from 'es-toolkit'
 import { useLocalStorage } from 'react-haiku'
 
-import { Icon, pluralize, toast } from '../aliases'
+import { Icon, createCountLabel, toast } from '../aliases'
 
 const initialValue = []
 
@@ -24,7 +24,7 @@ export default () => {
             tooltip='Undo'
           />
         ),
-        description: pluralize(state, 'icon')
+        description: createCountLabel(state, 'icon')
       })
     },
     current: state,

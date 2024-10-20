@@ -4,12 +4,12 @@ import { sort } from 'fast-sort'
 
 import {
   buildIcons,
+  createCountLabel,
   createMemo,
   getAll,
   Grid,
   Icon,
   mapObject,
-  pluralize,
   relativeTime,
   sortKeys
 } from '../aliases'
@@ -35,7 +35,7 @@ export default () => {
       const isSelected = title === state
 
       return {
-        description: pluralize(icons, 'icon'),
+        description: createCountLabel(icons, 'icon'),
         isSelected,
         onPress: () => setState(!isSelected && title),
         title
@@ -44,7 +44,7 @@ export default () => {
 
     if (shouldSort) arrayToSort = sort(arrayToSort).asc('title')
 
-    return { [pluralize(iconGroups, title)]: arrayToSort }
+    return { [createCountLabel(iconGroups, title)]: arrayToSort }
   }
 
   const groupedByCategory = createGroupBy('category')

@@ -4,6 +4,7 @@ import { kebabCase } from 'change-case'
 
 import {
   buildIcons,
+  createCountLabel,
   createMemo,
   equal,
   Fuse,
@@ -15,7 +16,6 @@ import {
   MotionPluralize,
   number,
   sortKeys,
-  title,
   useUrlState
 } from '../aliases'
 
@@ -42,7 +42,9 @@ export default () => {
 
   useDebounceEffect(
     () => {
-      const icons = buildIcons(fuse.search(kebabCase(searchPattern)).map(({ item }) => item))
+      const icons = buildIcons(
+        fuse.search(kebabCase(searchPattern)).map(fuseResult => fuseResult.item)
+      )
 
       setState({ displayedIcons: icons, icons })
     },
@@ -59,7 +61,7 @@ export default () => {
           endContent={
             <Icon
               listbox={{
-                [title('All results', state.icons.current)]: [
+                [createCountLabel(state.icons.current, 'All results', false)]: [
                   {
                     isDisabled: !has(state.icons.current),
                     isSelected: equal(...Object.values(state)),
@@ -85,7 +87,7 @@ export default () => {
                     icons = isDisabled ? defaultState : buildIcons(icons)
 
                     return [
-                      title(iconSetName, icons.current),
+                      createCountLabel(icons.current, iconSetName, false),
                       [
                         {
                           isDisabled,

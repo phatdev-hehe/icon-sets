@@ -1,4 +1,4 @@
-import { useToggle } from 'ahooks'
+import { useBoolean } from 'ahooks'
 import { sort } from 'fast-sort'
 
 import { cache, createMemo, Grid, Icon } from '../aliases'
@@ -6,7 +6,7 @@ import { cache, createMemo, Grid, Icon } from '../aliases'
 export const getRecentlyViewedIcons = () => sort([...cache.values()]).asc('id')
 
 export const RecentlyViewedIcons = () => {
-  const [state, { toggle }] = useToggle()
+  const [state, { toggle }] = useBoolean()
 
   return (
     <Grid

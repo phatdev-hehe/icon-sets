@@ -2,7 +2,7 @@ import { useSetState } from 'ahooks'
 import { range, sampleSize } from 'es-toolkit'
 import { useSingleEffect } from 'react-haiku'
 
-import { getAll, Grid, Icon, pluralize } from '../aliases'
+import { createCountLabel, getAll, Grid, Icon } from '../aliases'
 
 const size = 100
 const sizes = range(size, size + 1000, size)
@@ -22,7 +22,7 @@ export default () => {
       footerRight={
         <Icon
           listbox={{
-            [pluralize(sizes, 'size')]: sizes.map(size => ({
+            [createCountLabel(sizes, 'size')]: sizes.map(size => ({
               description: 'icons',
               isSelected: size === state.size,
               onPress: () => setState({ size }),

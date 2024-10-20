@@ -1,4 +1,4 @@
-import { buildIcon, has, JSZip, pluralize, saveAs } from '../aliases'
+import { buildIcon, createCountLabel, has, JSZip, saveAs } from '../aliases'
 
 export default icons => ({
   current: icons,
@@ -6,7 +6,7 @@ export default icons => ({
     createListboxSection: () => {
       const [firstIcon] = icons
       const isSamePrefix = has(firstIcon) && icons.every(icon => icon.prefix === firstIcon.prefix)
-      const fileName = `${isSamePrefix ? firstIcon.iconSetName : pluralize(icons, 'icon')}.zip`
+      const fileName = `${isSamePrefix ? firstIcon.iconSetName : createCountLabel(icons, 'icon')}.zip`
 
       return {
         Download: [

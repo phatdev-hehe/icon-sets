@@ -22,7 +22,7 @@
     [data-panel] {
       --background: hsl(var(--nextui-background));
 
-      @apply !overflow-auto bg-[--background];
+      @apply !overflow-y-auto bg-[--background];
 
       > [class*='bg'] {
         @apply bg-[--background];
