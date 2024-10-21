@@ -6,7 +6,7 @@
   },
   "dependencies": {
     "@ahooksjs/use-url-state": "^3.5.1",
-    "@iconify/json": "^2.2.261",
+    "@iconify/json": "^2.2.262",
     "@iconify/react": "^5.0.2",
     "@iconify/utils": "^2.1.33",
     "@nextui-org/react": "^2.4.8",

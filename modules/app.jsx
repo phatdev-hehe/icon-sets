@@ -37,7 +37,6 @@ import { useLockBodyScroll } from 'react-use'
 
 import {
   asyncContent,
-  bytes,
   collections,
   createCountLabel,
   delay,
@@ -76,7 +75,7 @@ const app = {
 
     toast('The page will be reloaded in 5 seconds')
     await delay('5s')
-    location.reload()
+    globalThis.location.reload()
   },
   load() {
     const [state, setState] = useRafState(true)
@@ -87,33 +86,33 @@ const app = {
 
     useAsyncEffect(
       createAsyncEffect(async () => {
-        if ([isFirstRender, isBrowser, isDesktop, ...Object.values(JSZip.support)].some(is.falsy)) {
-          const createListboxSection = (title, items) => ({
-            [title]: items.map(([title, isSupported]) => ({
-              description: isSupported ? 'Yes' : 'No',
-              isDisabled: !isSupported,
-              title
-            }))
-          })
+        const requirements = [
+          ['First render', isFirstRender],
+          ['Browser', isBrowser],
+          ['Desktop', isDesktop],
+          ['indexedDB', has(globalThis.indexedDB)],
+          ...Object.entries(JSZip.support)
+        ]
 
+        if (requirements.some(([, value]) => is.falsy(value)))
           return toast('Your browser is not supported', {
             duration: Number.POSITIVE_INFINITY,
             listbox: {
+              [createCountLabel(requirements, 'requirement')]: requirements.map(
+                ([title, isSupported]) => ({
+                  description: isSupported ? 'Yes' : 'No',
+                  isDisabled: !isSupported,
+                  title
+                })
+              ),
               Info: [
                 { description: osVersion, title: osName },
                 { description: browserVersion, title: browserName },
                 { description: engineVersion, title: engineName },
                 { description: `${windowSize.width} x ${windowSize.height}`, title: 'Size' }
-              ],
-              ...createListboxSection('Default', [
-                ['First render', isFirstRender],
-                ['Browser', isBrowser],
-                ['Desktop', isDesktop]
-              ]),
-              ...createListboxSection(`JSZip ${JSZip.version}`, Object.entries(JSZip.support))
+              ]
             }
           })
-        }
 
         if ((await this.version.current()) === 'not_found') return await this.version.check()
 
@@ -268,12 +267,13 @@ export const App = () => {
   app.load()
   useLockBodyScroll(true)
 
-  if (all.hasData)
+  if (all.hasData) {
     content = (
       <PanelGroup direction='horizontal'>
-        <Panel className='py-1' defaultSize={25} maxSize={25}>
+        <Panel className='py-1' maxSize={24}>
+          {/* tim cach xoa thang loz nay, ko can thiet */}
           <Theme
-            render={({ resolvedTheme, setTheme }) => (
+            render={() => (
               <Listbox
                 sections={{
                   [asyncContent(app.version.current)]: [
@@ -315,27 +315,7 @@ export const App = () => {
                           }))
                       ]
                     )
-                  ),
-                  Settings: [
-                    {
-                      description: 'Toggle theme',
-                      onPress: () => setTheme({ dark: 'light', light: 'dark' }[resolvedTheme]),
-                      title: sentenceCase(resolvedTheme)
-                    },
-                    {
-                      description: 'View source code',
-                      href: 'https://github.com/phatdev-hehe/icon-sets',
-                      target: 'blank',
-                      title: 'GitHub'
-                    },
-                    {
-                      color: 'warning',
-                      description: bytes(asyncContent(() => navigator.storage.estimate()).usage),
-                      isSelected: true,
-                      onPress: app.clear,
-                      title: 'Clear cache'
-                    }
-                  ]
+                  )
                 }}
               />
             )}
@@ -359,6 +339,36 @@ export const App = () => {
         </Panel>
       </PanelGroup>
     )
+
+    content = (
+      <PanelGroup direction='horizontal'>
+        <Panel
+          className='flex-center justify-start space-y-3 py-2 !text-xs text-foreground-500'
+          maxSize={2.2}
+          style={{ writingMode: 'vertical-rl' }}>
+          <Theme
+            render={({ resolvedTheme, setTheme }) => (
+              <button
+                onClick={() => setTheme({ dark: 'light', light: 'dark' }[resolvedTheme])}
+                type='button'>
+                {sentenceCase(resolvedTheme)}
+              </button>
+            )}
+          />
+          <button onClick={app.clear} type='button'>
+            Clear cache
+          </button>
+          <button
+            onClick={() => globalThis.open('https://github.com/phatdev-hehe/icon-sets')}
+            type='button'>
+            GitHub
+          </button>
+        </Panel>
+        <PanelResizeHandle />
+        <Panel>{content}</Panel>
+      </PanelGroup>
+    )
+  }
 
   return <Page>{content}</Page>
 }

@@ -61,7 +61,7 @@ export default ({ footer, footerRight, icons, ...rest }) => {
   return (
     <Card
       classNames={{
-        base: 'h-full rounded-none text-sm',
+        base: 'h-full rounded-none',
         footer: 'absolute inset-x-0 bottom-0 rounded-none'
       }}
       isFooterBlurred>

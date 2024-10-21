@@ -19,10 +19,10 @@
   }
 
   [data-panel-group] {
-    [data-panel] {
-      --background: hsl(var(--nextui-background));
+    --background: hsl(var(--nextui-background));
 
-      @apply !overflow-y-auto bg-[--background];
+    [data-panel] {
+      @apply !overflow-y-auto bg-[--background] text-sm;
 
       > [class*='bg'] {
         @apply bg-[--background];
