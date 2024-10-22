@@ -80,17 +80,11 @@ export default ({ footer, footerRight, icons, ...rest }) => {
                     title: icon.name
                   }
                 ],
-                Bookmark: [
-                  {
-                    onPress: () => bookmarkIcons.toggle(icon),
-                    title: bookmarkIcons.has(icon) ? 'Remove' : 'Add'
-                  },
-                  {
-                    isDisabled: !has(bookmarkIcons.current),
-                    onPress: bookmarkIcons.clear,
-                    title: 'Clear all'
-                  }
-                ],
+                Bookmark: ['Add', 'Remove'].map(title => ({
+                  isDisabled: (title === 'Add') === bookmarkIcons.has(icon),
+                  onPress: () => bookmarkIcons.toggle(icon),
+                  title
+                })),
                 ...mapObject(icon.paths, (fileType, fileName) => {
                   fileName = fileName.full
 

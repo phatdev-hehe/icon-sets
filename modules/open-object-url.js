@@ -1,10 +1,10 @@
 import { delay, has } from '../aliases'
 
 export default async obj => {
-  const url = URL.createObjectURL(obj)
+  const url = globalThis.URL.createObjectURL(obj)
 
-  if (has(open(url))) {
+  if (has(globalThis.open(url))) {
     await delay('1m')
-    URL.revokeObjectURL(url)
+    globalThis.URL.revokeObjectURL(url)
   }
 }

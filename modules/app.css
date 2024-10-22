@@ -81,4 +81,10 @@
   .card {
     @apply rounded-xl border border-divider bg-background text-foreground;
   }
+
+  .flip-vertical {
+    --scale: -1;
+    transform: scaleX(var(--scale)) scaleY(var(--scale));
+    writing-mode: vertical-rl;
+  }
 }

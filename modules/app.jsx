@@ -37,6 +37,7 @@ import { useLockBodyScroll } from 'react-use'
 
 import {
   asyncContent,
+  bytes,
   collections,
   createCountLabel,
   delay,
@@ -47,6 +48,7 @@ import {
   getRecentlyViewedIcons,
   Grid,
   has,
+  Icon,
   IconGroups,
   idb,
   is,
@@ -71,6 +73,8 @@ let content = <Spinner label='Loading…' />
 
 const app = {
   clear: async (shouldClear = true) => {
+    toast().dismiss('all')
+
     if (shouldClear) await idb.clear()
 
     toast('The page will be reloaded in 5 seconds')
@@ -258,6 +262,46 @@ const app = {
   }
 }
 
+const Sidebar = () => {
+  const bookmarkIcons = getBookmarkIcons()
+  const storage = asyncContent(() => navigator.storage.estimate())
+  const version = asyncContent(app.version.current)
+
+  return (
+    <div className='flex-center flip-vertical justify-between py-3 text-xs text-foreground-500 *:space-y-3'>
+      <button
+        onClick={() => {
+          const currentToast = toast('Storage', {
+            action: <Icon name='turn-left' onPress={app.clear} tooltip='Clear cache' />,
+            description: `${bytes(storage.usage)} out of ${bytes(storage.quota)} used (${((storage.usage / storage.quota) * 100).toFixed(2)}%)`
+          })
+        }}
+        type='button'>
+        {version}
+      </button>
+      <div>
+        <Theme
+          render={({ resolvedTheme, setTheme }) => (
+            <button
+              onClick={() => setTheme({ dark: 'light', light: 'dark' }[resolvedTheme])}
+              type='button'>
+              {sentenceCase(resolvedTheme)}
+            </button>
+          )}
+        />
+        <button onClick={bookmarkIcons.clear} type='button'>
+          Clear bookmarks
+        </button>
+        <button
+          onClick={() => globalThis.open('https://github.com/phatdev-hehe/icon-sets')}
+          type='button'>
+          GitHub
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export const App = () => {
   const [state, setState] = useRafState(0)
   const all = getAll()
@@ -271,54 +315,49 @@ export const App = () => {
     content = (
       <PanelGroup direction='horizontal'>
         <Panel className='py-1' maxSize={24}>
-          {/* tim cach xoa thang loz nay, ko can thiet */}
-          <Theme
-            render={() => (
-              <Listbox
-                sections={{
-                  [asyncContent(app.version.current)]: [
-                    [createCountLabel(all.iconSets, 'icon set'), all.icons],
-                    ['Endless scrolling'],
-                    ['Bookmarks', bookmarkIcons.current],
-                    ['Recently viewed', recentlyViewedIcons]
-                  ].map(([title, description = 'No description'], index) => {
-                    if (!is.string(description)) description = createCountLabel(description, 'icon')
+          <Listbox
+            sections={{
+              Hehe: [
+                [createCountLabel(all.iconSets, 'icon set'), all.icons],
+                ['Endless scrolling'],
+                ['Bookmarks', bookmarkIcons.current],
+                ['Recently viewed', recentlyViewedIcons]
+              ].map(([title, description = 'No description'], index) => {
+                if (!is.string(description)) description = createCountLabel(description, 'icon')
 
-                    return {
-                      description,
-                      isSelected: index === state,
-                      onPress: () => setState(index),
-                      title
-                    }
-                  }),
-                  ...sortKeys(
-                    mapObject(
-                      groupBy(Object.values(all.iconSets), iconSet => iconSet.category),
-                      (iconSetCategory, iconSets) => [
-                        createCountLabel(iconSets, iconSetCategory, false),
-                        sort(iconSets)
-                          .asc('name')
-                          .map(iconSet => ({
-                            descriptions: [
-                              iconSet.author,
-                              iconSet.license,
-                              createCountLabel(iconSet.icons, 'icon'),
-                              relativeTime(iconSet.lastModified, true)
-                            ],
-                            isSelected: iconSet.prefix === state,
-                            onPress: () => setState(iconSet.prefix),
-                            title: (
-                              <div className={cn({ 'italic underline': iconSet.palette })}>
-                                {iconSet.name}
-                              </div>
-                            )
-                          }))
-                      ]
-                    )
-                  )
-                }}
-              />
-            )}
+                return {
+                  description,
+                  isSelected: index === state,
+                  onPress: () => setState(index),
+                  title
+                }
+              }),
+              ...sortKeys(
+                mapObject(
+                  groupBy(Object.values(all.iconSets), iconSet => iconSet.category),
+                  (iconSetCategory, iconSets) => [
+                    createCountLabel(iconSets, iconSetCategory, false),
+                    sort(iconSets)
+                      .asc('name')
+                      .map(iconSet => ({
+                        descriptions: [
+                          iconSet.author,
+                          iconSet.license,
+                          createCountLabel(iconSet.icons, 'icon'),
+                          relativeTime(iconSet.lastModified)
+                        ],
+                        isSelected: iconSet.prefix === state,
+                        onPress: () => setState(iconSet.prefix),
+                        title: (
+                          <div className={cn({ 'italic underline': iconSet.palette })}>
+                            {iconSet.name}
+                          </div>
+                        )
+                      }))
+                  ]
+                )
+              )
+            }}
           />
         </Panel>
         <PanelResizeHandle />
@@ -342,27 +381,8 @@ export const App = () => {
 
     content = (
       <PanelGroup direction='horizontal'>
-        <Panel
-          className='flex-center justify-start space-y-3 py-2 !text-xs text-foreground-500'
-          maxSize={2.2}
-          style={{ writingMode: 'vertical-rl' }}>
-          <Theme
-            render={({ resolvedTheme, setTheme }) => (
-              <button
-                onClick={() => setTheme({ dark: 'light', light: 'dark' }[resolvedTheme])}
-                type='button'>
-                {sentenceCase(resolvedTheme)}
-              </button>
-            )}
-          />
-          <button onClick={app.clear} type='button'>
-            Clear cache
-          </button>
-          <button
-            onClick={() => globalThis.open('https://github.com/phatdev-hehe/icon-sets')}
-            type='button'>
-            GitHub
-          </button>
+        <Panel maxSize={2.2}>
+          <Sidebar />
         </Panel>
         <PanelResizeHandle />
         <Panel>{content}</Panel>
