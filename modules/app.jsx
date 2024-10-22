@@ -265,19 +265,25 @@ const app = {
 const Sidebar = () => {
   const bookmarkIcons = getBookmarkIcons()
   const storage = asyncContent(() => navigator.storage.estimate())
-  const version = asyncContent(app.version.current)
+
+  const version = mapObject(app.version, (key, value) => {
+    if (['current', 'isOutdated'].includes(key)) return [key, asyncContent(value)]
+
+    return mapObjectSkip
+  })
 
   return (
     <div className='flex-center flip-vertical justify-between py-3 text-xs text-foreground-500 *:space-y-3'>
       <button
-        onClick={() => {
-          const currentToast = toast('Storage', {
+        className={cn({ 'text-warning': version.isOutdated })}
+        onClick={() =>
+          toast('Storage', {
             action: <Icon name='turn-left' onPress={app.clear} tooltip='Clear cache' />,
             description: `${bytes(storage.usage)} out of ${bytes(storage.quota)} used (${((storage.usage / storage.quota) * 100).toFixed(2)}%)`
           })
-        }}
+        }
         type='button'>
-        {version}
+        {version.current}
       </button>
       <div>
         <Theme

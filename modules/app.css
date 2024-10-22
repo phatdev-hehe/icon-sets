@@ -83,8 +83,7 @@
   }
 
   .flip-vertical {
-    --scale: -1;
-    transform: scaleX(var(--scale)) scaleY(var(--scale));
-    writing-mode: vertical-rl;
+    @apply rotate-180;
+    writing-mode: vertical-lr;
   }
 }
