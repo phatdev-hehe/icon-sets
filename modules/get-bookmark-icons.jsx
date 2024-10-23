@@ -1,7 +1,7 @@
 import { without } from 'es-toolkit'
 import { useLocalStorage } from 'react-haiku'
 
-import { Icon, createCountLabel, toast } from '../aliases'
+import { createCountLabel, Icon, toast } from '../aliases'
 
 const initialValue = []
 

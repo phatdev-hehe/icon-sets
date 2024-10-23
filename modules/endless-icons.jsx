@@ -2,7 +2,7 @@ import { useSetState } from 'ahooks'
 import { range, sampleSize } from 'es-toolkit'
 import { useSingleEffect } from 'react-haiku'
 
-import { createCountLabel, getAll, Grid, Icon } from '../aliases'
+import { createCountLabel, getAll, Icon, IconGrid } from '../aliases'
 
 const size = 100
 const sizes = range(size, size + 1000, size)
@@ -17,7 +17,7 @@ export default () => {
   useSingleEffect(effect)
 
   return (
-    <Grid
+    <IconGrid
       endReached={effect}
       footerRight={
         <Icon
@@ -29,7 +29,7 @@ export default () => {
               title: size
             }))
           }}
-          name='double-arrow-vertical'
+          name='double-arrow-horizontal'
         />
       }
       icons={state.icons}

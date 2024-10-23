@@ -46,9 +46,9 @@ import {
   getAll,
   getBookmarkIcons,
   getRecentlyViewedIcons,
-  Grid,
   has,
   Icon,
+  IconGrid,
   IconGroups,
   idb,
   is,
@@ -278,7 +278,7 @@ const Sidebar = () => {
         className={cn({ 'text-warning': version.isOutdated })}
         onClick={() =>
           toast('Storage', {
-            action: <Icon name='turn-left' onPress={app.clear} tooltip='Clear cache' />,
+            action: <Icon name='chat-round-dots' onPress={app.clear} tooltip='Clear cache' />,
             description: `${bytes(storage.usage)} out of ${bytes(storage.quota)} used (${((storage.usage / storage.quota) * 100).toFixed(2)}%)`
           })
         }
@@ -372,7 +372,7 @@ export const App = () => {
             <Panel>
               {state === 0 && <IconGroups />}
               {state === 1 && <EndlessIcons />}
-              {state === 2 && <Grid icons={bookmarkIcons.current} />}
+              {state === 2 && <IconGrid icons={bookmarkIcons.current} />}
               {state === 3 && <RecentlyViewedIcons />}
               {is.string(state) && <FilterIcons {...all.iconSets[state]} />}
             </Panel>

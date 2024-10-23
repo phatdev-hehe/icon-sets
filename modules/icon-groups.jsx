@@ -7,8 +7,8 @@ import {
   createCountLabel,
   createMemo,
   getAll,
-  Grid,
   Icon,
+  IconGrid,
   mapObject,
   relativeTime,
   sortKeys
@@ -75,7 +75,7 @@ export default () => {
   )
 
   return (
-    <Grid
+    <IconGrid
       footerRight={
         <Icon
           listbox={{

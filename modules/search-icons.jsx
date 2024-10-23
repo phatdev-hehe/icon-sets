@@ -1,6 +1,7 @@
 import { Input } from '@nextui-org/react'
 import { useDebounceEffect, useSetState } from 'ahooks'
 import { kebabCase } from 'change-case'
+import { useQueryState } from 'nuqs'
 
 import {
   buildIcons,
@@ -9,14 +10,13 @@ import {
   equal,
   Fuse,
   getAll,
-  Grid,
   has,
   Icon,
+  IconGrid,
   mapObject,
   MotionPluralize,
   number,
-  sortKeys,
-  useUrlState
+  sortKeys
 } from '../aliases'
 
 const placeholder = 'Search'
@@ -29,9 +29,9 @@ const createDownloadListboxItem = ({ icons, ...rest }) => ({
 })
 
 export const useSearchPattern = () => {
-  const [state, setState] = useUrlState({ search: placeholder }, { navigateMode: 'replace' })
+  const [searchPattern, setSearchPattern] = useQueryState('search', { defaultValue: placeholder })
 
-  return { searchPattern: state.search, setSearchPattern: search => setState({ search }) }
+  return { searchPattern, setSearchPattern }
 }
 
 export default () => {
@@ -53,7 +53,7 @@ export default () => {
   )
 
   return (
-    <Grid
+    <IconGrid
       footer={
         <Input
           autoFocus

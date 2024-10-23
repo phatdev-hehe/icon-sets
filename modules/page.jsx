@@ -4,8 +4,8 @@ import { Canvas } from '@react-three/fiber'
 import { useDeepCompareEffect, useMouse, useSize } from 'ahooks'
 import { domAnimation, LazyMotion, m, useSpring } from 'framer-motion'
 import { ThemeProvider } from 'next-themes'
+import { NuqsAdapter } from 'nuqs/adapters/react'
 import { useRef } from 'react'
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { Toaster } from 'sonner'
 
 import { has, locale, Theme } from '../aliases'
@@ -14,11 +14,7 @@ const Providers = ({ children }) => (
   <LazyMotion features={domAnimation} strict>
     <ThemeProvider attribute='class' disableTransitionOnChange>
       <NextUIProvider locale={locale}>
-        <BrowserRouter>
-          <Routes>
-            <Route element={children} path='/' />
-          </Routes>
-        </BrowserRouter>
+        <NuqsAdapter>{children}</NuqsAdapter>
       </NextUIProvider>
     </ThemeProvider>
   </LazyMotion>

@@ -5,7 +5,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@ahooksjs/use-url-state": "^3.5.1",
     "@iconify/json": "^2.2.262",
     "@iconify/react": "^5.0.2",
     "@iconify/utils": "^2.1.33",
@@ -39,6 +38,7 @@
     "nanoid": "^5.0.7",
     "next-themes": "^0.3.0",
     "non.geist": "^1.0.4",
+    "nuqs": "^2.0.1",
     "pluralize": "^8.0.0",
     "react": "^18.2.0",
     "react-device-detect": "^2.2.3",
@@ -46,7 +46,6 @@
     "react-fast-compare": "^3.2.2",
     "react-haiku": "^2.1.8",
     "react-resizable-panels": "^2.1.4",
-    "react-router-dom": "^6.27.0",
     "react-shadow": "^20.5.0",
     "react-use": "^17.5.1",
     "react-virtuoso": "^4.12.0",
@@ -61,7 +60,7 @@
     "autoprefixer": "^10.4.20",
     "eslint-plugin-perfectionist": "^3.9.1",
     "eslint-plugin-promise": "^7.1.0",
-    "eslint-plugin-react": "^7.37.1",
+    "eslint-plugin-react": "^7.37.2",
     "eslint-plugin-regexp": "^2.6.0",
     "eslint-plugin-tailwindcss": "^3.17.5",
     "eslint-plugin-unicorn": "^56.0.0",

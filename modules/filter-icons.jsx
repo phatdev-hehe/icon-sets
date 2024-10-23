@@ -1,6 +1,6 @@
 import { useDeepCompareEffect, useSetState } from 'ahooks'
 
-import { buildIcons, clone, createCountLabel, equal, Grid, has, Icon, is } from '../aliases'
+import { buildIcons, clone, createCountLabel, equal, has, Icon, IconGrid, is } from '../aliases'
 
 const initialState = { category: undefined, variant: undefined }
 
@@ -58,7 +58,7 @@ export default iconSet => {
   }, [iconSet.prefix])
 
   return (
-    <Grid
+    <IconGrid
       footerRight={
         (iconSet.has.variants || iconSet.has.categories || undefined) && (
           <Icon
