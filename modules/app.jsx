@@ -36,7 +36,6 @@ import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { useLockBodyScroll } from 'react-use'
 
 import {
-  asyncContent,
   bytes,
   collections,
   createCountLabel,
@@ -44,6 +43,7 @@ import {
   EndlessIcons,
   FilterIcons,
   getAll,
+  getAsyncResult,
   getBookmarkIcons,
   getRecentlyViewedIcons,
   has,
@@ -264,10 +264,10 @@ const app = {
 
 const Sidebar = () => {
   const bookmarkIcons = getBookmarkIcons()
-  const storage = asyncContent(() => navigator.storage.estimate())
+  const storage = getAsyncResult(() => navigator.storage.estimate())
 
   const version = mapObject(app.version, (key, value) => {
-    if (['current', 'isOutdated'].includes(key)) return [key, asyncContent(value)]
+    if (['current', 'isOutdated'].includes(key)) return [key, getAsyncResult(value)]
 
     return mapObjectSkip
   })

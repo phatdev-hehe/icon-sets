@@ -30,10 +30,10 @@ const formatData = data => {
 }
 
 export default (message, data) => {
-  const id = has([message, data]) && toast(message, formatData(data))
+  const toastId = has([message, data]) && toast(message, formatData(data))
 
   return {
-    dismiss: currentId => toast.dismiss(currentId === 'all' ? undefined : id),
-    update: data => toast(message, { ...formatData(data), id })
+    dismiss: id => toast.dismiss(id === 'all' ? undefined : toastId),
+    update: data => toast(message, { ...formatData(data), toastId })
   }
 }
