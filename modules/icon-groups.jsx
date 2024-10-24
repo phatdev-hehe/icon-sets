@@ -3,8 +3,8 @@ import { groupBy, uniq } from 'es-toolkit'
 import { sort } from 'fast-sort'
 
 import {
-  buildIcons,
   createCountLabel,
+  createListboxSectionDownload,
   createMemo,
   getAll,
   Icon,
@@ -65,14 +65,13 @@ export default () => {
     compare: (a, b) => modifiedDates.indexOf(a) - modifiedDates.indexOf(b)
   })
 
-  const icons = buildIcons(
+  const icons =
     groupedByCategory[state] ??
-      groupedByFirstLetter[state] ??
-      groupedByLicense[state] ??
-      groupedByModifiedDate[state] ??
-      groupedByAuthor[state] ??
-      all.icons
-  )
+    groupedByFirstLetter[state] ??
+    groupedByLicense[state] ??
+    groupedByModifiedDate[state] ??
+    groupedByAuthor[state] ??
+    all.icons
 
   return (
     <IconGrid
@@ -84,12 +83,12 @@ export default () => {
             ...createListboxSection('category', groupedByCategory),
             ...createListboxSection('author', groupedByAuthor),
             ...createListboxSection('first letter', groupedByFirstLetter),
-            ...icons.download.createListboxSection()
+            ...createListboxSectionDownload(icons)
           }}
           name='turn-slight-right'
         />
       }
-      icons={icons.current}
+      icons={icons}
     />
   )
 }

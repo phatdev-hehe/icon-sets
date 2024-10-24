@@ -1,6 +1,15 @@
 import { useDeepCompareEffect, useSetState } from 'ahooks'
 
-import { buildIcons, clone, createCountLabel, equal, has, Icon, IconGrid, is } from '../aliases'
+import {
+  clone,
+  createCountLabel,
+  createListboxSectionDownload,
+  equal,
+  has,
+  Icon,
+  IconGrid,
+  is
+} from '../aliases'
 
 const initialState = { category: undefined, variant: undefined }
 
@@ -16,22 +25,20 @@ export default iconSet => {
     variants: has(iconSet.variants)
   }
 
-  iconSet.icons = buildIcons(
-    iconSet.icons.filter(icon => {
-      const matchesVariant = variant =>
-        icon.name[iconSet.has.prefixes ? 'startsWith' : 'endsWith'](
-          iconSet.has.prefixes ? `${variant}-` : `-${variant}`
-        )
-
-      return (
-        (!is.string(state.category) || iconSet.categories?.[state.category]?.includes(icon.name)) &&
-        (!is.string(state.variant) ||
-          (is.emptyString(state.variant)
-            ? !Object.keys(iconSet.variants).some(matchesVariant)
-            : matchesVariant(state.variant)))
+  iconSet.icons = iconSet.icons.filter(icon => {
+    const matchesVariant = variant =>
+      icon.name[iconSet.has.prefixes ? 'startsWith' : 'endsWith'](
+        iconSet.has.prefixes ? `${variant}-` : `-${variant}`
       )
-    })
-  )
+
+    return (
+      (!is.string(state.category) || iconSet.categories?.[state.category]?.includes(icon.name)) &&
+      (!is.string(state.variant) ||
+        (is.emptyString(state.variant)
+          ? !Object.keys(iconSet.variants).some(matchesVariant)
+          : matchesVariant(state.variant)))
+    )
+  })
 
   const createListboxSection = key => {
     if (!iconSet.has[key]) return
@@ -65,13 +72,13 @@ export default iconSet => {
             listbox={{
               ...createListboxSection('variants'),
               ...createListboxSection('categories'),
-              ...iconSet.icons.download.createListboxSection()
+              ...createListboxSectionDownload(iconSet.icons)
             }}
             name='filter'
           />
         )
       }
-      icons={iconSet.icons.current}
+      icons={iconSet.icons}
     />
   )
 }

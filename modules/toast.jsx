@@ -34,6 +34,6 @@ export default (message, data) => {
 
   return {
     dismiss: id => toast.dismiss(id === 'all' ? undefined : toastId),
-    update: data => toast(message, { ...formatData(data), toastId })
+    update: data => toast(message, { ...formatData(data), id: toastId })
   }
 }

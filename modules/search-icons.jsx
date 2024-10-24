@@ -4,8 +4,8 @@ import { kebabCase } from 'change-case'
 import { useQueryState } from 'nuqs'
 
 import {
-  buildIcons,
   createCountLabel,
+  createListboxSectionDownload,
   createMemo,
   equal,
   Fuse,
@@ -20,13 +20,7 @@ import {
 } from '../aliases'
 
 const placeholder = 'Search'
-const defaultState = { current: [] }
-
-const createDownloadListboxItem = ({ icons, ...rest }) => ({
-  ...icons.download?.createListboxSection().Download[0],
-  ...rest,
-  title: 'Download'
-})
+const defaultState = []
 
 export const useSearchPattern = () => {
   const [searchPattern, setSearchPattern] = useQueryState('search', { defaultValue: placeholder })
@@ -42,9 +36,7 @@ export default () => {
 
   useDebounceEffect(
     () => {
-      const icons = buildIcons(
-        fuse.search(kebabCase(searchPattern)).map(fuseResult => fuseResult.item)
-      )
+      const icons = fuse.search(kebabCase(searchPattern)).map(fuseResult => fuseResult.item)
 
       setState({ displayedIcons: icons, icons })
     },
@@ -61,20 +53,20 @@ export default () => {
           endContent={
             <Icon
               listbox={{
-                [createCountLabel(state.icons.current, 'All results', false)]: [
+                [createCountLabel(state.icons, 'All results', false)]: [
                   {
-                    isDisabled: !has(state.icons.current),
+                    isDisabled: !has(state.icons),
                     isSelected: equal(...Object.values(state)),
                     onPress: () => setState(state => ({ displayedIcons: state.icons })),
                     title: 'View'
                   },
-                  createDownloadListboxItem({ icons: state.icons })
+                  { ...createListboxSectionDownload(state.icons, true), title: 'Download' }
                 ],
                 ...mapObject(
                   createMemo(() => {
                     const iconSets = mapObject(all.iconSets, (key, iconSet) => [
                       iconSet.name,
-                      state.icons.current.filter(icon => icon.prefix === iconSet.prefix)
+                      state.icons.filter(icon => icon.prefix === iconSet.prefix)
                     ])
 
                     return sortKeys(iconSets, {
@@ -82,20 +74,24 @@ export default () => {
                     })
                   }, [state.icons]),
                   (iconSetName, icons) => {
-                    const isDisabled = !has(icons) || equal(icons, state.icons.current)
+                    const isDisabled = !has(icons) || equal(icons, state.icons)
 
-                    icons = isDisabled ? defaultState : buildIcons(icons)
+                    icons = isDisabled ? defaultState : icons
 
                     return [
-                      createCountLabel(icons.current, iconSetName, false),
+                      createCountLabel(icons, iconSetName, false),
                       [
                         {
                           isDisabled,
-                          isSelected: equal(icons.current, state.displayedIcons.current),
+                          isSelected: equal(icons, state.displayedIcons),
                           onPress: () => setState({ displayedIcons: icons }),
                           title: 'View'
                         },
-                        createDownloadListboxItem({ icons, isDisabled })
+                        {
+                          ...createListboxSectionDownload(icons, true),
+                          isDisabled,
+                          title: 'Download'
+                        }
                       ]
                     ]
                   }
@@ -104,7 +100,7 @@ export default () => {
               name='round-ramp-left'
             />
           }
-          label={<MotionPluralize count={state.displayedIcons.current} word='icon' />}
+          label={<MotionPluralize count={state.displayedIcons} word='icon' />}
           onValueChange={setSearchPattern}
           placeholder={placeholder}
           startContent={<Icon className='size-5' name='search' />}
@@ -112,7 +108,7 @@ export default () => {
           variant='bordered'
         />
       }
-      icons={state.displayedIcons.current}
+      icons={state.displayedIcons}
     />
   )
 }

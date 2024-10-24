@@ -6,10 +6,10 @@ import { VirtuosoGrid } from 'react-virtuoso'
 
 import {
   buildIcon,
-  buildIcons,
   copy,
   createBlob,
   createCountLabel,
+  createListboxSectionDownload,
   equal,
   getAll,
   getBookmarkIcons,
@@ -28,23 +28,20 @@ import {
 
 const CardFooterProps = { style: { height: '4rem' } }
 
-const createVirtuosoGridProps = icons => {
+const createVirtuosoGridComponents = icons => {
   const className = 'flex-center text-foreground-500'
 
   return {
-    components: {
-      Footer: () => {
-        if (has(icons)) return <div {...CardFooterProps} />
+    Footer: () => {
+      if (has(icons)) return <div {...CardFooterProps} />
 
-        return <div className={className}>No icons</div>
-      },
-      ScrollSeekPlaceholder: ({ index, ...style }) => {
-        const icon = icons[index]
-
-        return <div {...{ className, style }}>{icon.name.slice(0, 3)}</div>
-      }
+      return <div className={className}>No icons</div>
     },
-    data: icons
+    ScrollSeekPlaceholder: ({ index, ...style }) => {
+      const icon = icons[index]
+
+      return <div {...{ className, style }}>{icon.name.slice(0, 3)}</div>
+    }
   }
 }
 
@@ -56,7 +53,7 @@ export default ({ footer, footerRight, icons, ...rest }) => {
 
   if (icons.some(is.string)) icons = all.icons.filter(icon => icons.includes(icon.id))
 
-  icons = buildIcons(has(state) ? sort(icons).by(state) : icons)
+  icons = has(state) ? sort(icons).by(state) : icons
 
   return (
     <Card
@@ -66,6 +63,8 @@ export default ({ footer, footerRight, icons, ...rest }) => {
       }}
       isFooterBlurred>
       <VirtuosoGrid
+        components={createVirtuosoGridComponents(icons)}
+        data={icons}
         itemClassName='p-6'
         itemContent={(index, icon) => {
           icon = buildIcon(icon)
@@ -131,13 +130,12 @@ export default ({ footer, footerRight, icons, ...rest }) => {
         }}
         listClassName='flex-center flex-wrap h-auto'
         scrollSeekConfiguration={{ enter: v => Math.abs(v) > 300, exit: v => v === 0 }}
-        {...createVirtuosoGridProps(icons.current)}
         {...rest}
       />
       <CardFooter {...CardFooterProps}>
         {footer ?? (
           <div className='flex-center justify-between px-3'>
-            <MotionPluralize count={icons.current} word='icon' />
+            <MotionPluralize count={icons} word='icon' />
             {footerRight ?? (
               <Icon
                 listbox={{
@@ -152,19 +150,21 @@ export default ({ footer, footerRight, icons, ...rest }) => {
                     (title, props) => [
                       title,
                       ['asc', 'desc'].map(order => {
-                        const currentState = props.map(prop => ({ [order]: prop }))
+                        let currentState = props.map(prop => ({ [order]: prop }))
                         const isSelected = equal(state, currentState)
 
+                        currentState = isSelected ? [] : currentState
+
                         return {
-                          isDisabled: number(icons.current) < 2,
+                          isDisabled: number(icons) < 2,
                           isSelected,
-                          onPress: () => setState(!isSelected && currentState),
+                          onPress: () => setState(currentState),
                           title: { asc: 'Ascending', desc: 'Descending' }[order]
                         }
                       })
                     ]
                   ),
-                  ...icons.download.createListboxSection()
+                  ...createListboxSectionDownload(icons)
                 }}
                 name='arrows-vertical'
               />

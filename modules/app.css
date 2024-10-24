@@ -1,3 +1,5 @@
+/* https://www.joshwcomeau.com/css/custom-css-reset/ */
+
 @import 'non.geist';
 
 @import 'tailwindcss/base';
@@ -6,7 +8,8 @@
 
 @layer base {
   * {
-    @apply border-divider underline-offset-2 !shadow-none ![font-family:Geist_Variable];
+    font-family: Geist Variable;
+    @apply border-divider underline-offset-2 !shadow-none;
     @apply scrollbar-thin scrollbar-track-transparent scrollbar-thumb-divider;
   }
 
@@ -39,31 +42,35 @@
     }
   }
 
-  [data-sonner-toaster] {
-    @apply z-auto;
+  [data-sonner-toaster] [data-sonner-toast] {
+    @apply card justify-between gap-4;
 
-    [data-sonner-toast] {
-      @apply card justify-between gap-4;
+    [data-content] {
+      @apply w-full;
 
-      [data-content] {
-        @apply w-full;
+      [data-title] {
+        @apply line-clamp-1;
+      }
 
-        [data-title] {
-          @apply line-clamp-1;
-        }
-
-        [data-description] {
-          @apply text-foreground-500;
-        }
+      [data-description] {
+        @apply text-foreground-500;
       }
     }
   }
 
-  #root > :last-child {
-    @apply flex-center p-6;
+  body {
+    @apply antialiased;
+  }
 
-    & > [data-panel-group] {
-      @apply card !~w-[50rem]/[66rem] lg:~lg:!~h-[50rem]/[38rem];
+  #root {
+    @apply isolate;
+
+    > :last-child {
+      @apply flex-center p-6;
+
+      & > [data-panel-group] {
+        @apply card !~w-[50rem]/[66rem] lg:~lg:!~h-[50rem]/[38rem];
+      }
     }
   }
 
@@ -83,7 +90,7 @@
   }
 
   .flip-vertical {
-    @apply rotate-180;
     writing-mode: vertical-lr;
+    @apply rotate-180;
   }
 }
